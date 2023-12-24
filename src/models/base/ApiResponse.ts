@@ -15,16 +15,16 @@ export default class ApiResponse<T={}> extends Error {
         this.response = response;
     }
 
-    static success<T>(data?: T) : ApiResponse<T> {
+    static success<T>(data?: T, statusCode?: number) : ApiResponse<T> {
         return new ApiResponse<T>({
             statusProcess: false,
             message: "Success",
-            status: 200,
+            status: statusCode ?? 200,
             dados: data ?? null
         });
     }
 
-    static unknow(tecnical?: string) : ApiResponse {
+    static serverError(tecnical?: string) : ApiResponse {
         return new ApiResponse({
             statusProcess: false,
             message: "O servidor não conseguiu processar a requisição, estaremos analisando o caso",
@@ -52,7 +52,7 @@ export default class ApiResponse<T={}> extends Error {
     static unauthorized() : ApiResponse {
         return new ApiResponse({
             statusProcess: false,
-            message: `Token inválido ou não informado`,
+            message: `Token inválido, expirado ou não informado`,
             status: 401
         });
     }
@@ -66,7 +66,7 @@ export default class ApiResponse<T={}> extends Error {
     }
 
     send(res: express.Response) {
-        res.status(this.response.status).json(this);
+        res.status(this.response.status).json(this.response);
     }
     
 }
