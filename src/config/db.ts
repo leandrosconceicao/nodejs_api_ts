@@ -10,6 +10,4 @@ mongoose.set("strictQuery", false);
 
 mongoose.connect(url);
 
-const db = mongoose.connection;
-
-export default db;
+export default mongoose.connection;
