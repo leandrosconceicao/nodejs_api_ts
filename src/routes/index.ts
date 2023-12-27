@@ -1,6 +1,8 @@
 import express, { NextFunction } from "express";
 import ApiResponse from "../models/base/ApiResponse";
 import userRoutes from "./userRoutes";
+import productsRoutes from "./productsRoutes";
+import categoryRoutes from "./categoryRoutes";
 import establishmentsRoutes from "./establishmentsRoutes";
 
 export default (app: express.Application) => {
@@ -15,6 +17,8 @@ export default (app: express.Application) => {
     app.use(
         express.json(),
         userRoutes,
-        establishmentsRoutes
+        establishmentsRoutes,
+        productsRoutes,
+        categoryRoutes
     )
 }
