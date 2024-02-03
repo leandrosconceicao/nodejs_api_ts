@@ -3,21 +3,23 @@ import { Validators } from "../../utils/validators";
 import Category from "../../models/Categories";
 import ApiResponse from "../../models/base/ApiResponse";
 import ProductController from "./productController";
-import {Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction } from "express";
 import { RegexBuilder } from "../../utils/regexBuilder.js";
 import Categories from "../../models/Categories";
+import InvalidParameter from "../../models/errors/InvalidParameters.js";
+import NotFoundError from "../../models/errors/NotFound";
 var ObjectId = mongoose.Types.ObjectId;
 
 interface SearchFilter {
-    _id?: string,
-    storeCode?: mongoose.Types.ObjectId,
-    nome?: RegExp
+  _id?: string,
+  storeCode?: mongoose.Types.ObjectId,
+  nome?: RegExp
 }
 class CategoryController {
 
   static async findAll(req: Request, res: Response, next: NextFunction) {
     try {
-      let {id, storeCode, nome} = req.query;
+      let { id, storeCode, nome } = req.query;
       let cat = <SearchFilter>{};
       if (new Validators("id", id).validate().isValid) {
         cat._id = id as string;
@@ -35,25 +37,51 @@ class CategoryController {
     }
   }
 
-//   static async add(req: Request, res: Response, next: NextFunction) {
-//     try {
-//       let category = new Category(req.body);
-//       let lastCategory = await CategoryController.getLastCategory(category.storeCode);
-//       if (lastCategory) {
-//         category.ordenacao = lastCategory.ordenacao + 1;
-//       } else {
-//         category.ordenacao = 1;
-//       }
-//       await category.save();
-//       return ApiResponse.success().send(res);
-//     } catch (e) {
-//       next(e);
-//     }
-//   }
-
-  static async getLastCategory(storeCode: mongoose.Types.ObjectId) : Promise<mongoose.Document> {
+  static async findOne(req: Request, res: Response, next: NextFunction) {
     try {
-      const categories = await Category.find({storeCode: storeCode});
+      const id = req.params.id;
+      const validation = new Validators("id", id, "string").validate();
+      if (!validation.isValid) {
+        throw new InvalidParameter(validation);
+      }
+      const category = await Categories.findById(id);
+      if (!category) {
+        throw new NotFoundError();
+      }
+      return ApiResponse.success(category).send(res);
+    } catch (e) {
+      next(e);
+    }
+  }
+
+  static async add(req: Request, res: Response, next: NextFunction) {
+    try {
+      let category = new Category(req.body);
+      let lastCategory = await CategoryController.getLastCategory(category.storeCode);
+      if (lastCategory) {
+        const fetchDoc = new Category(lastCategory);
+        category.ordenacao = fetchDoc.ordenacao + 1;
+      } else {
+        category.ordenacao = 1;
+      }
+      await category.save();
+      return ApiResponse.success().send(res);
+    } catch (e) {
+      next(e);
+    }
+  }
+
+  static async getLastCategory(storeCode: {
+    prototype?: mongoose.Types.ObjectId;
+    cacheHexString?: unknown;
+    generate?: {};
+    createFromTime?: {};
+    createFromHexString?: {};
+    createFromBase64?: {};
+    isValid?: {};
+  }): Promise<mongoose.Document> {
+    try {
+      const categories = await Category.find({ storeCode: storeCode });
       const data = categories.splice(-1)[0];
       return data;
     } catch (e) {
@@ -61,55 +89,68 @@ class CategoryController {
     }
   }
 
-//   static async updateName(req: Request, res: Response, next: NextFunction) {
-//     try {
-//       let {id, name} = req.body;
-//       if (!Validators.checkField(id)) {
-//         return ApiResponse.parameterNotFound("id").sendResponse(res);
-//       }
-//       if (!Validators.checkField(name)) {
-//         return ApiResponse.parameterNotFound("name").sendResponse(res);
-//       }
-//       await Category.findByIdAndUpdate(id, {"nome": name})
-//       return ApiResponse.success().send(res);
-//     } catch (e) {
-//       next(e);
-//     }
-//   }
+  static async updateName(req: Request, res: Response, next: NextFunction) {
+    try {
+      let { id, name } = req.body;
+      const idValidation = new Validators("id", id, "name").validate();
+      const nameValidation = new Validators("name", name, "string").validate();
+      if (!idValidation.isValid) {
+        throw new InvalidParameter(idValidation);
+      }
+      if (!nameValidation.isValid) {
+        throw new InvalidParameter(nameValidation);
+      }
+      await Category.findByIdAndUpdate(id, { "nome": name })
+      return ApiResponse.success().send(res);
+    } catch (e) {
+      next(e);
+    }
+  }
 
-//   static async changeOrder(req: Request, res: Response, next: NextFunction) {
-//     try {
-//       const from = req.body.from;
-//       const to = req.body.to;
-//       if (!Validators.checkField(from._id) && !Validators.checkField(from.ordenacao)) {
-//         return ApiResponse.parameterNotFound('from').sendResponse(res);
-//       }
-//       if (!Validators.checkField(to._id) && !Validators.checkField(to.ordenacao)) {
-//         return ApiResponse.parameterNotFound('to').sendResponse(res);
-//       }
-//       await Category.findByIdAndUpdate(from._id, {"ordenacao": to.ordenacao});
-//       await Category.findByIdAndUpdate(to._id, {"ordenacao": from.ordenacao});
-//       return ApiResponse.success().send(res);
-//     } catch (e) {
-//       next(e);
-//     }
-//   }
+  static async changeOrder(req: Request, res: Response, next: NextFunction) {
+    try {
+      const from = req.body.from;
+      const to = req.body.to;
+      const fromIdVal = new Validators("from._id", from.id, "string").validate();
+      const fromOrder = new Validators("from.ordenacao", from.ordenacao, "string").validate();
+      const toIdVal = new Validators("to._id", to.id, "string").validate();
+      const toOrder = new Validators("to.ordenacao", to.ordenacao, "string").validate();
+      if (!fromIdVal.isValid) {
+        throw new InvalidParameter(fromIdVal);
+      }
+      if (!fromOrder.isValid) {
+        throw new InvalidParameter(fromOrder);
+      }
+      if (!toIdVal.isValid) {
+        throw new InvalidParameter(toIdVal);
+      }
+      if (!toOrder.isValid) {
+        throw new InvalidParameter(toOrder);
+      }
+      await Category.findByIdAndUpdate(from._id, { "ordenacao": to.ordenacao });
+      await Category.findByIdAndUpdate(to._id, { "ordenacao": from.ordenacao });
+      return ApiResponse.success().send(res);
+    } catch (e) {
+      next(e);
+    }
+  }
 
-//   static async delete(req: Request, res: Response, next: NextFunction) {
-//     try {
-//       let id = req.body.id;
-//       if (!Validators.checkField(id)) {
-//         return ApiResponse.parameterNotFound('id').sendResponse(res);
-//       }
-//       if (await ProductController.productsHasCategory(id)) {
-//         return ApiResponse.badRequest('Categoria não pode ser excluida se possuir produtos cadastrados').sendResponse(res);
-//       }
-//       await Category.findByIdAndDelete(id);
-//       return ApiResponse.success().send(res);
-//     } catch (e) {
-//       next(e);
-//     }
-//   }
+  static async delete(req: Request, res: Response, next: NextFunction) {
+    try {
+      let id = req.body.id;
+      const validation = new Validators("id", id, "string");
+      if (!validation.validate().isValid) {
+        throw new InvalidParameter(validation.validate());
+      }
+      if (await ProductController.productsHasCategory(id)) {
+        return ApiResponse.badRequest('Categoria não pode ser excluida se possuir produtos cadastrados').send(res);
+      }
+      await Category.findByIdAndDelete(id);
+      return ApiResponse.success().send(res);
+    } catch (e) {
+      next(e);
+    }
+  }
 }
 
 export default CategoryController;
