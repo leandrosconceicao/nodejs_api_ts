@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import orders_products_schema from "./orders/orders_products";
+import orders_delivery_address from "./orders/orders_delivery_address";
 var ObjectId = mongoose.Types.ObjectId;
 
 export default mongoose.model("orders", new mongoose.Schema({
@@ -36,17 +37,7 @@ export default mongoose.model("orders", new mongoose.Schema({
     type: ObjectId, ref: "clients"
   },
   deliveryAddress: {
-    name: String,
-    phoneNumber: String,
-    id: String,
-    address: String,
-    city: String,
-    complement: String,
-    distric: String,
-    number: String,
-    state: String,
-    zipCode: String,
-    versionKey: false,
+    type: orders_delivery_address,
   },
   observations: {type: String, default: ""},
   userCreate: {
