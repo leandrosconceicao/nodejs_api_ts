@@ -4,6 +4,7 @@ import userRoutes from "./userRoutes";
 import productsRoutes from "./productsRoutes";
 import categoryRoutes from "./categoryRoutes";
 import establishmentsRoutes from "./establishmentsRoutes";
+import appRoutes from "./appRoutes";
 
 export default (app: express.Application) => {
     app.get("/", (_: express.Request, res: express.Response, next: NextFunction) => {
@@ -19,6 +20,7 @@ export default (app: express.Application) => {
         userRoutes,
         establishmentsRoutes,
         productsRoutes,
-        categoryRoutes
+        categoryRoutes,
+        appRoutes,
     )
 }
