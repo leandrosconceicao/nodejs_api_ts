@@ -4,8 +4,10 @@ import AddOneController from "../controllers/products/addOnesController";
 import Endpoints from "../models/Endpoints";
 import validateToken from "../middlewares/tokenController";
 import paginationAndFilters from "../middlewares/paginationAndFilters";
+import MenuItemsController from "../controllers/products/menuItemsController";
 
 export default express.Router()
+    .get(Endpoints.menu_items, MenuItemsController.get)
     .get(Endpoints.add_ones, AddOneController.findAll)
     .post(Endpoints.add_ones, validateToken, AddOneController.add)
     .put(Endpoints.add_ones, validateToken, AddOneController.update)
