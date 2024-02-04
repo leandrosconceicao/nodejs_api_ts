@@ -7,6 +7,8 @@ export default mongoose.model('establishments', new mongoose.Schema({
     isOpen: {type: Boolean, default: false},
     ownerId: {type: String, required: [true, "Parametro (ownerId) é obrigatório"]},
     logo: {type: String, default: ""},
+    pixKey: {type: String, default: ""},
+    telegramChatId: {type: String, default: ""},
     social: {
         instagram: {type: String, default: ""},
         facebook: {type: String, default: ""},

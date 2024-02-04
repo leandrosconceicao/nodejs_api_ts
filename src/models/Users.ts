@@ -9,6 +9,7 @@ export default mongoose.model('users', new mongoose.Schema({
         message: "O tipo {VALUE} não é um valor permitido"
         }
     },
+    changePassword: {type: Boolean, default: false},
     username: {type: String},
     isActive: {type: Boolean, default: false},
     establishments: [{
