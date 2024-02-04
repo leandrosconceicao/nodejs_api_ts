@@ -1,7 +1,7 @@
 import { Validators } from "../../utils/validators";
 import ApiResponse from "../../models/base/ApiResponse";
 import NotFoundError from "../../models/errors/NotFound";
-import Products from "../../models/products/Products";
+import {Products} from "../../models/products/Products";
 import { Request, Response, NextFunction } from "express";
 import InvalidParameter from "../../models/errors/InvalidParameters";
 import mongoose, { ObjectId } from "mongoose";
