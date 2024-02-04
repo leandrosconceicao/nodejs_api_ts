@@ -1,14 +1,21 @@
 import mongoose from "mongoose"
+import {MongoServerError} from "mongodb";
 import express, { NextFunction } from "express";
 import ApiResponse from "../models/base/ApiResponse";
 import Jwt from "jsonwebtoken";
 import ValidationError from "../models/errors/ValidationError";
 import InvalidParameter from "../models/errors/InvalidParameters";
 import NotFoundError from "../models/errors/NotFound";
+import DuplicateError from "../models/errors/DuplicateError";
 import { AxiosError } from "axios";
 
 export default function(err: Error, req: express.Request, res: express.Response, next: NextFunction) {
-    // if (err instanceof mongoose.Error.)
+    
+    if (err instanceof MongoServerError) {
+        if (err.code === 11000) {
+            return new DuplicateError(err).send(res);
+        }
+    }
     if (err instanceof mongoose.Error.CastError) {
         return ApiResponse.badRequest(err.message).send(res);
     }
