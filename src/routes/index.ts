@@ -5,6 +5,10 @@ import productsRoutes from "./productsRoutes";
 import categoryRoutes from "./categoryRoutes";
 import establishmentsRoutes from "./establishmentsRoutes";
 import appRoutes from "./appRoutes";
+import paymentRoutes from "./paymentRoutes";
+import ordersRoutes from "./ordersRoutes";
+import clientRoutes from "./clientRoutes";
+import accountRoutes from "./accountRoutes";
 
 export default (app: express.Application) => {
     app.get("/", (_: express.Request, res: express.Response, next: NextFunction) => {
@@ -22,5 +26,9 @@ export default (app: express.Application) => {
         productsRoutes,
         categoryRoutes,
         appRoutes,
+        paymentRoutes,
+        ordersRoutes,
+        clientRoutes,
+        accountRoutes
     )
 }

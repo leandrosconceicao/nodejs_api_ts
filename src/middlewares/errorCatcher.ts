@@ -37,6 +37,9 @@ export default function(err: Error, req: express.Request, res: express.Response,
         }
         return ApiResponse.serverError(err.response.data.mensagem).send(res);
     }
+    if (err instanceof ApiResponse) {
+        return err.send(res);
+    }
     return ApiResponse.serverError(err.message).send(res);
     
 }

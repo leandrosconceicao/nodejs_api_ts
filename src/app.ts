@@ -1,6 +1,6 @@
 import express from "express";
 import cors from "cors";
-import db from "./config/db";
+import db from "../config/db";
 import router from "./routes/index";
 import pageNotFound from "./middlewares/pageNotFound";
 import errorCatcher from "./middlewares/errorCatcher";

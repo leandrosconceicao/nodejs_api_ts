@@ -3,12 +3,12 @@ import orders_products_schema from "./orders/orders_products";
 import orders_delivery_address from "./orders/orders_delivery_address";
 var ObjectId = mongoose.Types.ObjectId;
 
-export default mongoose.model("orders", new mongoose.Schema({
+const orderSchema = new mongoose.Schema({
   pedidosId: { type: Number },
-  accoundId: {
+  accountId: {
     type: ObjectId, ref: "accounts",
   },
-  createDate: { type: Date },
+  createDate: { type: Date , default: () => {return new Date();}},
   updated_at: { type: Date },
   orderType: {
     type: String,
@@ -45,6 +45,10 @@ export default mongoose.model("orders", new mongoose.Schema({
   },
   storeCode: {type: ObjectId, ref: "establishments" , required: [true, "Parametro (storeCode) é obrigatório"]},
   payment: {
-    type: ObjectId, ref: 'payments'
+    type: mongoose.Types.ObjectId, ref: 'payments'
   },
-}));
+});
+
+const Orders = mongoose.model("orders", orderSchema);
+
+export {Orders, orderSchema};

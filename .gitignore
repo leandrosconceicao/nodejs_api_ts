@@ -3,3 +3,5 @@ node_modules
 .eslintrc.json
 build
 .vscode
+config/homolog.p12
+config/producao.p12

@@ -10,16 +10,24 @@ export class Validators {
         this.type = type;
     }
 
-    validate() : ValidatorInfo {
+    validate(): ValidatorInfo {
         if (!this.value) {
-            return {parameter: this.field, value: this.value, isValid: false,};
+            return { parameter: this.field, value: this.value, isValid: false, };
         }
         if (this.type) {
-            const type = typeof this.value;
-            const valid = type === this.type;
-            return {parameter: this.field, value: this.value, isValid: valid, info: valid ? null : ` precisa ser do tipo ${this.type}, tipo informado [${type}]`}
+            if (this.type === "array") {
+                const valid = Array.isArray(this.value);
+                if (!valid) {
+                    return { parameter: this.field, isValid: valid, value: this.value, info: valid ? null : ` precisa ser do tipo array, tipo informado [${typeof this.value}]` };
+                }
+            } else {
+
+                const type = typeof this.value;
+                const valid = type === this.type;
+                return { parameter: this.field, value: this.value, isValid: valid, info: valid ? null : ` precisa ser do tipo ${this.type}, tipo informado [${type}]` }
+            }
         }
-        return {parameter: this.field, value: this.value, isValid: true};
+        return { parameter: this.field, value: this.value, isValid: true };
     }
 
 
