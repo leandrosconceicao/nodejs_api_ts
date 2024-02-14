@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery.js";
 import { Request, Response, NextFunction } from "express";
 import { Validators } from "../../utils/validators";
 import { Orders, orderSchema } from "../../models/Orders";
@@ -11,6 +12,7 @@ import Establishments from "../../models/Establishments";
 import InvalidParameter from "../../models/errors/InvalidParameters";
 import PaymentController from "../payments/paymentController";
 import AccountsController from "../accounts/accountsController";
+import { Payments } from "../../models/Payments";
 
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -21,7 +23,288 @@ const popuOrders = "-orders";
 const popuUser = "userCreate";
 const popuEstablish = "-establishments";
 const popuPass = "-pass";
+
+interface OrderSearchQuery {
+    isPreparation?: boolean,
+    type?: string,
+    createDate: DateQuery,
+    clientId?: any,
+    payment?: any,
+    accountId?: any,
+    status?: any,
+    userCreate?: any,
+    accepted?: boolean,
+    storeCode: any,
+    products?: any,
+    _id?: any
+}
 export default class OrdersController {
+
+
+    static async findOne(req: Request, res: Response, next: NextFunction) {
+        try {
+            const id = req.params.id;
+            const idVal = new Validators("id", id).validate();
+            if (!idVal.isValid) {
+                throw new InvalidParameter(idVal);
+            }
+            const order = await Orders.findById(id);
+            if (!order) {
+                throw new NotFoundError("Pedido não localizado");
+            }
+            return ApiResponse.success(order).send(res);
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    static async findAll(req: Request, res: Response, next: NextFunction) {
+        try {
+            const {
+                isPreparation,
+                type,
+                from,
+                to,
+                id,
+                clientId,
+                paymentId,
+                accountId,
+                status,
+                userCreate,
+                accepted,
+                storeCode,
+            } = req.query;
+            const storeVal = new Validators("storeCode", storeCode, "string").validate();
+            const fromVal = new Validators("from", from, "string").validate();
+            const toVal = new Validators("to", to, "string").validate();
+            if (!storeVal.isValid) {
+                throw new InvalidParameter(storeVal);
+            }
+            if (!fromVal.isValid) {
+                throw new InvalidParameter(fromVal);
+            }
+            if (!toVal.isValid) {
+                throw new InvalidParameter(toVal);
+            }
+            const query: OrderSearchQuery = {
+                storeCode: new ObjectId(storeCode as string),
+                createDate: new PeriodQuery(from as string, to as string).build(),
+            }
+            if (type !== undefined) {
+                query.type = type as string;
+            }
+            if (isPreparation !== undefined) {
+                query.products = {
+                    $elemMatch: { setupIsFinished: false, needsPreparation: true },
+                };
+                query.status = {
+                    $nin: ["cancelled", "finished"]
+                }
+            }
+            if (id !== undefined) {
+                query._id = new ObjectId(id as string);
+            }
+            if (clientId !== undefined) {
+                query.clientId = {
+                    _id: new ObjectId(id as string)
+                };
+            }
+            if (accountId !== undefined) {
+                query.accountId = new ObjectId(accountId as string);
+            }
+            if (userCreate !== undefined) {
+                query.userCreate = new ObjectId(userCreate as string);
+            }
+            if (accepted !== undefined) {
+                query.accepted = accepted === "true";
+            }
+            if (status !== undefined && !isPreparation) {
+                query.status = status;
+            }
+            if (paymentId !== undefined) {
+                query.payment = new ObjectId(paymentId as string);
+            }
+            req.result = Orders.find(query)
+                .populate(populateClient)
+                .populate(popuAccId, [popuPayment, popuOrders])
+                .populate(popuUser, [popuEstablish, popuPass])
+            next();
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    static async cancelOrder(req: Request, res: Response, next: NextFunction) {
+        try {
+            const {id, updatedBy} : {id: string, updatedBy: string} = req.body;
+            const idVal = new Validators("id", id, "string").validate();
+            const updatedVal = new Validators("updatedBy", updatedBy, "string").validate();
+            if (!idVal.isValid) {
+                throw new InvalidParameter(idVal);
+            }
+            const process = await Orders.findByIdAndUpdate(id, {
+                status: "cancelled",
+                isPayed: false,
+                updated_at: new Date(),
+                updated_by: new ObjectId(updatedBy)
+            }, {
+                returnDocument: "after"
+            });
+            await Payments.findByIdAndDelete(process.payment);
+            return ApiResponse.success(process).send(res);
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    static async transfer(req: Request, res: Response, next: NextFunction) {
+        try {
+            const {orderIds, originId, destinationId, updatedBy}: {
+                orderIds: Array<string>,
+                originId: string,
+                destinationId: string,
+                updatedBy: string
+            } = req.body;
+            if (!orderIds.length) {
+                throw ApiResponse.badRequest("Ids dos pedidos são inválidos ou não foram informados");
+            }
+            const originIdVal = new Validators("originId", originId).validate();
+            const destinationIdVal = new Validators("destinationId", destinationId).validate();
+            const userVal = new Validators("updatedBy", updatedBy).validate();
+            if (!originIdVal.isValid) {
+                throw new InvalidParameter(originIdVal);
+            }
+            if (!destinationIdVal.isValid) {
+                throw new InvalidParameter(destinationIdVal);
+            }
+            if (!userVal.isValid) {
+                throw new InvalidParameter(userVal);
+            }
+            const originAcc = await Accounts.findById(originId).lean();
+            const destiAcc = await Accounts.findById(destinationId).lean();
+            if (originAcc.status !== "open") {
+                throw ApiResponse.badRequest("Conta de origem não está aberta");
+            }
+            if (destiAcc.status !== "open") {
+                throw ApiResponse.badRequest("Conta de destino não está aberta");
+            }
+            const process = await Orders.updateMany({
+                _id: {
+                    $in: orderIds.map((e) => new ObjectId(e))
+                }
+            }, {
+                $set: {
+                    accountId: new ObjectId(destinationId),
+                    updated_at: new Date(),
+                    updated_by: new ObjectId(updatedBy)
+                }
+            });
+            if (!process.modifiedCount) {
+                throw ApiResponse.badRequest("Nenhum dado modificado, pedidos informados não foram localizados");
+            }
+            return ApiResponse.success(process).send(res);
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    static async pushNewItems(req: Request, res: Response, next: NextFunction) {
+        try {
+            const id = req.params.id;
+            const {orders} : {orders: Array<any>} = req.body;
+            const orderVal = new Validators("orders", orders, "array").validate();
+            if (!orderVal.isValid) {
+                throw new InvalidParameter(orderVal);
+            }
+            if (!orders.length) {
+                throw ApiResponse.badRequest("Nenhum pedido foi informado");
+            }
+            const process = await Orders.findByIdAndUpdate(id, {
+                $push: {products: orders}
+            }, {new: true});
+            return ApiResponse.success(process).send(res);
+        } catch (e) {
+            next(e);
+        }
+    }
+    
+    static async pullItem(req: Request, res: Response, next: NextFunction) {
+        try {
+            const id = req.params.id;
+            const {item_id} : {item_id: string} = req.body;
+            const itemval = new Validators("item_id", item_id, "string").validate();
+            const idVal = new Validators("id", id, "string").validate();
+            if (!idVal.isValid) {
+                throw new InvalidParameter(idVal);
+            }
+            if (!itemval.isValid) {
+                throw new InvalidParameter(itemval);
+            }
+            const process = await Orders.findByIdAndUpdate(id, {
+                $pull: {products: {_id: item_id}}
+            }, {new: true});
+            return ApiResponse.success(process).send(res);
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    static async changeSeller(req: Request, res: Response, next: NextFunction) {
+        try {
+            const {userTo, updatedBy} : {userTo: string, updatedBy: string} = req.body;
+            const id = req.params.id;
+            const idVal = new Validators("id", id, "string").validate();
+            const userToVal = new Validators("userTo", userTo, "string").validate();
+            const updatedVal = new Validators("updatedBy", updatedBy, "string").validate();
+            if (!idVal.isValid) {
+                throw new InvalidParameter(idVal);
+            }
+            if (!idVal.isValid) {
+                throw new InvalidParameter(userToVal);
+            }
+            if (!updatedVal.isValid) {
+                throw new InvalidParameter(updatedVal);
+            }
+            const process = await Orders.findByIdAndUpdate(id, {
+                userCreate: userTo,
+                updated_at: new Date(),
+                updated_by: new ObjectId(updatedBy)
+            }, {
+                new: true
+            })
+            return ApiResponse.success(process).send(res);
+        } catch (e) {
+            next(e);
+        }
+    }
+        
+    static async setPreparation(req: Request, res: Response, next: NextFunction) {
+        try {
+            const {isReady, updatedBy} : {isReady: boolean, updatedBy: string} = req.body;
+            const id = req.params.id;
+            const idVal = new Validators("id", id, "string").validate();
+            const updatedVal = new Validators("updatedBy", updatedBy, "string").validate();
+            if (!idVal.isValid) {
+                throw new InvalidParameter(idVal);
+            }
+            if (!updatedVal.isValid) {
+                throw new InvalidParameter(updatedVal);
+            }
+            const process = await Orders.findByIdAndUpdate(id, {
+                status: isReady ? "finished": "pending",
+                "products.$[].setupIsFinished": isReady,
+                updated_at: new Date()
+            }, {
+                new: true
+            })
+            .populate(populateClient)
+            .populate(popuAccId, [popuPayment, popuOrders])
+            .populate(popuUser, [popuEstablish, popuPass]).lean();
+            return ApiResponse.success(process).send(res);
+        } catch (e) {
+            next(e);
+        }
+    }
 
     static async newOrder(req: Request, res: Response, next: NextFunction) {
         try {
@@ -59,6 +342,8 @@ export default class OrdersController {
             next(e);
         }
     }
+
+
 
     static async getOrdersFromAccount(accountId: string) {
         const data = await Orders.find({

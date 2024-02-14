@@ -10,6 +10,7 @@ const orderSchema = new mongoose.Schema({
   },
   createDate: { type: Date , default: () => {return new Date();}},
   updated_at: { type: Date },
+  updated_by: { type: Date},
   orderType: {
     type: String,
     default: 'frontDesk',
