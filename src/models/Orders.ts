@@ -10,7 +10,7 @@ const orderSchema = new mongoose.Schema({
   },
   createDate: { type: Date , default: () => {return new Date();}},
   updated_at: { type: Date },
-  updated_by: { type: Date},
+  updated_by: { type: ObjectId, ref: "users"},
   orderType: {
     type: String,
     default: 'frontDesk',
@@ -48,6 +48,7 @@ const orderSchema = new mongoose.Schema({
   payment: {
     type: mongoose.Types.ObjectId, ref: 'payments'
   },
+  dateDiff: {}
 });
 
 const Orders = mongoose.model("orders", orderSchema);

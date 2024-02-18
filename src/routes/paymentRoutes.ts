@@ -6,8 +6,9 @@ import paginationAndFilters from "../middlewares/paginationAndFilters";
 import validateToken from "../middlewares/tokenController";
 
 export default express.Router()
+    .get(`${Endpoints.payments}/check_pix/:txid`, validateToken, PixChargesController.validatePaymentChargeCheck)
     .get(`${Endpoints.payments}/validate_payment/:txid`, PixChargesController.validatePaymentCharge)
-    .post(`${Endpoints.charges}/webhook(/pix)?`, PixChargesController.webhook)
+    .post(`${Endpoints.payments}/charges/webhook(/pix)?`, PixChargesController.webhook)
     .post(`${Endpoints.payments}/create_charge`, validateToken, PixChargesController.createCharge)
     .delete(`${Endpoints.payments}/cancel_pix_charge`, validateToken, PixChargesController.cancelPixCharge)
     .get(Endpoints.payments, validateToken, validateToken, PaymentController.findAll, paginationAndFilters)

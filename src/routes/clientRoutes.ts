@@ -5,4 +5,4 @@ import validateToken from "../middlewares/tokenController";
 import paginationAndFilters from "../middlewares/paginationAndFilters";
 
 export default express.Router()
-    .get(Endpoints.clients, ClientsController.findAll, paginationAndFilters)
+    .get(Endpoints.clients, validateToken, ClientsController.findAll, paginationAndFilters)

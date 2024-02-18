@@ -88,7 +88,7 @@ export default class AppsController {
                 throw new InvalidParameter(idVal);
             }
             const process = await Apps.findByIdAndDelete(id);
-            if (!process.ok) {
+            if (!process) {
                 return ApiResponse.badRequest().send(res);
             }
             return ApiResponse.success(process).send(res);

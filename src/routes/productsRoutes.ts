@@ -8,7 +8,7 @@ import MenuItemsController from "../controllers/products/menuItemsController";
 
 export default express.Router()
     .get(Endpoints.menu_items, MenuItemsController.get)
-    .get(Endpoints.add_ones, AddOneController.findAll)
+    .get(Endpoints.add_ones, validateToken, AddOneController.findAll)
     .post(Endpoints.add_ones, validateToken, AddOneController.add)
     .put(Endpoints.add_ones, validateToken, AddOneController.update)
     .patch(Endpoints.add_ones, validateToken, AddOneController.patch)

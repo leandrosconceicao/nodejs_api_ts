@@ -90,6 +90,23 @@ export default class PixChargesController {
         }
     }
 
+    static async validatePaymentChargeCheck(req: Request, res: Response, next: NextFunction) {
+        try {
+            const id = req.params.txid;
+            if (!id) {
+                throw new NotFoundError("TxId não foi localizado");
+            }
+            const query = await PixPayments.findOne({
+                txId: id
+            })
+            .populate("storeCode")
+            .populate("userCreate", ["-establishments", "-pass"]);
+            return ApiResponse.success(query).send(res);
+        } catch (e) {
+            next(e);
+        }
+    }
+
     static async validatePaymentCharge(req: Request, res: Response, next: NextFunction) {
         try {
             const id = req.params.txid;
@@ -180,7 +197,7 @@ export default class PixChargesController {
                 return noTokenReturn(res);
             }
             const {
-                value, info, expiration_date, clientData, userCreate, storeCode, accountId
+                value, info, expiration_date, clientData, userCreate, storeCode, payment
             }: {
                 value?: string, 
                 info?: string,
@@ -191,7 +208,7 @@ export default class PixChargesController {
                 },
                 userCreate?: string,
                 storeCode?: string,
-                accountId?: string
+                payment?: any
             } = req.body;
             const storeCodeVal = new Validators("storeCode", storeCode, "string").validate();
             const userCreateVal = new Validators("userCreate", userCreate, "string").validate();
@@ -237,7 +254,7 @@ export default class PixChargesController {
             const newPayment = new Payments({
                 storeCode: storeCode,
                 userCreate: userCreate,
-                accountId: accountId,
+                accountId: payment.accountId,
                 value: {
                     txId: requisition.data.txid,
                     form: "pix",
@@ -328,12 +345,17 @@ async function paymentSave(req: Request, pix: EfiPixResponse) {
                 endToEndId: pix.endToEndId,
                 updated_at: new Date(),
             }
-        });
+        }).lean();
         process.paymentData.value.txId = pix.txid;
-        const newPayment = new Payments(process.paymentData);
+        const newPayment = new Payments({
+            accountId: process.paymentData.accountId,
+            storeCode: process.storeCode,
+            userCreate: process.userCreate,
+            value: process.paymentData.value,
+        });
         await newPayment.save();
     } catch (e) {
-
+        console.log(e);
     }
 }
 

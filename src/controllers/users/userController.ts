@@ -31,12 +31,22 @@ export default class UserController {
 
   static async delete(req: Request, res: Response, next: Function) {
     try {
-      let id: string = req.body.id;
+      const {id, userCode} : {id: string, userCode: string} = req.body;
       const idValidation = new Validators("id", id, "string").validate();
       if (!idValidation.isValid) {
         throw new InvalidParameters(idValidation);
       }
-      const process = await Users.findByIdAndDelete(id);
+      const process = await Users.findOneAndUpdate({
+        _id: new ObjectId(id)
+      }, {
+        $set: {
+          deleted: true,
+          updatedAt: new Date(),
+          updatedBy: new ObjectId(userCode)
+        }
+      }, {
+        new: true
+      }).lean();
       return ApiResponse.success(process).send(res);
     } catch (e) {
       next(e);
@@ -44,12 +54,6 @@ export default class UserController {
   }
 
   static async update(req: Request, res: Response, next: Function) {
-    // interface userUpdate {
-    //   isActive?: boolean,
-    //   group_user?: string,
-    //   username?: string,
-    //   establishments? : Array<string>
-    // }
     try {
       const {id, data} = req.body;
       const idValidation = new Validators("id", id, "string").validate();
@@ -111,7 +115,12 @@ export default class UserController {
       if (!idValidation.isValid) {
         throw new InvalidParameters(idValidation);
       }
-      const user = await Users.findById(id);
+      const user = await Users.findOne({
+        _id: new ObjectId(id),
+        deleted: {
+          $in: [false, null]
+        }
+      });
       if (!user) {
         throw new NotFoundError("Usuário não localizado");
       }
@@ -126,7 +135,8 @@ export default class UserController {
       storeCode?: string,
       establishments?: Object,
       group_user?: string,
-      username?: string
+      username?: string,
+      deleted?: any,
     }
     try {
       const { storeCode, group_user, username } = <searchQuery>req.query;
@@ -148,6 +158,9 @@ export default class UserController {
         query.username = username;
       }
       // const users = 
+      query.deleted = {
+        $in: [false, null]
+      };
       req.result = Users.find(query).select({
         pass: 0
       }).populate("establishments");

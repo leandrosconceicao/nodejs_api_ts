@@ -6,7 +6,7 @@ import validateToken from "../middlewares/tokenController";
 
 export default express.Router()
     .get(Endpoints.categories, validateToken, CategoryController.findAll, paginationAndFilters)
-    .get(`${Endpoints.categories}/:id`, CategoryController.findOne)
+    .get(`${Endpoints.categories}/:id`, validateToken, CategoryController.findOne)
     .post(Endpoints.categories, validateToken, CategoryController.add)
     .put(Endpoints.categories, validateToken, CategoryController.updateName)
     .patch(Endpoints.categories, validateToken, CategoryController.changeOrder)

@@ -48,7 +48,10 @@ export default class OrdersController {
             if (!idVal.isValid) {
                 throw new InvalidParameter(idVal);
             }
-            const order = await Orders.findById(id);
+            const order = await Orders.findById(id)
+                .populate(populateClient)
+                .populate(popuAccId, [popuPayment, popuOrders])
+                .populate(popuUser, [popuEstablish, popuPass]);
             if (!order) {
                 throw new NotFoundError("Pedido não localizado");
             }
@@ -90,10 +93,10 @@ export default class OrdersController {
                 storeCode: new ObjectId(storeCode as string),
                 createDate: new PeriodQuery(from as string, to as string).build(),
             }
-            if (type !== undefined) {
+            if (type) {
                 query.type = type as string;
             }
-            if (isPreparation !== undefined) {
+            if (isPreparation) {
                 query.products = {
                     $elemMatch: { setupIsFinished: false, needsPreparation: true },
                 };
@@ -101,27 +104,27 @@ export default class OrdersController {
                     $nin: ["cancelled", "finished"]
                 }
             }
-            if (id !== undefined) {
+            if (id) {
                 query._id = new ObjectId(id as string);
             }
-            if (clientId !== undefined) {
+            if (clientId) {
                 query.clientId = {
                     _id: new ObjectId(id as string)
                 };
             }
-            if (accountId !== undefined) {
+            if (accountId) {
                 query.accountId = new ObjectId(accountId as string);
             }
-            if (userCreate !== undefined) {
+            if (userCreate) {
                 query.userCreate = new ObjectId(userCreate as string);
             }
-            if (accepted !== undefined) {
+            if (accepted) {
                 query.accepted = accepted === "true";
             }
-            if (status !== undefined && !isPreparation) {
+            if (status && !isPreparation) {
                 query.status = status;
             }
-            if (paymentId !== undefined) {
+            if (paymentId) {
                 query.payment = new ObjectId(paymentId as string);
             }
             req.result = Orders.find(query)
@@ -136,17 +139,20 @@ export default class OrdersController {
 
     static async cancelOrder(req: Request, res: Response, next: NextFunction) {
         try {
-            const {id, updatedBy} : {id: string, updatedBy: string} = req.body;
+            const {id, userCode} : {id: string, userCode: string} = req.body;
             const idVal = new Validators("id", id, "string").validate();
-            const updatedVal = new Validators("updatedBy", updatedBy, "string").validate();
+            const updatedVal = new Validators("userCode", userCode, "string").validate();
             if (!idVal.isValid) {
                 throw new InvalidParameter(idVal);
+            }
+            if (!updatedVal.isValid) {
+                throw new InvalidParameter(updatedVal);
             }
             const process = await Orders.findByIdAndUpdate(id, {
                 status: "cancelled",
                 isPayed: false,
                 updated_at: new Date(),
-                updated_by: new ObjectId(updatedBy)
+                updated_by: new ObjectId(userCode)
             }, {
                 returnDocument: "after"
             });
@@ -159,18 +165,18 @@ export default class OrdersController {
 
     static async transfer(req: Request, res: Response, next: NextFunction) {
         try {
-            const {orderIds, originId, destinationId, updatedBy}: {
+            const {orderIds, originId, destinationId, userCode}: {
                 orderIds: Array<string>,
                 originId: string,
                 destinationId: string,
-                updatedBy: string
+                userCode: string
             } = req.body;
             if (!orderIds.length) {
                 throw ApiResponse.badRequest("Ids dos pedidos são inválidos ou não foram informados");
             }
             const originIdVal = new Validators("originId", originId).validate();
             const destinationIdVal = new Validators("destinationId", destinationId).validate();
-            const userVal = new Validators("updatedBy", updatedBy).validate();
+            const userVal = new Validators("userCode", userCode).validate();
             if (!originIdVal.isValid) {
                 throw new InvalidParameter(originIdVal);
             }
@@ -196,7 +202,7 @@ export default class OrdersController {
                 $set: {
                     accountId: new ObjectId(destinationId),
                     updated_at: new Date(),
-                    updated_by: new ObjectId(updatedBy)
+                    updated_by: new ObjectId(userCode)
                 }
             });
             if (!process.modifiedCount) {
@@ -251,11 +257,11 @@ export default class OrdersController {
 
     static async changeSeller(req: Request, res: Response, next: NextFunction) {
         try {
-            const {userTo, updatedBy} : {userTo: string, updatedBy: string} = req.body;
+            const {userTo, userCode} : {userTo: string, userCode: string} = req.body;
             const id = req.params.id;
             const idVal = new Validators("id", id, "string").validate();
             const userToVal = new Validators("userTo", userTo, "string").validate();
-            const updatedVal = new Validators("updatedBy", updatedBy, "string").validate();
+            const updatedVal = new Validators("userCode", userCode, "string").validate();
             if (!idVal.isValid) {
                 throw new InvalidParameter(idVal);
             }
@@ -268,7 +274,7 @@ export default class OrdersController {
             const process = await Orders.findByIdAndUpdate(id, {
                 userCreate: userTo,
                 updated_at: new Date(),
-                updated_by: new ObjectId(updatedBy)
+                updated_by: new ObjectId(userCode)
             }, {
                 new: true
             })
@@ -280,10 +286,10 @@ export default class OrdersController {
         
     static async setPreparation(req: Request, res: Response, next: NextFunction) {
         try {
-            const {isReady, updatedBy} : {isReady: boolean, updatedBy: string} = req.body;
+            const {isReady, userCode} : {isReady: boolean, userCode: string} = req.body;
             const id = req.params.id;
             const idVal = new Validators("id", id, "string").validate();
-            const updatedVal = new Validators("updatedBy", updatedBy, "string").validate();
+            const updatedVal = new Validators("userCode", userCode, "string").validate();
             if (!idVal.isValid) {
                 throw new InvalidParameter(idVal);
             }
@@ -326,7 +332,7 @@ export default class OrdersController {
                 newOrder.payment = pay._id as any;
             }
             if (req.body.accountId) {
-                const canRecieveNewOrder = await AccountsController.canReceiveNewOrder(req.body.accoundId);
+                const canRecieveNewOrder = await AccountsController.canReceiveNewOrder(req.body.accountId);
                 if (!canRecieveNewOrder) {
                     throw ApiResponse.badRequest("Conta não pode receber pedidos pois não está com o status de (ABERTA).");
                 }
@@ -347,7 +353,7 @@ export default class OrdersController {
 
     static async getOrdersFromAccount(accountId: string) {
         const data = await Orders.find({
-            accoundId: new ObjectId(accountId),
+            accountId: new ObjectId(accountId),
             status: { $ne: "cancelled" }
         })
             .populate(populateClient)

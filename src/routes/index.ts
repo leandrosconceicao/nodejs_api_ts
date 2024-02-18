@@ -9,6 +9,7 @@ import paymentRoutes from "./paymentRoutes";
 import ordersRoutes from "./ordersRoutes";
 import clientRoutes from "./clientRoutes";
 import accountRoutes from "./accountRoutes";
+import reportRoutes from "./reportRoutes";
 
 export default (app: express.Application) => {
     app.get("/", (_: express.Request, res: express.Response, next: NextFunction) => {
@@ -29,6 +30,7 @@ export default (app: express.Application) => {
         paymentRoutes,
         ordersRoutes,
         clientRoutes,
-        accountRoutes
+        accountRoutes,
+        reportRoutes,
     )
 }

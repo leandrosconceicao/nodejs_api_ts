@@ -17,7 +17,7 @@ export default class ApiResponse<T={}> extends Error {
 
     static success<T>(data?: T, statusCode?: number) : ApiResponse<T> {
         return new ApiResponse<T>({
-            statusProcess: false,
+            statusProcess: true,
             message: "Success",
             status: statusCode ?? 200,
             dados: data ?? null
