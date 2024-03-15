@@ -1,7 +1,7 @@
+import * as dotenv from 'dotenv';
 import app from "./src/app";
+dotenv.config();
 
-const port = 80;
+const port = process.env.PORT || 80;
 
-app.listen(port, () => {
-    console.log(`Servidor executando em http://localhost:${port}`);
-});
+app.listen(port);
