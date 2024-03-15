@@ -8,7 +8,12 @@
     "typescript": "^5.3.3"
   },
   "scripts": {
-    "start": "tsc-watch --onSuccess \"node build/server.js\""
+    "prestart": "npm install",
+    "prepare": "npm run gcp-build",
+    "start": "node build/server.js",
+    "compile": "tsc -p .",
+    "gcp-build": "tsc -p .",
+    "build": "tsc -p ."
   },
   "dependencies": {
     "axios": "^1.6.2",
