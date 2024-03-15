@@ -13,8 +13,11 @@ import InvalidParameter from "../../models/errors/InvalidParameters";
 import PaymentController from "../payments/paymentController";
 import AccountsController from "../accounts/accountsController";
 import { Payments } from "../../models/Payments";
+import LogsController from "../logs/logsController.js";
 
 var ObjectId = mongoose.Types.ObjectId;
+
+const logControl = new LogsController();
 
 const populateClient = "client";
 const popuAccId = "accountId";
@@ -208,6 +211,16 @@ export default class OrdersController {
             if (!process.modifiedCount) {
                 throw ApiResponse.badRequest("Nenhum dado modificado, pedidos informados não foram localizados");
             }
+            logControl.saveReqLog(
+                req, 
+                null,
+                {
+                  orderId: new ObjectId(originAcc._id),
+                  description: `Transferência de pedidos da conta (${originAcc.description}) para a conta (${destiAcc.description})`,
+                  storeCode: new ObjectId(originAcc.storeCode),
+                  userCreate: new ObjectId(userCode)
+                }
+              );
             return ApiResponse.success(process).send(res);
         } catch (e) {
             next(e);

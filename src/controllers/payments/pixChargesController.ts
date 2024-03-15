@@ -5,6 +5,7 @@ import { Request, Response, NextFunction } from "express";
 import ApiResponse from "../../models/base/ApiResponse";
 import NotFoundError from "../../models/errors/NotFound.js";
 import InvalidParameter from "../../models/errors/InvalidParameters.js";
+import LogsController from "../logs/logsController";
 import https from "https";
 import fs from "fs";
 import * as dotenv from "dotenv";
@@ -49,6 +50,8 @@ const AGENT = new https.Agent({
     pfx: certificate,
     passphrase: "",
 })
+
+const logControl = new LogsController();
 
 const URL = process.env.PAYMENT_API;
 
@@ -330,6 +333,7 @@ export default class PixChargesController {
             paymentSave(req, pixReq);
             res.sendStatus(200);
         } catch (e) {
+            logControl.saveReqLog(req, e);
             res.sendStatus(200);
         }
     }
@@ -355,7 +359,7 @@ async function paymentSave(req: Request, pix: EfiPixResponse) {
         });
         await newPayment.save();
     } catch (e) {
-        console.log(e);
+        logControl.saveReqLog(req, e);
     }
 }
 
