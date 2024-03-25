@@ -8,9 +8,13 @@ import InvalidParameter from "../models/errors/InvalidParameters";
 import NotFoundError from "../models/errors/NotFound";
 import DuplicateError from "../models/errors/DuplicateError";
 import { AxiosError } from "axios";
+import {z} from "zod";
 
 export default function(err: Error, req: express.Request, res: express.Response, next: NextFunction) {
     
+    if (err instanceof z.ZodError) {
+        return ApiResponse.invalidParameter(err.message).send(res);
+    }
     if (err instanceof MongoServerError) {
         if (err.code === 11000) {
             return new DuplicateError(err).send(res);
