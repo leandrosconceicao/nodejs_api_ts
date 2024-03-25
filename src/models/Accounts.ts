@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { clientsSchema } from "./Clients";
 
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -19,10 +20,7 @@ const Accounts = mongoose.model("accounts", new mongoose.Schema({
         }
     },
     client: {
-        type: ObjectId, 
-        ref: 'clients', 
-        // default: new ObjectId("647b6ecc226b41fd28cab3d2")
-        required: [true, "Parametro (client) é obrigatório"]
+        type: clientsSchema
     },
     created_by: {
         type: ObjectId, ref: 'users', required: [true, "Parametro (created_by) é obrigatório"]

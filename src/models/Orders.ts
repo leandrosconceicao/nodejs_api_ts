@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import orders_products_schema from "./orders/orders_products";
 import orders_delivery_address from "./orders/orders_delivery_address";
+import { clientsSchema } from "./Clients";
 var ObjectId = mongoose.Types.ObjectId;
 
 const orderSchema = new mongoose.Schema({
@@ -15,7 +16,7 @@ const orderSchema = new mongoose.Schema({
     type: String,
     default: 'frontDesk',
     enum: {
-      values: ['frontDesk', 'account', 'delivery'],
+      values: ['frontDesk', 'account', 'delivery', 'withdraw'],
       message: "O tipo {VALUE} não é um valor permitido"
     }
   },
@@ -35,14 +36,14 @@ const orderSchema = new mongoose.Schema({
   },
   isPayed: { type: Boolean, default: false },
   client: {
-    type: ObjectId, ref: "clients"
+    type: clientsSchema
   },
   deliveryAddress: {
     type: orders_delivery_address,
   },
   observations: {type: String, default: ""},
   userCreate: {
-    type: ObjectId, ref: "users", required: [true, "Parametro (userCreate) é obrigatório"],
+    type: ObjectId, ref: "users",
   },
   storeCode: {type: ObjectId, ref: "establishments" , required: [true, "Parametro (storeCode) é obrigatório"]},
   payment: {

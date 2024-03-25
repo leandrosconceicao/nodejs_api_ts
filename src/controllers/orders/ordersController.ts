@@ -8,7 +8,7 @@ import Users from "../../models/Users";
 import Counters from "../../models/Counters";
 import NotFoundError from "../../models/errors/NotFound";
 import {Accounts} from "../../models/Accounts";
-import Establishments from "../../models/Establishments";
+import {Establishments} from "../../models/Establishments";
 import InvalidParameter from "../../models/errors/InvalidParameters";
 import PaymentController from "../payments/paymentController";
 import AccountsController from "../accounts/accountsController";
@@ -340,7 +340,7 @@ export default class OrdersController {
                 throw ApiResponse.badRequest("Nenhum produto adicionado");
             }
             const newOrder = new Orders(req.body);
-            if (orderType && orderType === "frontDesk") {
+            if (orderType && orderType === "frontDesk") { 
                 const pay = await PaymentController.savePayment(payment);
                 newOrder.payment = pay._id as any;
             }

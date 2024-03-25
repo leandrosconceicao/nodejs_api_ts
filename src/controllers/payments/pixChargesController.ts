@@ -11,7 +11,7 @@ import fs from "fs";
 import * as dotenv from "dotenv";
 import PixPayments from "../../models/PixPayments.js";
 import {EfiChargeCreation, EfiCharges, EfiPixRefund, EfiPixResponse, EfiWebhookResponse, QrCode} from "../../models/efi/charges";
-import Establishments from "../../models/Establishments.js";
+import {Establishments} from "../../models/Establishments.js";
 
 interface QuerySearch {
     _id?: string,
