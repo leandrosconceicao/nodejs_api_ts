@@ -7,7 +7,7 @@ import establishmentsRoutes from "./establishmentsRoutes";
 import appRoutes from "./appRoutes";
 import paymentRoutes from "./paymentRoutes";
 import ordersRoutes from "./ordersRoutes";
-import clientRoutes from "./clientRoutes";
+// import clientRoutes from "./clientRoutes";
 import accountRoutes from "./accountRoutes";
 import reportRoutes from "./reportRoutes";
 
@@ -29,7 +29,7 @@ export default (app: express.Application) => {
         appRoutes,
         paymentRoutes,
         ordersRoutes,
-        clientRoutes,
+        // clientRoutes,
         accountRoutes,
         reportRoutes,
     )
