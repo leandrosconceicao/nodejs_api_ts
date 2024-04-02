@@ -22,9 +22,9 @@ const productSchema = new mongoose.Schema({
         isRequired: Boolean,
         productsAddOnes: {
           _id: String,
-          storeCode: String,
+          // storeCode: String,
           name: String,
-          price: Number,
+          // price: Number,
           maxQtdAllowed: Number,
           items: {
             type: [
@@ -40,10 +40,7 @@ const productSchema = new mongoose.Schema({
     ],
     default: undefined,
   },
-  image: {
-    name: { type: String, default: undefined },
-    link: { type: String, default: undefined },
-  },
+  image: {type: String, default: ""}
 });
 
 const Products = mongoose.model("products", productSchema);
