@@ -4,6 +4,7 @@ import ApiResponse from "../../models/base/ApiResponse";
 import MenuItems from "../../models/MenuItems";
 import { Validators } from "../../utils/validators";
 import InvalidParameter from "../../models/errors/InvalidParameters";
+import categories from "../../models/Categories";
 
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -51,6 +52,17 @@ export default class MenuItemsController {
                     },
                 },
             ]);
+            data.forEach((category) => {
+                category.products.forEach((products: any) => {
+                    products.category = {
+                        nome: category.nome,
+                        storeCode: category.storeCode,
+                        ordenacao: category.ordenacao,
+                        createDate: category.createDate,
+                        image: category.image,
+                    }
+                })
+            })
             return ApiResponse.success(data).send(res);
         } catch (e) {
             next(e);
