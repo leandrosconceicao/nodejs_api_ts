@@ -1,11 +1,13 @@
 import { Validators } from "../../utils/validators";
+import { z } from "zod";
 import ApiResponse from "../../models/base/ApiResponse";
 import NotFoundError from "../../models/errors/NotFound";
-import {Products} from "../../models/products/Products";
+import { Products } from "../../models/products/Products";
 import { Request, Response, NextFunction } from "express";
 import InvalidParameter from "../../models/errors/InvalidParameters";
 import mongoose, { ObjectId } from "mongoose";
 import { RegexBuilder } from "../../utils/regexBuilder";
+import FirebaseStorage from "../../utils/firebase/storage";
 var ObjectId = mongoose.Types.ObjectId;
 
 interface ProductFilters {
@@ -73,10 +75,47 @@ export default class ProductController {
 
     static async update(req: Request, res: Response, next: NextFunction) {
         try {
-            let id = req.body.id;
-            let data = req.body.data;
-            await Products.findByIdAndUpdate(id, { $set: data });
-            ApiResponse.success().send(res);
+            const id = z.string().min(1).parse(req.params.id);
+            const product = z.object({
+                isActive: z.boolean().optional(),
+                storeCode: z.string().min(1).max(24),
+                category: z.string().min(1).max(24).optional(),
+                preco: z.number().optional(),
+                produto: z.string().min(1).optional(),
+                descricao: z.string().optional(),
+                preparacao: z.boolean().optional(),
+                dataImage: z.object({
+                    path: z.string().min(1),
+                    data: z.string().min(1),
+                }).optional(),
+                image: z.string().optional(),
+                addOnes: z.array(z.object({
+                    isRequired: z.boolean(),
+                    productsAddOnes: z.object({
+                        _id: z.string(),
+                        name: z.string(),
+                        // price: z.number(),
+                        maxQtdAllowed: z.number(),
+                        items: z.array(z.object({
+                            name: z.string(),
+                            price: z.number()
+                        }))
+                    })
+                })).optional(),
+            }).parse(req.body);
+            if (product.dataImage) {
+                const link = await updateImage({
+                    path: `assets/${product.storeCode}/${product.dataImage.path}`,
+                    data: product.dataImage.data
+                });
+                if (link) {
+                    product.image = link;
+                }
+            }
+            const newProduct = await Products.findByIdAndUpdate(id, product, {
+                new: true
+            });
+            return ApiResponse.success(newProduct).send(res);
         } catch (e) {
             next(e);
         }
@@ -128,5 +167,17 @@ export default class ProductController {
         } catch (e) {
             next(e);
         }
+    }
+}
+
+async function updateImage(data: {
+    path?: string;
+    data?: string;
+}): Promise<string | null> {
+    try {
+        const fireSrv = new FirebaseStorage();
+        return fireSrv.uploadFile(data);
+    } catch (e) {
+        return null;
     }
 }
