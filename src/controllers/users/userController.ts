@@ -1,4 +1,5 @@
 import Users from "../../models/Users";
+import {z} from "zod";
 import mongoose from "mongoose";
 var ObjectId = mongoose.Types.ObjectId;
 import { NextFunction, Request, Response } from "express";
@@ -53,24 +54,24 @@ export default class UserController {
     }
   }
 
-  static async update(req: Request, res: Response, next: Function) {
+  static async patch(req: Request, res: Response, next: Function) {
     try {
-      const {id, data} = req.body;
-      const idValidation = new Validators("id", id, "string").validate();
-      const dataValidation = new Validators("data", data, "object").validate();
-      if (!idValidation.isValid) {
-        throw new InvalidParameters(idValidation);
+      const id = z.string().min(1).max(24).parse(req.params.id);
+      const user = z.object({
+        email: z.string().min(1).optional(),
+        pass: z.string().min(1).optional(),
+        group_user: z.enum(["1", "2", "99"]).optional(),
+        changePassword: z.boolean().optional(),
+        username: z.string().min(1).optional(),
+        isActive: z.boolean().optional(),
+        token: z.string().min(1).optional(),
+        establishments: z.array(z.string().min(1).max(24)).optional()
+      }).parse(req.body);
+      if (user.pass) {
+        user.pass = new PassGenerator(user.pass).build();
       }
-      if (!dataValidation.isValid) {
-        throw new InvalidParameters(dataValidation);
-      }
-      await Users.findByIdAndUpdate(id, {
-        isActive: data.isActive,
-        group_user: data.group_user,
-        username: data.username,
-        establishments: data.establishments
-      });
-      return ApiResponse.success().send(res);
+      const updatedUser = await Users.findByIdAndUpdate(id, user, {new: true});
+      return ApiResponse.success(updatedUser).send(res);
     } catch (e) {
       next(e);
     }
@@ -188,7 +189,7 @@ export default class UserController {
         throw new InvalidParameters(passwordValidation);
       }
       const hashPass = new PassGenerator(password).build();
-      let users = await Users.findOne({
+      const users = await Users.findOne({
         email: email,
         pass: hashPass,
       }).select({
@@ -196,15 +197,14 @@ export default class UserController {
       }).populate("establishments");
       if (!users) {
         throw new NotFoundError("Dados incorretos ou inválidos.")
-      } else {
-        const authToken = TokenGenerator.generate(email);
-        res.set("Authorization", authToken);
-        res.set("Access-Control-Expose-Headers", "*");
-        if (token && users.token != token) {
-          await updateUserToken(users.id, token)
-        }
-        return ApiResponse.success(users).send(res);
       }
+      const authToken = TokenGenerator.generate(users.id);
+      res.set("Authorization", authToken);
+      res.set("Access-Control-Expose-Headers", "*");
+      if (token && users.token != token) {
+        await updateUserToken(users.id, token)
+      }
+      return ApiResponse.success(users).send(res);
     } catch (e) {
       next(e);
     }
