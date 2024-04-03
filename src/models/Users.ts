@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 var ObjectId = mongoose.Schema.Types.ObjectId;
 
 export default mongoose.model('users', new mongoose.Schema({
-    email: {type: String, unique: true},
+    email: {type: String},
     pass: {type: String},
     deleted: {type: Boolean},
     group_user: {type: String, default: '1',

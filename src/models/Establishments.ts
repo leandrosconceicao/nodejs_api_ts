@@ -35,6 +35,10 @@ const establishmentAttributes = z.object({
     location: z.string().optional(),
     ownerId: z.string().min(11).max(14).optional(),
     logo: z.string().optional(),
+    dataImage: z.object({
+        path: z.string().min(1),
+        data: z.string().min(1)
+    }).optional(),
     pixKey: z.string().optional(),
     telegramChatId: z.string().optional(),
     url: z.string().optional(),
