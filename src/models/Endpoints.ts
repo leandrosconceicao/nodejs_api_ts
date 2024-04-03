@@ -10,9 +10,9 @@ export default class Endpoints {
     static orders = '/orders';
     static charges = "/charges";
     static payments = "/payments";
-    static authentication = '/authentication';
     static establishments = '/establishments';
     static users = '/users';
+    static authentication = `${this.users}/authentication`;
     static clients = '/clients';
     static apps = '/apps';
     static redis = '/redis';
