@@ -4,8 +4,11 @@ import PaymentController from "../controllers/payments/paymentController";
 import PixChargesController from "../controllers/payments/pixChargesController";
 import paginationAndFilters from "../middlewares/paginationAndFilters";
 import validateToken from "../middlewares/tokenController";
+import CardPaymentsController from "../controllers/payments/cardPayments";
 
 export default express.Router()
+    .post(`${Endpoints.payments}/card_payments`, CardPaymentsController.post)
+    .delete(`${Endpoints.payments}/card_payments`, CardPaymentsController.cancel)
     .get(`${Endpoints.payments}/check_pix/:txid`, validateToken, PixChargesController.validatePaymentChargeCheck)
     .get(`${Endpoints.payments}/validate_payment/:txid`, PixChargesController.validatePaymentCharge)
     .post(`${Endpoints.payments}/charges/webhook(/pix)?`, PixChargesController.webhook)
