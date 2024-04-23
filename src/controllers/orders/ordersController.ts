@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import {z} from "zod";
+import { idValidation } from "../../utils/defaultValidations.js";
 import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery.js";
 import { Request, Response, NextFunction } from "express";
 import { Validators } from "../../utils/validators";
@@ -16,10 +17,13 @@ import AccountsController from "../accounts/accountsController";
 import { Payments } from "../../models/Payments";
 import LogsController from "../logs/logsController.js";
 import EstablishmentsController from "../establishments/establishmentController.js";
+import FirebaseMessaging from "../../utils/firebase/messaging";
 
 var ObjectId = mongoose.Types.ObjectId;
 
 const logControl = new LogsController();
+
+const FBMESSAGING = new FirebaseMessaging();
 
 const populateClient = "client";
 const popuAccId = "accountId";
@@ -301,26 +305,25 @@ export default class OrdersController {
         
     static async setPreparation(req: Request, res: Response, next: NextFunction) {
         try {
-            const {isReady, userCode} : {isReady: boolean, userCode: string} = req.body;
-            const id = req.params.id;
-            const idVal = new Validators("id", id, "string").validate();
-            const updatedVal = new Validators("userCode", userCode, "string").validate();
-            if (!idVal.isValid) {
-                throw new InvalidParameter(idVal);
-            }
-            if (!updatedVal.isValid) {
-                throw new InvalidParameter(updatedVal);
-            }
+            const id = idValidation.parse(req.params.id);
+            const body = z.object({
+                isReady: z.boolean(),
+                userCode: idValidation,
+            }).parse(req.body)
             const process = await Orders.findByIdAndUpdate(id, {
-                status: isReady ? "finished": "pending",
-                "products.$[].setupIsFinished": isReady,
-                updated_at: new Date()
+                status: body.isReady ? "finished": "pending",
+                "products.$[].setupIsFinished": body.isReady,
+                updated_at: new Date(),
+                updated_by: new ObjectId(body.userCode)
             }, {
                 new: true
             })
             .populate(populateClient)
             .populate(popuAccId, [popuPayment, popuOrders])
             .populate(popuUser, [popuEstablish, popuPass]).lean();
+            
+            notififyUser(body.userCode, "Preparação de pedido", body.isReady ? `Atenção, pedido: ${process.pedidosId} está pronto` : "Alerta de pedido");
+
             return ApiResponse.success(process).send(res);
         } catch (e) {
             next(e);
@@ -376,12 +379,12 @@ export default class OrdersController {
                     needsPreparation: z.boolean().optional(),
                     setupIsFinished: z.boolean().optional(),
                     unitPrice: z.number(),
-                    addOnes: z.object({
+                    addOnes: z.array(z.object({
                         addOneName: z.string(),
                         quantity: z.number(),
                         price: z.number(),
                         name: z.string(),
-                    }).optional()
+                    }).optional()).optional()
                 })),
             }).parse(req.body);
             // const { storeCode, products, orderType, payment }: { storeCode: string, products: Array<any>, orderType: string, payment: any ,} = req.body;
@@ -444,6 +447,59 @@ export default class OrdersController {
             }
         })
     }
+
+    static async getOrdersOnPreparation(req: Request, res: Response) {
+        let timer: string | number | NodeJS.Timeout;
+        try {
+            res.setHeader("Cache-Control", "no-cache");
+            res.setHeader("Content-Type", "text/event-stream");
+            res.setHeader("Access-Control-Allow-Origin", "*");
+            res.setHeader("Connection", "keep-alive");
+            const storeCode = idValidation.parse(req.params.id);
+            const dates = z.object({
+                from: z.string().min(1),
+                to: z.string().min(1)
+            }).parse(req.query);
+            let orders = await ordersOnPreparation(storeCode, dates.from, dates.to);
+            res.write(`data: ${JSON.stringify(orders)}\n\n`)
+            timer = setInterval(async () => {
+                orders = await ordersOnPreparation(storeCode, dates.from, dates.to);
+                res.write(`data: ${JSON.stringify(orders)}\n\n`)
+            }, 5000);
+            res.on("close", () => {
+                clearTimeout(timer);
+                console.log("Parou o timer")
+                res.end();
+            });
+            res.on("error", (error) => {
+                res.write(`error: ${error}`);
+                res.end();
+            })
+        } catch (e) {
+            console.log(e);
+            clearTimeout(timer);
+            res.write(`error: ${e}`)
+            res.end();
+        }
+    }
+}
+
+async function ordersOnPreparation(storeCode: string, from: string, to: string) {
+    return Orders.find({
+        status: {
+            $ne: "cancelled"
+        },
+        storeCode: storeCode,
+        createDate: new PeriodQuery(
+            from,
+            to
+        ).build(),
+        products: {
+            $elemMatch: { setupIsFinished: false, needsPreparation: true },
+        }
+    }).populate(populateClient)
+    .populate(popuAccId, [popuPayment, popuOrders])
+    .populate(popuUser, [popuEstablish, popuPass]);
 }
 
 async function updateId(id: string, storeCode: string) {
@@ -472,4 +528,14 @@ async function updateId(id: string, storeCode: string) {
     }, {
         upsert: true
     })
+}
+
+async function notififyUser(id: string, title: string, body: string) {
+    const user = await Users.findById(id);
+    if (user) {
+        FBMESSAGING.sendToUser(user.token, {
+            title,
+            body
+        });
+    }
 }
