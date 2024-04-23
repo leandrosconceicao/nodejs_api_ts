@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import {z} from "zod";
 import { Request, Response, NextFunction } from "express";
 import ApiResponse from "../../models/base/ApiResponse";
 import MenuItems from "../../models/MenuItems";
@@ -11,15 +12,13 @@ var ObjectId = mongoose.Types.ObjectId;
 export default class MenuItemsController {
     static async get(req: Request, res: Response, next: NextFunction) {
         try {
-            const { storeCode } = req.query;
-            const storeVal = new Validators("storeCode", storeCode, "string").validate();
-            if (!storeVal.isValid) {
-                throw new InvalidParameter(storeVal);
-            }
+            const query = z.object({
+                storeCode: z.string().min(1).max(24)
+            }).parse(req.query);
             const data = await MenuItems.aggregate([
                 {
                     $match: {
-                        storeCode: new ObjectId(storeCode as string)
+                        storeCode: new ObjectId(query.storeCode)
                     }
                 },
                 {
@@ -35,10 +34,10 @@ export default class MenuItemsController {
                     $project: {
                         _id: 0,
                         storeCode: 0,
-                        "products.preparacao": 0,
+                        // "products.preparacao": 0,
                         "products.categoria": 0,
                         "products.storeCode": 0,
-                        "products.status": 0,
+                        // "products.status": 0,
                         "products.dataInsercao": 0,
                         "products.categoryId": 0,
                         "products.category": 0,

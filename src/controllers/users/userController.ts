@@ -1,5 +1,5 @@
 import Users from "../../models/Users";
-import {z} from "zod";
+import { z } from "zod";
 import mongoose from "mongoose";
 var ObjectId = mongoose.Types.ObjectId;
 import { NextFunction, Request, Response } from "express";
@@ -9,6 +9,7 @@ import PassGenerator from "../../utils/passGenerator";
 import { Validators } from "../../utils/validators";
 import NotFoundError from "../../models/errors/NotFound";
 import TokenGenerator from "../../utils/tokenGenerator";
+import FirebaseMessaging from "../../utils/firebase/messaging";
 // import admin from "../../../config/firebaseConfig.js"
 
 // const FIREBASEAUTH = admin.auth();
@@ -32,7 +33,7 @@ export default class UserController {
 
   static async delete(req: Request, res: Response, next: Function) {
     try {
-      const {id, userCode} : {id: string, userCode: string} = req.body;
+      const { id, userCode }: { id: string, userCode: string } = req.body;
       const idValidation = new Validators("id", id, "string").validate();
       if (!idValidation.isValid) {
         throw new InvalidParameters(idValidation);
@@ -70,7 +71,7 @@ export default class UserController {
       if (user.pass) {
         user.pass = new PassGenerator(user.pass).build();
       }
-      const updatedUser = await Users.findByIdAndUpdate(id, user, {new: true});
+      const updatedUser = await Users.findByIdAndUpdate(id, user, { new: true });
       return ApiResponse.success(updatedUser).send(res);
     } catch (e) {
       next(e);
@@ -79,7 +80,7 @@ export default class UserController {
 
   static async updatePass(req: Request, res: Response, next: Function) {
     try {
-      const {activePassword, id, pass} = req.body;
+      const { activePassword, id, pass } = req.body;
       const actPassValidation = new Validators("activePassword", activePassword, "string").validate();
       const idValidation = new Validators("id", id, "string").validate();
       const passValidation = new Validators("pass", pass).validate();
@@ -202,7 +203,7 @@ export default class UserController {
       res.set("Authorization", authToken);
       res.set("Access-Control-Expose-Headers", "*");
       if (token && users.token != token) {
-        await updateUserToken(users.id, token)
+        updateUserToken(users.id, token)
       }
       return ApiResponse.success(users).send(res);
     } catch (e) {
