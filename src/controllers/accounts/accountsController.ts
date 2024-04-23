@@ -1,4 +1,6 @@
 import { Validators } from "../../utils/validators";
+import {z} from "zod";
+import { idValidation } from "../../utils/defaultValidations";
 import ApiResponse from "../../models/base/ApiResponse";
 import {Accounts, accountStatus} from "../../models/Accounts";
 import NotFoundError from "../../models/errors/NotFound";
@@ -23,27 +25,23 @@ export default class AccountsController extends ApiFilters {
 
     static async findAll(req: Request, res: Response, next: NextFunction) {
         try {
-            const { storeCode, status, from, to, created_by } = req.query;
-            const storeVal = new Validators("storeCode", storeCode, "string").validate();
-            const fromVal = new Validators("from", from, "string").validate();
-            const toVal = new Validators("to", to, "string").validate();
-            if (!storeVal.isValid) {
-                throw new InvalidParameter(storeVal);
-            }
-            if (!fromVal.isValid) {
-                throw new InvalidParameter(fromVal);
-            }
-            if (!toVal.isValid) {
-                throw new InvalidParameter(toVal);
-            }
-            const searchQuery = AccountsController.filters();
-            searchQuery.storeCode = storeCode as string;
-            searchQuery.createDate = new PeriodQuery(from as string, to as string).build();
-            if (created_by) {
-                searchQuery.userCreate = new ObjectId(created_by as string);
-            }
-            if (status) {
-                searchQuery.status = status as string;
+            const searchQuery = z.object({
+                storeCode: idValidation,
+                userCreate: idValidation.optional(),
+                from: z.string().optional(),
+                to: z.string().optional(),
+                createDate: z.any().optional(),
+                status: z.enum(['open', 'closed', 'checkSolicitation']).optional(),
+                deleted_id: z.null().optional(),
+            }).parse(req.query);
+            searchQuery.deleted_id = null;
+            if (searchQuery.from && searchQuery.to) {
+                searchQuery.createDate = new PeriodQuery(
+                    searchQuery.from,
+                    searchQuery.to
+                ).build();
+                delete searchQuery.from;
+                delete searchQuery.to;
             }
             req.result = Accounts.find(searchQuery)
                 .populate(populateClient)
@@ -57,11 +55,7 @@ export default class AccountsController extends ApiFilters {
 
     static async findOne(req: Request, res: Response, next: NextFunction) {
         try {
-            const id = req.params.id;
-            const idVal = new Validators("id", id, "string").validate();
-            if (!idVal.isValid) {
-                throw new InvalidParameter(idVal);
-            }
+            const id = idValidation.parse(req.params.id);
             const account = await getAccountData(id);
             return ApiResponse.success(account).send(res);
         } catch (e) {
@@ -93,8 +87,29 @@ export default class AccountsController extends ApiFilters {
             }
             const process = await Accounts.findByIdAndUpdate(id, {
                 description: description,
-            }, {returnDocument: "after"})
+            }, {new: true})
             return ApiResponse.success(process).send(res);
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    static async del(req: Request, res: Response, next: NextFunction) {
+        try {
+            const body = z.object({
+                id: z.string().min(1).max(24)
+            }).parse(req.body);
+            const checkData = await getAccountData(body.id);
+            if (checkData.payments.length) {
+                throw ApiResponse.badRequest("Conta não pode ser excluida, conta possui recebimentos");
+            }
+            if (checkData.orders.length) {
+                throw ApiResponse.badRequest("Conta não pode ser excluida, conta possui pedidos realizados");
+            }
+            await Accounts.findByIdAndUpdate(body.id, {
+                deleted_id: body.id
+            })
+            return ApiResponse.success().send(res);
         } catch (e) {
             next(e);
         }
