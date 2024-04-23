@@ -7,6 +7,7 @@ interface QuerySearch {
     userCreate?: string | number | mongoose.mongo.BSON.ObjectId | mongoose.mongo.BSON.ObjectIdLike | Uint8Array,
     form?: string,
     status?: string,
+    deleted_id?: any
 }
 
 export default abstract class ApiFilters {
