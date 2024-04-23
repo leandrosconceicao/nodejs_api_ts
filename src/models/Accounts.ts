@@ -6,6 +6,7 @@ var ObjectId = mongoose.Types.ObjectId;
 const accountStatus = ['open', 'closed', 'checkSolicitation'];
 
 const Accounts = mongoose.model("accounts", new mongoose.Schema({
+    deleted_id: {type: mongoose.Types.ObjectId, default: undefined},
     description: { type: String, required: [true, "Parametro (description) é obrigatório"] },
     storeCode: { type: String, required: [true, "Parametro (storeCode) é obrigatório"] },
     createDate: { type: Date, default: () => {return new Date();}},
