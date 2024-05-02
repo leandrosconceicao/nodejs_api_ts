@@ -1,5 +1,5 @@
 import axios, { AxiosResponse } from "axios";
-import {Payments} from "../../models/Payments";
+import {Payments, paymentValidation} from "../../models/Payments";
 import { Validators } from "../../utils/validators";
 import { Request, Response, NextFunction } from "express";
 import ApiResponse from "../../models/base/ApiResponse";
@@ -12,6 +12,9 @@ import * as dotenv from "dotenv";
 import PixPayments from "../../models/PixPayments.js";
 import {EfiChargeCreation, EfiCharges, EfiPixRefund, EfiPixResponse, EfiWebhookResponse, QrCode} from "../../models/efi/charges";
 import {Establishments} from "../../models/Establishments.js";
+import { z } from "zod";
+import { idValidation } from "../../utils/defaultValidations";
+import { orderValidation, Orders } from "../../models/Orders";
 
 interface QuerySearch {
     _id?: string,
@@ -192,58 +195,44 @@ export default class PixChargesController {
             next(e);
         }
     }
-
     static async createCharge(req: Request, res: Response, next: NextFunction) {
         try {
             const TOKEN_DATA = await getOAuth();
             if (!TOKEN_DATA) {
                 return noTokenReturn(res);
             }
-            const {
-                value, info, expiration_date, clientData, userCreate, storeCode, payment
-            }: {
-                value?: string, 
-                info?: string,
-                expiration_date?: number,
-                clientData?: {
-                    cgc: string,
-                    name: string
-                },
-                userCreate?: string,
-                storeCode?: string,
-                payment?: any
-            } = req.body;
-            const storeCodeVal = new Validators("storeCode", storeCode, "string").validate();
-            const userCreateVal = new Validators("userCreate", userCreate, "string").validate();
-            const valueVal = new Validators("value", value, "string").validate();
-            if (!storeCodeVal.isValid) {
-                throw new InvalidParameter(storeCodeVal);
-            }
-            if (!userCreateVal.isValid) {
-                throw new InvalidParameter(userCreateVal);
-            }
-            if (!valueVal.isValid || isNaN(parseFloat(value))) {
-                throw new InvalidParameter(valueVal);
-            }
-            const establishment = await Establishments.findById(storeCode, {pixKey: 1, _id: 0});
+            const body = z.object({
+                value: z.string().transform((val) => parseFloat(val)),
+                info: z.string().optional(),
+                expiration_date: z.number(),
+                userCreate: idValidation,
+                storeCode: idValidation,
+                clientData: z.object({
+                    cgc: z.string(),
+                    name: z.string()
+                }).optional(),
+                payment: paymentValidation
+            }).parse(req.body);
+
+            const establishment = await Establishments.findById(body.storeCode, {pixKey: 1, _id: 0});
             if (!establishment.pixKey) {
                 return ApiResponse.badRequest("Estabelecimento não possui chave pix cadastrada").send(res);
             }
             const paymentData: EfiPaySend = {
                 calendario: {
-                    expiracao: expiration_date ?? 3600
+                    expiracao: body.expiration_date ?? 3600
                 },
                 valor: {
-                    original: `${value}`
+                    original: body.value.toFixed(2)
                 },
                 chave: establishment.pixKey,
-                solicitacaoPagador: info ?? "Cobrança dos serviços prestados"                
+                solicitacaoPagador: body.info ?? "Cobrança dos serviços prestados"                
             };
-            if (clientData) {
-                if (clientData.cgc && clientData.name) {
+            if (body.clientData) {
+                if (body.clientData.cgc && body.clientData.name) {
                     paymentData.devedor = {
-                        cpf: clientData.cgc,
-                        nome: clientData.name
+                        cpf: body.clientData.cgc,
+                        nome: body.clientData.name
                     }
                 }
             };
@@ -254,21 +243,20 @@ export default class PixChargesController {
                 data: JSON.stringify(paymentData)
             });
             requisition.data.payment_data = await getQrCode(TOKEN_DATA, requisition.data.loc.id);
-            const newPayment = new Payments({
-                storeCode: storeCode,
-                userCreate: userCreate,
-                accountId: payment.accountId,
-                value: {
-                    txId: requisition.data.txid,
-                    form: "pix",
-                    value: parseFloat(value)
-                }
-            });
             await new PixPayments({
-                storeCode,
-                userCreate,
+                storeCode: body.storeCode,
+                userCreate: body.userCreate,
                 txId: requisition.data.txid,
-                paymentData: newPayment,
+                paymentData: {
+                    storeCode: body.storeCode,
+                    userCreate: body.userCreate,
+                    accountId: body.payment.accountId,
+                    value: {
+                        txId: requisition.data.txid,
+                        form: "pix",
+                        value: body.value,
+                    }
+                },
             }).save();
             return ApiResponse.success(requisition.data).send(res);
         } catch (e) {
@@ -278,11 +266,7 @@ export default class PixChargesController {
 
     static async cancelPixCharge(req: Request, res: Response, next: NextFunction) {
         try {
-            const {txId} : {txId: string} = req.body;
-            const txVal = new Validators("txId", txId, "string").validate();
-            if (!txVal.isValid) {
-                throw new InvalidParameter(txVal);
-            }
+            const txId = z.string().min(1).parse(req.params.txId);
             const process = await PixChargesController.onCancelPix(txId);
             if (!process.modifiedCount) {
                 return ApiResponse.badRequest("Nenhum dado atualizado, verifique os filtros").send(res);
