@@ -14,7 +14,7 @@ import FirebaseMessaging from "../../utils/firebase/messaging";
 
 // const FIREBASEAUTH = admin.auth();
 
-export default class UserController {
+class UserController {
   static async add(req: Request, res: Response, next: Function) {
     try {
       let user = new Users(req.body);
@@ -218,4 +218,4 @@ async function updateUserToken(id: string, token: string) {
   })
 }
 
-// export default UserController;
+export {UserController, updateUserToken}
