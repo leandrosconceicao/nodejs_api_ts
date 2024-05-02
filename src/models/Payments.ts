@@ -1,4 +1,6 @@
 import mongoose from "mongoose";
+import { idValidation } from "../utils/defaultValidations";
+import { z } from "zod";
 var ObjectId = mongoose.Types.ObjectId;
 
 const valueSchema = new mongoose.Schema({
@@ -29,7 +31,23 @@ const paymentSchema = new mongoose.Schema({
 });
 
 
+const paymentValidation = z.object({
+    accountId: idValidation.optional(),
+    refunded: z.boolean().optional(),
+    storeCode: idValidation,
+    userCreate: idValidation.optional(),
+    userUpdated: idValidation.optional(),
+    updateDate: z.string().optional(),
+    value: z.object({
+        txId: z.string().optional(),
+        cardPaymentId: z.string().optional(),
+        form: z.enum(['money', 'debit', 'credit', 'pix']),
+        value: z.number()
+    })
+});
+
+
 
 const Payments = mongoose.model("payments", paymentSchema);
 
-export { paymentSchema, Payments };
+export { paymentSchema, Payments , paymentValidation};
