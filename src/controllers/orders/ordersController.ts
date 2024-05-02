@@ -4,9 +4,10 @@ import { idValidation } from "../../utils/defaultValidations.js";
 import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery.js";
 import { Request, Response, NextFunction } from "express";
 import { Validators } from "../../utils/validators";
-import { Orders, orderSchema } from "../../models/Orders";
+import { Orders, orderSchema, orderValidation } from "../../models/Orders";
 import ApiResponse from "../../models/base/ApiResponse";
 import Users from "../../models/Users";
+import { updateUserToken } from "../users/userController.js";
 import Counters from "../../models/Counters";
 import NotFoundError from "../../models/errors/NotFound";
 import {Accounts} from "../../models/Accounts";
@@ -332,73 +333,8 @@ export default class OrdersController {
 
     static async newOrder(req: Request, res: Response, next: NextFunction) {
         try {
-            const data = z.object({
-                pedidosId: z.number().optional(),
-                accountId: z.string().min(1).max(24).optional(),
-                accepted: z.boolean().optional(),
-                status: z.enum(['pending', 'cancelled', 'finished', 'onTheWay']).optional(),
-                orderType: z.enum(['frontDesk', 'account', 'delivery', 'withdraw']),
-                isPayed: z.boolean().optional(),
-                client: z.object({
-                    cgc: z.string().optional(),
-                    name: z.string().optional(),
-                    email: z.string().optional(),
-                    phoneNumber: z.string().optional(),
-                    address: z.array(z.object({
-                        address: z.string().optional(),
-                        city: z.string().optional(),
-                        complement: z.string().optional(),
-                        district: z.string().optional(),
-                        number: z.string().optional(),
-                        state: z.string().optional(),
-                        zipCode: z.string().optional()
-                    })).optional(),
-                }),
-                userCreate: z.string().min(1).max(24).optional(),
-                observations: z.string().optional(),
-                storeCode: z.string().min(1).max(24),
-                payment: z.object({
-                    accountId: z.string().min(1).max(24).optional(),
-                    refunded: z.boolean().optional(),
-                    storeCode: z.string().min(1).max(24),
-                    userCreate: z.string().min(1).max(24),
-                    userUpdated: z.string().min(1).max(24).optional(),
-                    value: z.object({
-                        txId: z.string().optional(),
-                        cardPaymentId: z.string().optional(),
-                        value: z.number(),
-                        form: z.enum(["money", "debit", "credit", "pix"]).optional(),
-                    })
-                }).optional(),
-                products: z.array(z.object({
-                    quantity: z.number(),
-                    productName: z.string().optional(),
-                    productId: z.string().min(1).max(24),
-                    orderDescription: z.string().optional(),
-                    category: z.string().optional(),
-                    needsPreparation: z.boolean().optional(),
-                    setupIsFinished: z.boolean().optional(),
-                    unitPrice: z.number(),
-                    addOnes: z.array(z.object({
-                        addOneName: z.string(),
-                        quantity: z.number(),
-                        price: z.number(),
-                        name: z.string(),
-                    }).optional()).optional()
-                })),
-            }).parse(req.body);
-            // const { storeCode, products, orderType, payment }: { storeCode: string, products: Array<any>, orderType: string, payment: any ,} = req.body;
-            // const storeVal = new Validators("storeCode", storeCode, "string").validate();
-            // const productVal = new Validators("products", products, "array").validate();
-            // if (!storeVal.isValid) {
-            //     throw new InvalidParameter(storeVal);
-            // }
-            // if (!productVal.isValid) {
-            //     throw new InvalidParameter(productVal);
-            // }
-            // if (!products.length) {
-            //     throw ApiResponse.badRequest("Nenhum produto adicionado");
-            // }
+            const token = z.string().optional().parse(req.headers.firebasetoken);
+            const data = orderValidation.parse(req.body);
             const newOrder = new Orders(data);
             await EstablishmentsController.checkOpening(newOrder.storeCode, newOrder.orderType);
             if (data.orderType && data.orderType === "frontDesk") { 
@@ -410,6 +346,9 @@ export default class OrdersController {
                 if (!canRecieveNewOrder) {
                     throw ApiResponse.badRequest("Conta não pode receber pedidos pois não está com o status de (ABERTA).");
                 }
+            }
+            if (token) {
+                updateUserToken(data.userCreate, token);
             }
             const process = await newOrder.save();
             await updateId(process._id.toString(), data.storeCode);
