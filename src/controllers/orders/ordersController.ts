@@ -323,7 +323,7 @@ export default class OrdersController {
             .populate(popuAccId, [popuPayment, popuOrders])
             .populate(popuUser, [popuEstablish, popuPass]).lean();
             
-            notififyUser(body.userCode, "Preparação de pedido", body.isReady ? `Atenção, pedido: ${process.pedidosId} está pronto` : "Alerta de pedido");
+            notififyUser(process.userCreate, "Preparação de pedido", body.isReady ? `Atenção, pedido: ${process.pedidosId} está pronto` : "Alerta de pedido");
 
             return ApiResponse.success(process).send(res);
         } catch (e) {
@@ -469,8 +469,8 @@ async function updateId(id: string, storeCode: string) {
     })
 }
 
-async function notififyUser(id: string, title: string, body: string) {
-    const user = await Users.findById(id);
+async function notififyUser(userData: any, title: string, body: string) {
+    const user = await Users.findById(userData._id);
     if (user) {
         FBMESSAGING.sendToUser(user.token, {
             title,
