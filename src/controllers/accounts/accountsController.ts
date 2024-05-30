@@ -2,7 +2,7 @@ import { Validators } from "../../utils/validators";
 import {z} from "zod";
 import { idValidation } from "../../utils/defaultValidations";
 import ApiResponse from "../../models/base/ApiResponse";
-import {Accounts, accountStatus} from "../../models/Accounts";
+import {Accounts, accountStatus, accountValidation} from "../../models/Accounts";
 import NotFoundError from "../../models/errors/NotFound";
 import InvalidParameter from "../../models/errors/InvalidParameters";
 import mongoose from "mongoose";
@@ -11,6 +11,7 @@ import { Request, Response, NextFunction } from "express";
 import ApiFilters from "../../models/base/ApiFilters";
 import OrdersController from "../orders/ordersController";
 import PaymentController from "../payments/paymentController";
+import { clientsSchemaValidation } from "../../models/Clients";
 var ObjectId = mongoose.Types.ObjectId;
 
 const populateClient = "client";
@@ -65,7 +66,13 @@ export default class AccountsController extends ApiFilters {
 
     static async addNew(req: Request, res: Response, next: NextFunction) {
         try {
-            const newAccount = new Accounts(req.body);
+            const newAccount = new Accounts(z.object({
+                description: z.string().min(1),
+                storeCode: idValidation,
+                created_by: idValidation,
+                status: z.enum(['open', 'closed', 'checkSolicitation']).default('open'),
+                client: clientsSchemaValidation.optional(),
+            }).parse(req.body));
             const process = await newAccount.save();
             return ApiResponse.success(process).send(res);
         } catch (e) {
@@ -75,18 +82,11 @@ export default class AccountsController extends ApiFilters {
 
     static async edit(req: Request, res: Response, next: NextFunction) {
         try {
-            const id = req.params.id;
-            const {description} : {description: string} = req.body;
-            const idVal = new Validators("id", id, "string").validate();
-            const descVal = new Validators("description", description, "string").validate();
-            if (!idVal.isValid) {
-                throw new InvalidParameter(idVal);
-            }
-            if (!descVal.isValid) {
-                throw new InvalidParameter(descVal);
-            }
+            const id = idValidation.parse(req.params.id);
+            const body = accountValidation.parse(req.body);
             const process = await Accounts.findByIdAndUpdate(id, {
-                description: description,
+                ...body,
+                updatedAt: new Date()
             }, {new: true})
             return ApiResponse.success(process).send(res);
         } catch (e) {
