@@ -1,4 +1,21 @@
 import mongoose from "mongoose";
+import {z} from "zod";
+
+const clientsSchemaValidation = z.object({
+    cgc: z.string().optional(),
+    name: z.string().optional(),
+    email: z.string().optional(),
+    phoneNumber: z.string().optional(),
+    address: z.array(z.object({
+        address: z.string().optional(),
+        city: z.string().optional(),
+        complement: z.string().optional(),
+        district: z.string().optional(),
+        number: z.string().optional(),
+        state: z.string().optional(),
+        zipCode: z.string().optional(),
+    })).optional()
+})
 
 const clientsSchema = new mongoose.Schema({
     cgc: { type: String , default: ""},
@@ -28,7 +45,7 @@ const clientsSchema = new mongoose.Schema({
     },
 })
 
-export {clientsSchema};
+export {clientsSchema, clientsSchemaValidation};
 
 // const Clients = mongoose.model('clients', clientsSchema)
 
