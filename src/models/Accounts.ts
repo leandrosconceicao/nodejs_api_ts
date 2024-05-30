@@ -1,9 +1,20 @@
 import mongoose from "mongoose";
-import { clientsSchema } from "./Clients";
+import { clientsSchema, clientsSchemaValidation } from "./Clients";
+import {z} from "zod";
+import { idValidation } from "../utils/defaultValidations";
 
 var ObjectId = mongoose.Types.ObjectId;
 
 const accountStatus = ['open', 'closed', 'checkSolicitation'];
+
+const accountValidation = z.object({
+    description: z.string().min(1),
+    storeCode: idValidation.optional(),
+    updateAt: z.date().optional(),
+    status: z.enum(["open", "closed", "checkSolicitation"]).optional(),
+    client: clientsSchemaValidation.optional(),
+    created_by: idValidation.optional()
+});
 
 const Accounts = mongoose.model("accounts", new mongoose.Schema({
     deleted_id: {type: mongoose.Types.ObjectId, default: undefined},
@@ -16,7 +27,7 @@ const Accounts = mongoose.model("accounts", new mongoose.Schema({
         required: true,
         default: 'open',
         enum: {
-            values: ['open', 'closed', 'checkSolicitation'],
+            values: accountStatus,
             message: "O tipo {VALUE} não é um valor de STATUS permitido"
         }
     },
@@ -30,4 +41,4 @@ const Accounts = mongoose.model("accounts", new mongoose.Schema({
     payments: {}
 }))
 
-export {accountStatus, Accounts};
+export {accountStatus, Accounts, accountValidation};
