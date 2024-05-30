@@ -68,27 +68,14 @@ export default class PixChargesController {
             if (!TOKEN_DATA) {
                 return noTokenReturn(res);
             }
-            const {start, end} = req.query;
-            const stVal = new Validators("start", start, "string").validate();
-            const endVal = new Validators("end", end, "string").validate();
-            if (!stVal.isValid) {
-                throw new InvalidParameter(stVal);
-            }
-            if (!endVal.isValid) {
-                throw new InvalidParameter(endVal);
-            }
-            const startDate = new Date(start as string);
-            const endDate = new Date(end as string);
-            if (isNaN(startDate.getTime())) {
-                throw new InvalidParameter(stVal);
-            }
-            if (isNaN(endDate.getTime())) {
-                throw new InvalidParameter(endVal);
-            }
+            const data = z.object({
+                start: z.string().datetime({offset: true}),
+                end: z.string().datetime({offset: true})
+            }).parse(req.query);
             const request = await efiRequest<EfiCharges>({
                 auth: TOKEN_DATA,
                 method: "GET",
-                url: `${URL}/v2/cob?inicio=${start}&fim=${end}`,
+                url: `${URL}/v2/cob?inicio=${data.start}&fim=${data.end}`,
             });
             return ApiResponse.success(request.data).send(res);
         } catch (e) {
