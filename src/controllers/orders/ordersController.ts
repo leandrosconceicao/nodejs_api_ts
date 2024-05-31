@@ -394,10 +394,11 @@ export default class OrdersController {
             res.setHeader("Content-Type", "text/event-stream");
             res.setHeader("Access-Control-Allow-Origin", "*");
             res.setHeader("Connection", "keep-alive");
+            res.flushHeaders();
             const storeCode = idValidation.parse(req.params.id);
             const dates = z.object({
-                from: z.string().min(1),
-                to: z.string().min(1)
+                from: z.string().datetime({offset: true}),
+                to: z.string().datetime({offset: true})
             }).parse(req.query);
             let orders = await ordersOnPreparation(storeCode, dates.from, dates.to);
             res.write(`data: ${JSON.stringify(orders)}\n\n`)
