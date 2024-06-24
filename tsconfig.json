@@ -9,6 +9,9 @@
         "sourceMap": true,
         "resolveJsonModule": true,
         "outDir": "./build",
+        "lib": [
+          "ES2021.String"
+        ],
         "baseUrl": ".",
         "paths": {
             "*": [
