@@ -1,35 +1,44 @@
-import Apps from "../../models/Apps.js";
-import { isValidObjectId } from "mongoose";
-import { Validators } from "../../utils/validators";
+import Apps from "../../models/Apps";
+import {z} from "zod";
 import { Request, Response, NextFunction } from "express";
 import ApiResponse from "../../models/base/ApiResponse";
-import NotFoundError from "../../models/errors/NotFound.js";
-import InvalidParameter from "../../models/errors/InvalidParameters.js";
+import NotFoundError from "../../models/errors/NotFound";
+import { idValidation } from "../../utils/defaultValidations";
+import { RegexBuilder } from "../../utils/regexBuilder";
 
 interface QuerySearch {
     _id?: string,
-    appsName?: string,
+    appsName?: string | RegExp,
     version?: string,
 }
+
+const appValidation = z.object({
+    appsName: z.string().min(1),
+    version: z.string().min(1),
+    releaseDate: z.string().datetime({offset: true})
+});
 
 export default class AppsController {
     
     static async findAll(req: Request, res: Response, next: NextFunction) {
         try {
-            let body = req.query;
-            let query: QuerySearch = {};
-            const idVal = new Validators("id", body.id, "string").validate();
-            const appVal = new Validators("name", body.name, "string").validate();
-            const verVal = new Validators("version", body.version, "string").validate();
-            if (idVal.isValid) {
-                query._id = body.id as string;
-            }
-            if (appVal.isValid) {
-                query.appsName = body.name as string;
-            }
-            if (verVal.isValid) {
-                query.version = body.version as string;
-            }
+            const query = z.object({
+                id: idValidation.optional(),
+                name: z.string().optional(),
+                version: z.string().optional(),
+            }).optional().transform((value) => {
+                let query = <QuerySearch>{};
+                if (value.id) {
+                    query._id = value.id;
+                }
+                if (value.name) {
+                    query.appsName = RegexBuilder.searchByName(value.name);
+                }
+                if (value.version) {
+                    query.version = value.version;
+                }
+                return query;
+            }).parse(req.query);
             req.result = Apps.find(query);
             next();
         } catch (e) {
@@ -52,7 +61,7 @@ export default class AppsController {
 
     static async add(req: Request, res: Response, next: NextFunction) {
         try {
-            let body = req.body;
+            const body = appValidation.parse(req.body);
             const app = new Apps(body);
             await app.save();
             return ApiResponse.success().send(res);
@@ -63,16 +72,8 @@ export default class AppsController {
 
     static async update(req: Request, res: Response, next: NextFunction) {
         try {
-            const {id, data} = req.body;
-            const idVal = new Validators("id", id, "string").validate();
-            const dataVal = new Validators("data", data, "object").validate();
-            if (!idVal.isValid) {
-                throw new InvalidParameter(idVal); 
-            }
-            if (!dataVal.isValid) {
-                throw new InvalidParameter(dataVal);
-            }
-            delete data._id;
+            const id = idValidation.parse(req.params.id);
+            const data = appValidation.parse(req.body);
             const dt = await Apps.findByIdAndUpdate(id, {$set: data});
             return ApiResponse.success(dt).send(res);
         } catch (e) {
@@ -82,11 +83,7 @@ export default class AppsController {
 
     static async delete(req: Request, res: Response, next: NextFunction) {
         try {
-            let id = req.body.id;
-            const idVal = new Validators("id", id, "string").validate();
-            if (!idVal.isValid) {
-                throw new InvalidParameter(idVal);
-            }
+            const id = idValidation.parse(req.params.id)
             const process = await Apps.findByIdAndDelete(id);
             if (!process) {
                 return ApiResponse.badRequest().send(res);
@@ -99,23 +96,18 @@ export default class AppsController {
 
     static async validateVersion(req: Request, res: Response, next: NextFunction) {
         try {
-            const {appName, version} = req.query;
-            const appVal = new Validators("name", appName, "string").validate();
-            const verVal = new Validators("version", version, "string").validate();
-            if (!appVal.isValid) {
-                throw new InvalidParameter(appVal);
-            }
-            if (!verVal.isValid) {
-                throw new InvalidParameter(verVal);
-            }
+            const searchApp = z.object({
+                name: z.string().min(1),
+                version: z.string().min(1)
+            }).parse(req.query);
             const app = await Apps.findOne({
-                appsName: appName,
+                appsName: searchApp.name,
             });
             if (!app) {
                 throw new NotFoundError("App não localizado");
             }
-            const versionCheck = parseInt(version.toString().replace(".", ""));
-            const serverVersion = parseInt(app.version.toString().replace(".", ""));
+            const versionCheck = parseInt(searchApp.version.replaceAll(".", ""));
+            const serverVersion = parseInt(app.version.replaceAll(".", ""));
             const hasNewVersion =  serverVersion > versionCheck;
             if (hasNewVersion) {
                 return ApiResponse.badRequest("Há uma nova versão do aplivativo disponível para atualização").send(res);
