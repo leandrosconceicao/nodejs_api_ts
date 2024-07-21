@@ -5,9 +5,9 @@ import paginationAndFilters from "../middlewares/paginationAndFilters";
 import OrdersController from "../controllers/orders/ordersController";
 
 export default express.Router()
-    .get(Endpoints.orders, validateToken, OrdersController.findAll, paginationAndFilters)
+    .get(Endpoints.orders, OrdersController.findAll, paginationAndFilters)
+    .get(`${Endpoints.orders}/:id`, OrdersController.findOne)
     .get(`${Endpoints.orders}/orders_on_preparation/:id`, OrdersController.getOrdersOnPreparation)
-    .get(`${Endpoints.orders}/:id`, validateToken, OrdersController.findOne)
     .post(Endpoints.orders, OrdersController.newOrder)
     .put(`${Endpoints.orders}/cancel_order`, validateToken, OrdersController.cancelOrder)
     .put(`${Endpoints.orders}/set_preparation/:id`, validateToken, OrdersController.setPreparation)
