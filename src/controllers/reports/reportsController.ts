@@ -19,7 +19,6 @@ interface ReportQuery {
     userCreate?: any,
     orderType?: string,
     products?: any,
-    saller?: any,
     status: any,
     updated_at?: any,
 }
@@ -49,7 +48,7 @@ export default class ReportsController {
                 }
             };
             if (saller) {
-                query.saller = saller;
+                query.userCreate = new ObjectId(saller as string);
             }
             if (type) {
                 query.orderType = type as string;
@@ -102,7 +101,7 @@ export default class ReportsController {
             };
             let products;
             if (saller) {
-                query.saller = saller;
+                query.userCreate = new ObjectId(saller as string);
             }
             if (type) {
                 query.orderType = type as string;
