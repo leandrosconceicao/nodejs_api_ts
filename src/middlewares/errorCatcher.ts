@@ -13,7 +13,7 @@ import {z} from "zod";
 export default function(err: Error, req: express.Request, res: express.Response, next: NextFunction) {
     
     if (err instanceof z.ZodError) {
-        return ApiResponse.invalidParameter(err.message).send(res);
+        return ApiResponse.invalidParameter(err.toString()).send(res);
     }
     if (err instanceof MongoServerError) {
         if (err.code === 11000) {

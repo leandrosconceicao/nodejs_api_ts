@@ -5,8 +5,23 @@ import PixChargesController from "../controllers/payments/pixChargesController";
 import paginationAndFilters from "../middlewares/paginationAndFilters";
 import validateToken from "../middlewares/tokenController";
 import CardPaymentsController from "../controllers/payments/cardPayments";
+import PaymentMethodsController from "../controllers/payments/paymentMethodsControllers";
+import CashRegisterController from "../controllers/payments/cashRegisterController";
+
+const paymentMethodsCtrl = new PaymentMethodsController();
+const cashRegisterCtrl = new CashRegisterController();
 
 export default express.Router()
+    .post(`${Endpoints.payments}/cash_register`,  cashRegisterCtrl.onNewData)
+    .get(`${Endpoints.payments}/cash_register`,  cashRegisterCtrl.onFindAll)
+    .get(`${Endpoints.payments}/cash_register/:id`,  cashRegisterCtrl.onFindOne)
+    .patch(`${Endpoints.payments}/cash_register/:id`,  cashRegisterCtrl.onUpdateData)
+    .delete(`${Endpoints.payments}/cash_register/:id`,  cashRegisterCtrl.onDeleteData)
+    .post(`${Endpoints.payments}/payment_methods`, validateToken, paymentMethodsCtrl.onNewData)
+    .get(`${Endpoints.payments}/payment_methods`, validateToken, paymentMethodsCtrl.onFindAll)
+    .get(`${Endpoints.payments}/payment_methods/:id`, validateToken, paymentMethodsCtrl.onFindOne)
+    .patch(`${Endpoints.payments}/payment_methods/:id`, validateToken, paymentMethodsCtrl.onUpdateData)
+    .delete(`${Endpoints.payments}/payment_methods/:id`, validateToken, paymentMethodsCtrl.onDeleteData)
     .post(`${Endpoints.payments}/card_payments`, CardPaymentsController.post)
     .delete(`${Endpoints.payments}/card_payments`, CardPaymentsController.cancel)
     .get(`${Endpoints.payments}/check_pix/:txid`, validateToken, PixChargesController.validatePaymentChargeCheck)
