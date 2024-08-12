@@ -22,7 +22,11 @@ export default class PaymentMethodsController implements BaseController {
         try {
             const query = z.object({
                 storeCode: z.string().min(1),
+                deleted: z.object({}).optional()
             }).parse(req.query)
+            query.deleted = {
+                $eq: null
+            }
             const data = await PaymentMethods.find(query)
             return ApiResponse.success(data).send(res);
         } catch (e) {
@@ -47,7 +51,9 @@ export default class PaymentMethodsController implements BaseController {
     async onDeleteData(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const id = idValidation.parse(req.params.id);
-            const process = await PaymentMethods.findByIdAndDelete(id)
+            const process = await PaymentMethods.findByIdAndUpdate(id, {
+                deleted: id
+            })
             if (!process) {
                 throw new NotFoundError("Registro não localizado");
             }

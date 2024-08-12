@@ -15,6 +15,10 @@ const schema = new mongoose.Schema({
         type: ObjectId, ref: 'users', required: [true, "Parametro (created_by) é obrigatório"],
     },
     enabled: { type: Boolean, default: true },
+    deleted: {
+        type: ObjectId,
+        default: undefined,
+    },
     storeCode: {
         type: ObjectId, ref: 'establishments', required: [true, "Parametro (storeCode) é obrigatório"]
     },
