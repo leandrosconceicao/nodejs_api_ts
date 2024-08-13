@@ -6,7 +6,7 @@ import paginationAndFilters from "../middlewares/paginationAndFilters";
 import validateToken from "../middlewares/tokenController";
 import CardPaymentsController from "../controllers/payments/cardPayments";
 import PaymentMethodsController from "../controllers/payments/paymentMethodsControllers";
-import CashRegisterController from "../controllers/payments/cashRegisterController";
+import {CashRegisterController} from "../controllers/payments/cashRegisterController";
 
 const paymentMethodsCtrl = new PaymentMethodsController();
 const cashRegisterCtrl = new CashRegisterController();
