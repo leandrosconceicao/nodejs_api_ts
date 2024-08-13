@@ -19,6 +19,7 @@ import { Payments } from "../../models/Payments";
 import LogsController from "../logs/logsController.js";
 import EstablishmentsController from "../establishments/establishmentController.js";
 import FirebaseMessaging from "../../utils/firebase/messaging";
+import { checkForOpenCashRegister } from "../payments/cashRegisterController.js";
 
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -337,12 +338,16 @@ export default class OrdersController {
             const data = orderValidation.parse(req.body);
             const newOrder = new Orders(data);
             await EstablishmentsController.checkOpening(newOrder.storeCode, newOrder.orderType);
+            const openCashes = await checkForOpenCashRegister(data.userCreate)
+            if (!data.accountId && !openCashes) {
+                throw ApiResponse.badRequest("Usuário não possui caixa aberto")
+            }
             if (data.orderType && data.orderType === "frontDesk") { 
                 const pay = await PaymentController.savePayment(data.payment);
                 newOrder.payment = pay._id as any;
             }
-            if (req.body.accountId) {
-                const canRecieveNewOrder = await AccountsController.canReceiveNewOrder(req.body.accountId);
+            if (data.accountId) {
+                const canRecieveNewOrder = await AccountsController.canReceiveNewOrder(data.accountId);
                 if (!canRecieveNewOrder) {
                     throw ApiResponse.badRequest("Conta não pode receber pedidos pois não está com o status de (ABERTA).");
                 }
