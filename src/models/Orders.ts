@@ -3,6 +3,7 @@ import {z} from "zod";
 import orders_products_schema from "./orders/orders_products";
 import orders_delivery_address from "./orders/orders_delivery_address";
 import { clientsSchema } from "./Clients";
+import { idValidation } from "../utils/defaultValidations";
 var ObjectId = mongoose.Types.ObjectId;
 
 const orderSchema = new mongoose.Schema({
@@ -55,7 +56,7 @@ const orderSchema = new mongoose.Schema({
 
 const orderValidation = z.object({
   pedidosId: z.number().optional(),
-  accountId: z.string().min(1).max(24).optional(),
+  accountId: idValidation.optional(),
   accepted: z.boolean().optional(),
   status: z.enum(['pending', 'cancelled', 'finished', 'onTheWay']).optional(),
   orderType: z.enum(['frontDesk', 'account', 'delivery', 'withdraw']).optional(),
@@ -75,15 +76,15 @@ const orderValidation = z.object({
           zipCode: z.string().optional()
       })).optional(),
   }),
-  userCreate: z.string().min(1).max(24).optional(),
+  userCreate: idValidation.optional(),
   observations: z.string().optional(),
-  storeCode: z.string().min(1).max(24),
+  storeCode: idValidation,
   payment: z.object({
-      accountId: z.string().min(1).max(24).optional(),
+      accountId: idValidation.optional(),
       refunded: z.boolean().optional(),
-      storeCode: z.string().min(1).max(24),
-      userCreate: z.string().min(1).max(24),
-      userUpdated: z.string().min(1).max(24).optional(),
+      storeCode: idValidation,
+      userCreate: idValidation,
+      userUpdated: idValidation.optional(),
       value: z.object({
           txId: z.string().optional(),
           cardPaymentId: z.string().optional(),
@@ -94,7 +95,7 @@ const orderValidation = z.object({
   products: z.array(z.object({
       quantity: z.number(),
       productName: z.string().optional(),
-      productId: z.string().min(1).max(24),
+      productId: idValidation,
       orderDescription: z.string().optional(),
       category: z.string().optional(),
       needsPreparation: z.boolean().optional(),
@@ -106,7 +107,7 @@ const orderValidation = z.object({
           price: z.number(),
           name: z.string(),
       }).optional()).optional()
-  })),
+  })).nonempty(),
 });
 
 const Orders = mongoose.model("orders", orderSchema);
