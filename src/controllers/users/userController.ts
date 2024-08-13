@@ -10,6 +10,7 @@ import { Validators } from "../../utils/validators";
 import NotFoundError from "../../models/errors/NotFound";
 import TokenGenerator from "../../utils/tokenGenerator";
 import FirebaseMessaging from "../../utils/firebase/messaging";
+import { idValidation } from "../../utils/defaultValidations";
 // import admin from "../../../config/firebaseConfig.js"
 
 // const FIREBASEAUTH = admin.auth();
@@ -70,6 +71,9 @@ class UserController {
       }).parse(req.body);
       if (user.pass) {
         user.pass = new PassGenerator(user.pass).build();
+      }
+      if (user.changePassword) {
+        user.pass = new PassGenerator("12345678").build();
       }
       const updatedUser = await Users.findByIdAndUpdate(id, user, { new: true });
       return ApiResponse.success(updatedUser).send(res);
@@ -218,4 +222,12 @@ async function updateUserToken(id: string, token: string) {
   })
 }
 
-export {UserController, updateUserToken}
+async function checkIfUserExists(id: string) {
+  const queryId = idValidation.parse(id);
+  const user = await Users.findById(queryId);
+  if (!user) {
+    throw new NotFoundError("Usuário não localizado");
+  }
+}
+
+export {UserController, updateUserToken, checkIfUserExists}
