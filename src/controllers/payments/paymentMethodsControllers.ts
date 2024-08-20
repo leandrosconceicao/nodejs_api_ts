@@ -37,7 +37,8 @@ export default class PaymentMethodsController implements BaseController {
         try {
             const id = idValidation.parse(req.params.id);
             const query = await PaymentMethods.findById(id)
-                .populate("created_by", ["-establishments", "-pass"])
+                .populate("storeData", ['-ownerId'])
+                .populate("createdByData", ["-establishments", "-pass"])
             if (!query) {
                 throw new NotFoundError();
             }

@@ -4,6 +4,7 @@ import orders_products_schema from "./orders/orders_products";
 import orders_delivery_address from "./orders/orders_delivery_address";
 import { clientsSchema } from "./Clients";
 import { idValidation } from "../utils/defaultValidations";
+import { paymentValidation } from "./Payments";
 var ObjectId = mongoose.Types.ObjectId;
 
 const orderSchema = new mongoose.Schema({
@@ -79,19 +80,7 @@ const orderValidation = z.object({
   userCreate: idValidation.optional(),
   observations: z.string().optional(),
   storeCode: idValidation,
-  payment: z.object({
-      accountId: idValidation.optional(),
-      refunded: z.boolean().optional(),
-      storeCode: idValidation,
-      userCreate: idValidation,
-      userUpdated: idValidation.optional(),
-      value: z.object({
-          txId: z.string().optional(),
-          cardPaymentId: z.string().optional(),
-          value: z.number(),
-          form: z.enum(["money", "debit", "credit", "pix"]).optional(),
-      })
-  }).optional(),
+  payment: paymentValidation.optional(),
   products: z.array(z.object({
       quantity: z.number(),
       productName: z.string().optional(),

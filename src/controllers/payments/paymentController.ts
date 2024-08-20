@@ -1,14 +1,15 @@
-import Apps from "../../models/Apps.js";
 import mongoose from "mongoose";
 import { Validators } from "../../utils/validators";
 import { Request, Response, NextFunction } from "express";
 import ApiResponse from "../../models/base/ApiResponse";
-import { Payments } from "../../models/Payments.js";
+import { Payments, paymentValidation } from "../../models/Payments.js";
 import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery.js";
 import NotFoundError from "../../models/errors/NotFound.js";
 import InvalidParameter from "../../models/errors/InvalidParameters.js";
 import PixChargesController from "./pixChargesController.js";
 import { checkForOpenCashRegister } from "./cashRegisterController.js";
+import { idValidation } from "../../utils/defaultValidations";
+import z from "zod";
 var ObjectId = mongoose.Types.ObjectId;
 
 const populateUser = "userCreate";
@@ -59,7 +60,7 @@ export default class PaymentController {
 
     static async findOne(req: Request, res: Response, next: NextFunction) {
         try {
-            const id = req.params.id;
+            const id = idValidation.parse(req.params.id);
             const payment = await Payments.findById(id).populate(populateUser, populateEstablish);
             if (!payment) {
                 throw new NotFoundError("Pagamento não localizado");
@@ -155,8 +156,7 @@ export default class PaymentController {
             });
             return payment;
         }
-        const newPayment = new Payments(data);
-        newPayment.createDate = new Date();
+        const newPayment = new Payments(paymentValidation.parse(data));
         const process = await newPayment.save();
         return process;
     }
