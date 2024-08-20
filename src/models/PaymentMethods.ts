@@ -22,12 +22,32 @@ const schema = new mongoose.Schema({
     storeCode: {
         type: ObjectId, ref: 'establishments', required: [true, "Parametro (storeCode) é obrigatório"]
     },
-    description: { 
-        type: String, 
+    description: {
+        type: String,
         required: [true, "Parametro (description) é obrigatório"],
-        unique: true
     },
-}, { timestamps: true, })
+}, { 
+    timestamps: true, 
+})
+
+schema.index({ description: 1, storeCode: 1, deleted: -1 }, { unique: true })
+
+schema.virtual("storeData", {
+    ref: 'establishments',
+    localField: 'storeCode',
+    foreignField: '_id',
+    justOne: true
+})
+
+schema.virtual("createdByData", {
+    ref: 'users',
+    localField: 'created_by',
+    foreignField: '_id',
+    justOne: true
+})
+
+schema.set('toObject', { virtuals: true });
+schema.set('toJSON', { virtuals: true });
 
 const PaymentMethods = mongoose.model('paymentMethods', schema);
 

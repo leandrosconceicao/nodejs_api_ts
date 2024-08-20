@@ -6,13 +6,10 @@ var ObjectId = mongoose.Types.ObjectId;
 const valueSchema = new mongoose.Schema({
     txId: { type: String, default: undefined },
     cardPaymentId: { type: String, default: undefined },
-    form: {
-        type: String,
-        default: 'money',
-        enum: {
-            values: ['money', 'debit', 'credit', 'pix'],
-            message: "O tipo {VALUE} não é um valor permitido"
-        },
+    method: {
+        type: ObjectId,
+        ref: "paymentMethods",
+        required: [true, "Informe a forma de pagamento"]
     },
     value: { type: Number, required: [true, "Parametro (value) é obrigatório"] },
 });
@@ -28,6 +25,8 @@ const paymentSchema = new mongoose.Schema({
     userUpdated: { type: ObjectId, ref: "users", },
     updateDate: { type: Date },
     value: valueSchema
+}, {
+    timestamps: true
 });
 
 
@@ -37,14 +36,26 @@ const paymentValidation = z.object({
     storeCode: idValidation,
     userCreate: idValidation.optional(),
     userUpdated: idValidation.optional(),
-    updateDate: z.string().optional(),
+    updateDate: z.string().datetime({offset: true}).optional(),
     value: z.object({
         txId: z.string().optional(),
         cardPaymentId: z.string().optional(),
-        form: z.enum(['money', 'debit', 'credit', 'pix']),
+        method: idValidation,
+        // form: z.enum(['money', 'debit', 'credit', 'pix']),
         value: z.number()
     })
 });
+
+valueSchema.virtual("methodData", {
+    ref: "paymentMethods",
+    localField: "method",
+    foreignField: "_id",
+    justOne: true
+});
+
+
+valueSchema.set('toObject', { virtuals: true });
+valueSchema.set('toJSON', { virtuals: true });
 
 
 
