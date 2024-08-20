@@ -24,6 +24,10 @@ initializeApp({
 const app = express();
 
 app.use(cors());
+app.use(function (req, res, next) {
+    req.headers['content-type'] = 'application/json';
+    next();
+});
 app.use(bodyParse.json({
     limit: "200mb"
 }))
