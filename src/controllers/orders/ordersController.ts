@@ -6,7 +6,7 @@ import { Request, Response, NextFunction } from "express";
 import { Validators } from "../../utils/validators";
 import { Orders, orderSchema, orderValidation } from "../../models/Orders";
 import ApiResponse from "../../models/base/ApiResponse";
-import Users from "../../models/Users";
+import {Users} from "../../models/Users";
 import { updateUserToken } from "../users/userController.js";
 import Counters from "../../models/Counters";
 import NotFoundError from "../../models/errors/NotFound";
