@@ -7,7 +7,8 @@ const PaymentMethodsValidation = z.object({
     created_by: idValidation,
     description: z.string().min(1),
     storeCode: idValidation,
-    enabled: z.boolean().default(true)
+    enabled: z.boolean().default(true),
+    integration_id: idValidation.optional(),
 })
 
 const schema = new mongoose.Schema({
@@ -26,6 +27,9 @@ const schema = new mongoose.Schema({
         type: String,
         required: [true, "Parametro (description) é obrigatório"],
     },
+    integration_id: {
+        type: ObjectId, ref: "integrations",
+    }
 }, { 
     timestamps: true, 
 })

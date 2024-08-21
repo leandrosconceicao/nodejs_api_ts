@@ -69,7 +69,8 @@ export default class PaymentMethodsController implements BaseController {
             const id = idValidation.parse(req.params.id);
             const data = z.object({
                 description: z.string().min(1).optional(),
-                enabled: z.boolean().optional()
+                enabled: z.boolean().optional(),
+                integration_id: idValidation.optional(),
             }).parse(req.body);
             const process = await PaymentMethods.findByIdAndUpdate(id, data, {new: true});
             if (!process) {
