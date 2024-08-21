@@ -2,6 +2,9 @@ interface ElementMatch {
     $elemMatch: any
 }
 
+const DELETED_SEARCH =  {
+    $in: [false, null]
+};
 class ArraySearch {
 
     query: any;
@@ -17,4 +20,4 @@ class ArraySearch {
     }
 }
 
-export {ElementMatch, ArraySearch};
+export {ElementMatch, ArraySearch, DELETED_SEARCH};
