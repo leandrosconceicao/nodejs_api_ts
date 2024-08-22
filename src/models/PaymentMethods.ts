@@ -50,6 +50,13 @@ schema.virtual("createdByData", {
     justOne: true
 })
 
+schema.virtual("integration_detail", {
+    ref: 'integrations',
+    localField: 'integration_id',
+    foreignField: '_id',
+    justOne: true
+})
+
 schema.set('toObject', { virtuals: true });
 schema.set('toJSON', { virtuals: true });
 
