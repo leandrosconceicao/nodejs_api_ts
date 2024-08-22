@@ -123,6 +123,23 @@ const cashRegisterSchema = new mongoose.Schema({
     }
 });
 
+cashRegisterSchema.virtual("storeDetail", {
+    ref: 'establishments',
+    localField: 'storeCode',
+    foreignField: '_id',
+    justOne: true
+})
+
+cashRegisterSchema.virtual("userDetail", {
+    ref: 'users',
+    localField: 'created_by',
+    foreignField: '_id',
+    justOne: true
+})
+
+cashRegisterSchema.set('toObject', { virtuals: true });
+cashRegisterSchema.set('toJSON', { virtuals: true });
+
 const CashRegister = mongoose.model('cashRegister', cashRegisterSchema);
 
 
