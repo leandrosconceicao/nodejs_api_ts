@@ -12,11 +12,11 @@ const paymentMethodsCtrl = new PaymentMethodsController();
 const cashRegisterCtrl = new CashRegisterController();
 
 export default express.Router()
-    .post(`${Endpoints.payments}/cash_register`,  cashRegisterCtrl.onNewData)
-    .get(`${Endpoints.payments}/cash_register`,  cashRegisterCtrl.onFindAll)
-    .get(`${Endpoints.payments}/cash_register/:id`,  cashRegisterCtrl.onFindOne)
-    .patch(`${Endpoints.payments}/cash_register/:id`,  cashRegisterCtrl.onUpdateData)
-    .delete(`${Endpoints.payments}/cash_register/:id`,  cashRegisterCtrl.onDeleteData)
+    .post(`${Endpoints.payments}/cash_register`,  validateToken, cashRegisterCtrl.onNewData)
+    .get(`${Endpoints.payments}/cash_register`,  validateToken, cashRegisterCtrl.onFindAll)
+    .get(`${Endpoints.payments}/cash_register/:userId`,  validateToken, cashRegisterCtrl.onFindOne)
+    .patch(`${Endpoints.payments}/cash_register/:id`,  validateToken, cashRegisterCtrl.onUpdateData)
+    .delete(`${Endpoints.payments}/cash_register/:id`,  validateToken, cashRegisterCtrl.onDeleteData)
     .post(`${Endpoints.payments}/payment_methods`, validateToken, paymentMethodsCtrl.onNewData)
     .get(`${Endpoints.payments}/payment_methods`, validateToken, paymentMethodsCtrl.onFindAll)
     .get(`${Endpoints.payments}/payment_methods/:id`, validateToken, paymentMethodsCtrl.onFindOne)
