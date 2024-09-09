@@ -415,6 +415,8 @@ async function ordersOnPreparation(storeCode: string, from: string, to: string) 
         products: {
             $elemMatch: { setupIsFinished: false, needsPreparation: true },
         }
+    }).sort({
+        ["createDate"]: 1
     }).populate(populateClient)
     .populate(popuAccId, [popuPayment, popuOrders])
     .populate(popuUser, [popuEstablish, popuPass]);
