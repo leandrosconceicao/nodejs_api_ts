@@ -2,47 +2,40 @@ import mongoose from 'mongoose';
 import { idValidation } from '../utils/defaultValidations';
 import z from 'zod';
 import { DateQuery, PeriodQuery } from '../utils/PeriodQuery';
-import { ArraySearch, ElementMatch } from './base/MongoDBFilters';
+import { ElementMatch } from './base/MongoDBFilters';
+import { paymentSchema } from './Payments';
 var ObjectId = mongoose.Types.ObjectId;
 
-const movementSchema = new mongoose.Schema({
+const CASHREGISTER_VALUES_SCHEMA = new mongoose.Schema({
     value: {
         type: Number,
-        required: [true, "O valor do movimento deve ser informado"]
+        required: [true, "Valor deve ser informado"],
     },
-    description: {
-        type: String,
-        required: [true, "Informe a descrição da movimentação"]
-    },
-    type: {
-        type: String,
-        required: [true, "Informe o tipo do movimento"],
-        enum: {
-            values: ["supply", "withdraw"],
-            message: "O type {VALUE} não é um valor permitido"
-        }
+    paymentMethodId: {
+        type: ObjectId,
+        ref: "paymentmethods",
+        required: [true, "ID da forma de pagamento é obrigatório"]
     }
 }, {
     timestamps: true
 });
 
-const cashMovementValidation = z.object({
-    value: z.number().refine(value => {
-        return value != 0;
-    }, {
-        message: "Valor não pode ser 0"
-    }),
-    description: z.string().min(1),
-    type: z.enum(["supply", "withdraw"])
-})
+
+// const CASH_REGISTER_VALUES_VALIDATION = z.object({
+//     value: z.number().refine(value => {
+//         return value != 0;
+//     }, {
+//         message: "Valor não pode ser 0"
+//     }),
+//     paymentMethodId: idValidation
+// })
 
 const cashRegisterCreationValidation = z.object({
     storeCode: idValidation,
-    created_by: idValidation,
-    openAt: z.string().datetime({offset: true}).optional(),
-    closedAt: z.string().datetime({offset: true}).optional(),
-    movements: z.array(cashMovementValidation)
-})
+    created_by: idValidation.optional(),
+    openValue: z.number().optional(),
+    // openValues: z.array(CASH_REGISTER_VALUES_VALIDATION).optional()
+}).strict()
 
 const cashRegisterValidationOptional = z.object({
     storeCode: idValidation,
@@ -51,9 +44,8 @@ const cashRegisterValidationOptional = z.object({
     openAtEnd: z.string().datetime({offset: true}).optional(),
     closedAtStart: z.string().datetime({offset: true}).optional(),
     closedAtEnd: z.string().datetime({offset: true}).optional(),
-    status: z.enum(["open", "closed"]).optional(),
+    status: z.enum(["open", "closed"]).default("open"),
     deleted: z.object({}).optional(),
-    movement_type: z.enum(["withdraw", "supply"]).optional()
 }).transform((data) => {
     interface QuerySearch {
         storeCode: string,
@@ -79,11 +71,6 @@ const cashRegisterValidationOptional = z.object({
     }
     if (data.closedAtStart && data.closedAtEnd) {
         query.closedAt = new PeriodQuery(data.closedAtStart, data.closedAtEnd).build()
-    }
-    if (data.movement_type) {
-        query.movements = new ArraySearch({
-            type: data.movement_type
-        }).build()
     }
     return query;
 })
@@ -114,14 +101,26 @@ const cashRegisterSchema = new mongoose.Schema({
             message: "o status {VALUE} não é um valor permitido"
         }
     },
-    movements: {
-        type: [movementSchema],
+    openValue: {
+        type: Number,
+        default: 0.0
     },
     deleted: {
         type: ObjectId,
         default: undefined
+    },
+    paymentsByMethod: {
+        type: [],
+        default: undefined
     }
 });
+
+// CASHREGISTER_VALUES_SCHEMA.virtual("paymentMethodDetail", {
+//     ref: 'paymentMethods',
+//     localField: 'paymentMethodId',
+//     foreignField: '_id',
+//     justOne: true
+// })
 
 cashRegisterSchema.virtual("storeDetail", {
     ref: 'establishments',
@@ -130,17 +129,32 @@ cashRegisterSchema.virtual("storeDetail", {
     justOne: true
 })
 
+// cashRegisterSchema.virtual("payments", {
+//     ref: 'payments',
+//     localField: 'created_by',
+//     foreignField: 'userCreate',
+// })
+
 cashRegisterSchema.virtual("userDetail", {
     ref: 'users',
     localField: 'created_by',
     foreignField: '_id',
-    justOne: true
+    justOne: true,
+    
 })
 
+cashRegisterSchema.virtual("suppliersAndWithdraws", {
+    ref: 'cashRegisterMovements',
+    localField: '_id',
+    foreignField: 'cashRegisterId',
+})
+
+CASHREGISTER_VALUES_SCHEMA.set('toObject', { virtuals: true });
+CASHREGISTER_VALUES_SCHEMA.set('toJSON', { virtuals: true });
 cashRegisterSchema.set('toObject', { virtuals: true });
 cashRegisterSchema.set('toJSON', { virtuals: true });
 
 const CashRegister = mongoose.model('cashRegister', cashRegisterSchema);
 
 
-export { CashRegister, cashRegisterCreationValidation, cashMovementValidation, cashRegisterValidationOptional };
+export { CashRegister, cashRegisterCreationValidation, cashRegisterValidationOptional };
