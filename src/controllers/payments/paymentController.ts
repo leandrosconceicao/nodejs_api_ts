@@ -167,6 +167,45 @@ export default class PaymentController {
         }).populate(populateUser, populateEstablish);
         return data;
     }
+
+    static async getPayments(query: mongoose.FilterQuery<typeof Payments>) {
+        return await Payments.aggregate([
+            {
+                '$match': query
+            }, {
+                '$group': {
+                '_id': '$value.method', 
+                'total': {
+                    '$sum': '$value.value'
+                }
+                }
+            }, {
+                '$lookup': {
+                'from': 'paymentmethods', 
+                'localField': '_id', 
+                'foreignField': '_id', 
+                'as': 'result'
+                }
+            }, {
+                '$replaceRoot': {
+                'newRoot': {
+                    '$mergeObjects': [
+                    {
+                        '$arrayElemAt': [
+                        '$result', 0
+                        ]
+                    }, '$$ROOT'
+                    ]
+                }
+                }
+            }, {
+                '$project': {
+                'total': 1, 
+                'description': 1
+                }
+            }
+            ]);
+    }
 }
 
 async function cancelCharge(payments: Array<any>) {
