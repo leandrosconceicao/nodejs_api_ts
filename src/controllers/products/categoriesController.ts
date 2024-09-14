@@ -111,10 +111,10 @@ class CategoryController {
     try {
       const from = req.body.from;
       const to = req.body.to;
-      const fromIdVal = new Validators("from._id", from.id, "string").validate();
-      const fromOrder = new Validators("from.ordenacao", from.ordenacao, "string").validate();
-      const toIdVal = new Validators("to._id", to.id, "string").validate();
-      const toOrder = new Validators("to.ordenacao", to.ordenacao, "string").validate();
+      const fromIdVal = new Validators("from._id", from._id, "string").validate();
+      const fromOrder = new Validators("from.ordenacao", from.ordenacao, "number").validate();
+      const toIdVal = new Validators("to._id", to._id, "string").validate();
+      const toOrder = new Validators("to.ordenacao", to.ordenacao, "number").validate();
       if (!fromIdVal.isValid) {
         throw new InvalidParameter(fromIdVal);
       }
