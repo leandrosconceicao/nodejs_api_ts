@@ -10,6 +10,7 @@ import { Validators } from "../../utils/validators";
 import NotFoundError from "../../models/errors/NotFound";
 import TokenGenerator from "../../utils/tokenGenerator";
 import FirebaseMessaging from "../../utils/firebase/messaging";
+import { idValidation } from "../../utils/defaultValidations";
 // import admin from "../../../config/firebaseConfig.js"
 
 // const FIREBASEAUTH = admin.auth();
@@ -80,30 +81,20 @@ class UserController {
 
   static async updatePass(req: Request, res: Response, next: Function) {
     try {
-      const { activePassword, id, pass } = req.body;
-      const actPassValidation = new Validators("activePassword", activePassword, "string").validate();
-      const idValidation = new Validators("id", id, "string").validate();
-      const passValidation = new Validators("pass", pass).validate();
-      if (!passValidation.isValid) {
-        throw new InvalidParameters(passValidation);
-      }
-      if (!idValidation.isValid) {
-        throw new InvalidParameters(idValidation);
-      }
-      if (!actPassValidation.isValid) {
-        throw new InvalidParameters(actPassValidation);
-      }
-      const activePass = new PassGenerator(activePassword).build();
-      const user = await Users.findOne({
-        _id: new ObjectId(id),
-        pass: activePass
-      }).lean();
-      if (!user) {
-        throw new NotFoundError("Dados inválidos ou incorretos.");
-      }
-      await Users.findByIdAndUpdate(id, {
-        pass: new PassGenerator(pass).build()
+      const id = idValidation.parse(req.params.id);
+      const data = z.object({
+        activePassword: z.string().min(1),
+        newPassword: z.string().min(1)
+      }).parse(req.body);
+      const updateProcess = await Users.updateOne({
+        _id: id,
+        pass: new PassGenerator(data.activePassword).build()
+      }, {
+        pass: new PassGenerator(data.newPassword).build()
       });
+      if (updateProcess.modifiedCount== 0) {
+        throw ApiResponse.unauthorized("Usuário inválido ou credenciais inválidas");
+      }
       return ApiResponse.success().send(res);
     } catch (e) {
       next(e);
