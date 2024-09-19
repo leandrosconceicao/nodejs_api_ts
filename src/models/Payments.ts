@@ -18,6 +18,10 @@ const paymentSchema = new mongoose.Schema({
     accountId: {
         type: ObjectId, ref: 'accounts'
     },
+    cashRegisterId: {
+        type: ObjectId,
+        ref: "cashRegister"
+    },
     refunded: { type: Boolean, default: false },
     storeCode: { type: ObjectId, ref: "establishments", required: [true, "Parametro (storeCode) é obrigatório"] },
     userCreate: { type: ObjectId, ref: "users"},
@@ -32,6 +36,7 @@ const paymentSchema = new mongoose.Schema({
 
 const paymentValidation = z.object({
     accountId: idValidation.optional(),
+    cashRegisterId: idValidation.optional(),
     refunded: z.boolean().optional(),
     storeCode: idValidation,
     userCreate: idValidation.optional(),
