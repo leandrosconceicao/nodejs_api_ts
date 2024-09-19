@@ -19,7 +19,7 @@ import { Payments } from "../../models/Payments";
 import LogsController from "../logs/logsController.js";
 import EstablishmentsController from "../establishments/establishmentController.js";
 import FirebaseMessaging from "../../utils/firebase/messaging";
-import { checkForOpenCashRegister } from "../payments/cashRegisterController.js";
+import { getOpenCashRegister } from "../payments/cashRegisterController.js";
 
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -338,11 +338,12 @@ export default class OrdersController {
             const data = orderValidation.parse(req.body);
             const newOrder = new Orders(data);
             await EstablishmentsController.checkOpening(newOrder.storeCode, newOrder.orderType);
-            const openCashes = await checkForOpenCashRegister(data.userCreate)
+            const openCashes = await getOpenCashRegister(data.userCreate)
             if (!data.accountId && !openCashes) {
                 throw ApiResponse.badRequest("Usuário não possui caixa aberto")
             }
             if (data.orderType && data.orderType === "frontDesk") { 
+                data.payment.cashRegisterId = openCashes._id.toString();
                 const pay = await PaymentController.savePayment(data.payment);
                 newOrder.payment = pay._id as any;
             }

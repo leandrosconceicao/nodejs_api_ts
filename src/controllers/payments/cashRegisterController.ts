@@ -26,8 +26,8 @@ class CashRegisterController implements BaseController {
             const rawData = cashRegisterCreationValidation.parse(req.body);
             rawData.created_by = authUserData.id;
             await checkIfUserExists(rawData.created_by);
-            const cashOpens = await checkForOpenCashRegister(rawData.created_by);
-            if (cashOpens) {
+            const cash = await getOpenCashRegister(rawData.created_by);
+            if (cash) {
                 throw new CashRegisterError("Usuário já possui caixa em aberto")   
             }
             const data = new CashRegister(rawData);
@@ -64,10 +64,7 @@ class CashRegisterController implements BaseController {
                 throw new NotFoundError("Usuário não possui caixa em aberto");
             }
             data.paymentsByMethod = await PaymentController.getPayments({
-                userCreate: data.created_by,
-                createDate: {
-                    '$gte': data.openAt
-                }
+                cashRegisterId: data._id
             })
             return ApiResponse.success(data).send(res);
         } catch (e) {
@@ -95,7 +92,7 @@ class CashRegisterController implements BaseController {
             const authUserData = z.object({
                 id: idValidation,
             }).parse(TokenGenerator.verify(req.headers.authorization));
-            const cashIsOpen = await checkForOpenCashRegister(authUserData.id);
+            const cashIsOpen = await getOpenCashRegister(authUserData.id);
             if (!cashIsOpen) {
                 throw new CashRegisterError("Não é possível inserir movimentação, caixa não está aberto.");
             }
@@ -115,16 +112,12 @@ class CashRegisterController implements BaseController {
 
 }
 
-async function checkForOpenCashRegister(created_by: string) : Promise<boolean> {
-    const user = await Users.findById(created_by);
-    if (!user) {
-        throw new NotFoundError("Usuário não localizado");
-    }
-    const cashRegisters = await CashRegister.countDocuments({
+async function getOpenCashRegister(created_by: string) {
+    const cashRegisters = await CashRegister.findOne({
         created_by: new ObjectId(created_by),
         status: 'open'
     });
-    return cashRegisters > 0;
+    return cashRegisters;
 }
 
-export {checkForOpenCashRegister, CashRegisterController};
+export {getOpenCashRegister, CashRegisterController};

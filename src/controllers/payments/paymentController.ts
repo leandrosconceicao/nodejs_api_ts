@@ -7,7 +7,7 @@ import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery.js";
 import NotFoundError from "../../models/errors/NotFound.js";
 import InvalidParameter from "../../models/errors/InvalidParameters.js";
 import PixChargesController from "./pixChargesController.js";
-import { checkForOpenCashRegister } from "./cashRegisterController.js";
+import { getOpenCashRegister } from "./cashRegisterController.js";
 import { idValidation } from "../../utils/defaultValidations";
 import z from "zod";
 var ObjectId = mongoose.Types.ObjectId;
@@ -73,10 +73,11 @@ export default class PaymentController {
 
     static async add(req: Request, res: Response, next: NextFunction) {
         try {
-            const cashOpened = await checkForOpenCashRegister(req.body.userCreate);
+            const cashOpened = await getOpenCashRegister(req.body.userCreate);
             if (!cashOpened) {
                 throw ApiResponse.badRequest("Usuário não possui caixa aberto para realizar lançamentos")
             }
+            req.body.cashRegisterId = cashOpened._id.toString();
             const newPayment = await PaymentController.savePayment(req.body);
             const parsePayment = await newPayment.populate(populateUser, populateEstablish);
             return ApiResponse.success(parsePayment).send(res);
@@ -164,7 +165,9 @@ export default class PaymentController {
     static async getAccountPayments(accountId: string) {
         const data = await Payments.find({
             accountId: new ObjectId(accountId)
-        }).populate(populateUser, populateEstablish);
+        })
+        .populate(populateUser, populateEstablish)
+        .populate("value.methodData");
         return data;
     }
 
