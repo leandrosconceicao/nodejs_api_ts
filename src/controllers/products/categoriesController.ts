@@ -4,9 +4,9 @@ import Category from "../../models/Categories";
 import ApiResponse from "../../models/base/ApiResponse";
 import ProductController from "./productController";
 import { Request, Response, NextFunction } from "express";
-import { RegexBuilder } from "../../utils/regexBuilder.js";
+import { RegexBuilder } from "../../utils/regexBuilder";
 import Categories from "../../models/Categories";
-import InvalidParameter from "../../models/errors/InvalidParameters.js";
+import InvalidParameter from "../../models/errors/InvalidParameters";
 import NotFoundError from "../../models/errors/NotFound";
 var ObjectId = mongoose.Types.ObjectId;
 

@@ -1,15 +1,13 @@
 import mongoose from "mongoose";
 import {Orders} from "../../models/Orders";
-import { Products } from "../../models/products/Products.js";
-import { isValidObjectId } from "mongoose";
-import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery.js";
+import { Products } from "../../models/products/Products";
+import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery";
 import { Validators } from "../../utils/validators";
 import { Request, Response, NextFunction } from "express";
 import ApiResponse from "../../models/base/ApiResponse";
-import NotFoundError from "../../models/errors/NotFound.js";
-import InvalidParameter from "../../models/errors/InvalidParameters.js";
-import TotalSales from "../../models/reports/Sales.js";
-import categories from "../../models/Categories.js";
+import NotFoundError from "../../models/errors/NotFound";
+import InvalidParameter from "../../models/errors/InvalidParameters";
+import TotalSales from "../../models/reports/Sales";
 
 var ObjectId = mongoose.Types.ObjectId;
 

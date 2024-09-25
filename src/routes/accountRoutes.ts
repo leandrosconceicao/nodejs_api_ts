@@ -1,5 +1,5 @@
 import express from "express";
-import Endpoints from "../models/Endpoints.js";
+import Endpoints from "../models/Endpoints";
 import AccountsController from "../controllers/accounts/accountsController";
 import paginationAndFilters from "../middlewares/paginationAndFilters";
 import validateToken from "../middlewares/tokenController";

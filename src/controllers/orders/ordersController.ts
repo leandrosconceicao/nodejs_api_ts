@@ -1,13 +1,13 @@
 import mongoose from "mongoose";
 import {z} from "zod";
-import { idValidation } from "../../utils/defaultValidations.js";
-import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery.js";
+import { idValidation } from "../../utils/defaultValidations";
+import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery";
 import { Request, Response, NextFunction } from "express";
 import { Validators } from "../../utils/validators";
 import { Orders, orderSchema, orderValidation } from "../../models/Orders";
 import ApiResponse from "../../models/base/ApiResponse";
 import Users from "../../models/Users";
-import { updateUserToken } from "../users/userController.js";
+import { updateUserToken } from "../users/userController";
 import Counters from "../../models/Counters";
 import NotFoundError from "../../models/errors/NotFound";
 import {Accounts} from "../../models/Accounts";
@@ -16,8 +16,8 @@ import InvalidParameter from "../../models/errors/InvalidParameters";
 import PaymentController from "../payments/paymentController";
 import AccountsController from "../accounts/accountsController";
 import { Payments } from "../../models/Payments";
-import LogsController from "../logs/logsController.js";
-import EstablishmentsController from "../establishments/establishmentController.js";
+import LogsController from "../logs/logsController";
+import EstablishmentsController from "../establishments/establishmentController";
 import FirebaseMessaging from "../../utils/firebase/messaging";
 
 var ObjectId = mongoose.Types.ObjectId;
@@ -346,6 +346,7 @@ export default class OrdersController {
                 if (!canRecieveNewOrder) {
                     throw ApiResponse.badRequest("Conta não pode receber pedidos pois não está com o status de (ABERTA).");
                 }
+                
             }
             if (token) {
                 updateUserToken(data.userCreate, token);

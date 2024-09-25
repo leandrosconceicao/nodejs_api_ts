@@ -1,13 +1,12 @@
-import Apps from "../../models/Apps.js";
 import mongoose from "mongoose";
 import { Validators } from "../../utils/validators";
 import { Request, Response, NextFunction } from "express";
 import ApiResponse from "../../models/base/ApiResponse";
-import { Payments } from "../../models/Payments.js";
-import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery.js";
-import NotFoundError from "../../models/errors/NotFound.js";
-import InvalidParameter from "../../models/errors/InvalidParameters.js";
-import PixChargesController from "./pixChargesController.js";
+import { Payments } from "../../models/Payments";
+import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery";
+import NotFoundError from "../../models/errors/NotFound";
+import InvalidParameter from "../../models/errors/InvalidParameters";
+import PixChargesController from "./pixChargesController";
 var ObjectId = mongoose.Types.ObjectId;
 
 const populateUser = "userCreate";

@@ -3,18 +3,17 @@ import {Payments, paymentValidation} from "../../models/Payments";
 import { Validators } from "../../utils/validators";
 import { Request, Response, NextFunction } from "express";
 import ApiResponse from "../../models/base/ApiResponse";
-import NotFoundError from "../../models/errors/NotFound.js";
-import InvalidParameter from "../../models/errors/InvalidParameters.js";
+import NotFoundError from "../../models/errors/NotFound";
+import InvalidParameter from "../../models/errors/InvalidParameters";
 import LogsController from "../logs/logsController";
 import https from "https";
 import fs from "fs";
 import * as dotenv from "dotenv";
-import PixPayments from "../../models/PixPayments.js";
+import PixPayments from "../../models/PixPayments";
 import {EfiChargeCreation, EfiCharges, EfiPixRefund, EfiPixResponse, EfiWebhookResponse, QrCode} from "../../models/efi/charges";
-import {Establishments} from "../../models/Establishments.js";
+import {Establishments} from "../../models/Establishments";
 import { z } from "zod";
 import { idValidation } from "../../utils/defaultValidations";
-import { orderValidation, Orders } from "../../models/Orders";
 
 interface QuerySearch {
     _id?: string,
