@@ -2,10 +2,10 @@ import { Validators } from "../../utils/validators";
 import {z} from "zod";
 import { idValidation } from "../../utils/defaultValidations";
 import ApiResponse from "../../models/base/ApiResponse";
-import {Accounts, accountStatus, accountValidation} from "../../models/Accounts";
+import {Accounts, accountStatus, accountValidation, Receipt} from "../../models/Accounts";
 import NotFoundError from "../../models/errors/NotFound";
 import InvalidParameter from "../../models/errors/InvalidParameters";
-import mongoose from "mongoose";
+import mongoose, { ObjectId } from "mongoose";
 import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery";
 import { Request, Response, NextFunction } from "express";
 import ApiFilters from "../../models/base/ApiFilters";
@@ -58,6 +58,16 @@ export default class AccountsController extends ApiFilters {
         try {
             const id = idValidation.parse(req.params.id);
             const account = await getAccountData(id);
+            return ApiResponse.success(account).send(res);
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    static async findOneV2(req: Request, res: Response, next: NextFunction) {
+        try {
+            const id = idValidation.parse(req.params.id);
+            const account = await getReceipt(id);
             return ApiResponse.success(account).send(res);
         } catch (e) {
             next(e);
@@ -178,4 +188,67 @@ async function getAccountData(accountId: string) {
     account.orders = orders;
     account.payments = payments;
     return account;
+}
+
+async function getReceipt(accountId: string) {
+    const receipts = await Accounts.aggregate([
+        {
+          '$match': {
+            '_id': new ObjectId(accountId)
+          }
+        }, {
+          '$lookup': {
+            'from': 'orders', 
+            'localField': '_id', 
+            'foreignField': 'accountId', 
+            'as': 'orders', 
+            'pipeline': [
+              {
+                '$match': {
+                  'status': {
+                    '$ne': 'cancelled'
+                  }
+                }
+              }
+            ]
+          }
+        }, {
+          '$lookup': {
+            'from': 'payments', 
+            'localField': '_id', 
+            'foreignField': 'accountId', 
+            'as': 'payments'
+          }
+        }, {
+          '$project': {
+            'description': 1, 
+            'payments': 1, 
+            'orders._id': 1, 
+            'orders.products.quantity': 1, 
+            'orders.products.tipValue': 1, 
+            'orders.products.unitPrice': 1, 
+            'orders.products.productName': 1, 
+            'orders.products.category': 1, 
+            'orders.products.addOnes': 1
+          }
+        }, {
+          '$addFields': {
+            'payments': {
+              '$map': {
+                'input': '$payments', 
+                'as': 'pay', 
+                'in': '$$pay.value'
+              }
+            }
+          }
+        }
+      ]);
+    const dt = receipts[0] as Receipt;
+    dt.orders.forEach((e) => {
+        e.totalTip = e.products.reduce((prev, next) => prev + next.tipValue, 0.0);
+        e.totalProduct = e.products.reduce((prev, next) => prev + (next.quantity * next.unitPrice), 0.0)
+    })
+    dt.totalPayment = dt.payments.reduce((prev, next) => prev + next.value, 0.0)
+    dt.totalOrder = dt.orders.reduce((prev, next) => prev + (next.totalProduct + (next.totalProduct * next.totalTip)), 0.0)
+    return dt;
 }
