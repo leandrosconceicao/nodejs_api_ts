@@ -7,6 +7,7 @@ import validateToken from "../middlewares/tokenController";
 export default express.Router()
     .get(Endpoints.accounts, validateToken, AccountsController.findAll, paginationAndFilters)
     .get(`${Endpoints.accounts}/:id`, validateToken, AccountsController.findOne)
+    .get(`${Endpoints.accounts}/v2/:id`, validateToken, AccountsController.findOneV2)
     .post(Endpoints.accounts, validateToken, AccountsController.addNew)
     .put(`${Endpoints.accounts}/manage_status/:id`, validateToken, AccountsController.manageStatus)
     .put(`${Endpoints.accounts}/:id`, validateToken, AccountsController.edit)
