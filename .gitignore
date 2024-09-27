@@ -8,3 +8,13 @@ config/producao.p12
 .gcloudignore
 app.yaml
 firebase_config.json
+.vs/ProjectSettings.json
+.vs/slnx.sqlite
+.vs/tasks.vs.json
+.vs/VSWorkspaceState.json
+.vs/nodejs_api_ts/FileContentIndex/5680c797-e404-4a11-89f1-8c69e03aeac1.vsidx
+.vs/nodejs_api_ts/FileContentIndex/ae218b84-ea4e-41ad-8445-326c0c6c97ca.vsidx
+.vs/nodejs_api_ts/config/applicationhost.config
+.vs/nodejs_api_ts/v17/.wsuo
+.vs/nodejs_api_ts/v17/DocumentLayout.backup.json
+.vs/nodejs_api_ts/v17/DocumentLayout.json
