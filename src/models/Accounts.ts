@@ -5,6 +5,35 @@ import { idValidation } from "../utils/defaultValidations";
 
 var ObjectId = mongoose.Types.ObjectId;
 
+interface Receipt {
+    _id: typeof ObjectId,
+    description: string,
+    payments: Array<ReceiptPayments>,
+    orders: Array<ReceiptOrders>
+    totalOrder?: number,
+    totalPayment?: number,
+}
+interface ReceiptOrders {
+    _id: typeof ObjectId,
+    products: Array<ReceiptOrdersProducts>
+    totalTip?: number,
+    totalProduct?: number
+}
+
+interface ReceiptOrdersProducts {
+    quantity: number,
+    productName: string,
+    category: string,
+    unitPrice: number,
+    tipValue: number
+}
+
+interface ReceiptPayments {
+    method: typeof ObjectId,
+    value: number,
+    methodDetail?: any
+}
+
 const accountStatus = ['open', 'closed', 'checkSolicitation'];
 
 const accountValidation = z.object({
@@ -41,4 +70,4 @@ const Accounts = mongoose.model("accounts", new mongoose.Schema({
     payments: {}
 }))
 
-export {accountStatus, Accounts, accountValidation};
+export {accountStatus, Accounts, accountValidation, Receipt};

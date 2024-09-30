@@ -49,10 +49,10 @@ export default class ApiResponse<T={}> extends Error {
         });
     }
 
-    static unauthorized() : ApiResponse {
+    static unauthorized(message?: string) : ApiResponse {
         return new ApiResponse({
             statusProcess: false,
-            message: `Token inválido, expirado ou não informado`,
+            message: message ?? `Token inválido, expirado ou não informado`,
             status: 401
         });
     }

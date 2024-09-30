@@ -65,6 +65,28 @@ class UserController {
     }
   }
 
+  static async updatePass(req: Request, res: Response, next: Function) {
+    try {
+      const id = idValidation.parse(req.params.id);
+      const data = z.object({
+        activePassword: z.string().min(1),
+        newPassword: z.string().min(1)
+      }).parse(req.body);
+      const updateProcess = await Users.updateOne({
+        _id: id,
+        pass: new PassGenerator(data.activePassword).build()
+      }, {
+        pass: new PassGenerator(data.newPassword).build()
+      });
+      if (updateProcess.modifiedCount== 0) {
+        throw ApiResponse.unauthorized("Usuário inválido ou credenciais inválidas");
+      }
+      return ApiResponse.success().send(res);
+    } catch (e) {
+      next(e);
+    }
+  }
+
   static async findOne(req: Request, res: Response, next: NextFunction) {
     try {
       const id = idValidation.parse(req.params.id);

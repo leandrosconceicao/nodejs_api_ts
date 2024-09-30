@@ -3,18 +3,17 @@ import {Payments, paymentValidation} from "../../models/Payments";
 import { Validators } from "../../utils/validators";
 import { Request, Response, NextFunction } from "express";
 import ApiResponse from "../../models/base/ApiResponse";
-import NotFoundError from "../../models/errors/NotFound.js";
-import InvalidParameter from "../../models/errors/InvalidParameters.js";
+import NotFoundError from "../../models/errors/NotFound";
+import InvalidParameter from "../../models/errors/InvalidParameters";
 import LogsController from "../logs/logsController";
 import https from "https";
 import fs from "fs";
 import * as dotenv from "dotenv";
-import PixPayments from "../../models/PixPayments.js";
+import PixPayments from "../../models/PixPayments";
 import {EfiChargeCreation, EfiCharges, EfiPixRefund, EfiPixResponse, EfiWebhookResponse, QrCode} from "../../models/efi/charges";
-import {Establishments} from "../../models/Establishments.js";
+import {Establishments} from "../../models/Establishments";
 import { z } from "zod";
 import { idValidation } from "../../utils/defaultValidations";
-import { orderValidation, Orders } from "../../models/Orders";
 
 interface QuerySearch {
     _id?: string,
@@ -184,10 +183,6 @@ export default class PixChargesController {
     }
     static async createCharge(req: Request, res: Response, next: NextFunction) {
         try {
-            const TOKEN_DATA = await getOAuth();
-            if (!TOKEN_DATA) {
-                return noTokenReturn(res);
-            }
             const body = z.object({
                 value: z.string().transform((val) => parseFloat(val)),
                 info: z.string().optional(),
@@ -204,6 +199,10 @@ export default class PixChargesController {
             const establishment = await Establishments.findById(body.storeCode, {pixKey: 1, _id: 0});
             if (!establishment.pixKey) {
                 return ApiResponse.badRequest("Estabelecimento não possui chave pix cadastrada").send(res);
+            }
+            const TOKEN_DATA = await getOAuth();
+            if (!TOKEN_DATA) {
+                return noTokenReturn(res);
             }
             const paymentData: EfiPaySend = {
                 calendario: {

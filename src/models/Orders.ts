@@ -90,6 +90,7 @@ const orderValidation = z.object({
       needsPreparation: z.boolean().optional(),
       setupIsFinished: z.boolean().optional(),
       unitPrice: z.number(),
+      tipValue: z.number().optional(),
       addOnes: z.array(z.object({
           addOneName: z.string(),
           quantity: z.number(),

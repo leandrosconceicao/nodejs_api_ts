@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import {z} from "zod";
-import { idValidation } from "../../utils/defaultValidations.js";
-import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery.js";
+import { idValidation } from "../../utils/defaultValidations";
+import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery";
 import { Request, Response, NextFunction } from "express";
 import { Validators } from "../../utils/validators";
 import { Orders, orderSchema, orderValidation } from "../../models/Orders";
@@ -16,8 +16,8 @@ import InvalidParameter from "../../models/errors/InvalidParameters";
 import PaymentController from "../payments/paymentController";
 import AccountsController from "../accounts/accountsController";
 import { Payments } from "../../models/Payments";
-import LogsController from "../logs/logsController.js";
-import EstablishmentsController from "../establishments/establishmentController.js";
+import LogsController from "../logs/logsController";
+import EstablishmentsController from "../establishments/establishmentController";
 import FirebaseMessaging from "../../utils/firebase/messaging";
 import { getOpenCashRegister } from "../payments/cashRegisterController.js";
 
@@ -352,6 +352,7 @@ export default class OrdersController {
                 if (!canRecieveNewOrder) {
                     throw ApiResponse.badRequest("Conta não pode receber pedidos pois não está com o status de (ABERTA).");
                 }
+                
             }
             if (token) {
                 updateUserToken(data.userCreate, token);
@@ -392,40 +393,18 @@ export default class OrdersController {
             }
         })
     }
-
-    static async getOrdersOnPreparation(req: Request, res: Response) {
-        let timer: string | number | NodeJS.Timeout;
+    
+    static async getOrdersOnPreparation(req: Request, res: Response, next: NextFunction) {
         try {
-            res.setHeader("Cache-Control", "no-cache");
-            res.setHeader("Content-Type", "text/event-stream");
-            res.setHeader("Access-Control-Allow-Origin", "*");
-            res.setHeader("Connection", "keep-alive");
-            res.flushHeaders();
             const storeCode = idValidation.parse(req.params.id);
             const dates = z.object({
                 from: z.string().datetime({offset: true}),
                 to: z.string().datetime({offset: true})
             }).parse(req.query);
             let orders = await ordersOnPreparation(storeCode, dates.from, dates.to);
-            res.write(`data: ${JSON.stringify(orders)}\n\n`)
-            timer = setInterval(async () => {
-                orders = await ordersOnPreparation(storeCode, dates.from, dates.to);
-                res.write(`data: ${JSON.stringify(orders)}\n\n`)
-            }, 5000);
-            res.on("close", () => {
-                clearTimeout(timer);
-                console.log("Parou o timer")
-                res.end();
-            });
-            res.on("error", (error) => {
-                res.write(`error: ${error}`);
-                res.end();
-            })
+            return ApiResponse.success(orders).send(res);
         } catch (e) {
-            console.log(e);
-            clearTimeout(timer);
-            res.write(`error: ${e}`)
-            res.end();
+            next(e);
         }
     }
 }
@@ -443,6 +422,8 @@ async function ordersOnPreparation(storeCode: string, from: string, to: string) 
         products: {
             $elemMatch: { setupIsFinished: false, needsPreparation: true },
         }
+    }).sort({
+        ["createDate"]: 1
     }).populate(populateClient)
     .populate(popuAccId, [popuPayment, popuOrders])
     .populate(popuUser, [popuEstablish, popuPass]);
