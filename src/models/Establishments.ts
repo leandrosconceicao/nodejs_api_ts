@@ -47,7 +47,8 @@ const establishmentAttributes = z.object({
     geoLocation: z.object({
         type: z.string().default("Point"),
         coordinates: z.array(z.number()),
-    }).optional()
+    }).optional(),
+    tipValue: z.number().default(0.0)
 });
 
 const schema = new mongoose.Schema({
@@ -130,6 +131,10 @@ const schema = new mongoose.Schema({
                 }}
             },
         }
+    },
+    tipValue: {
+        type: Number,
+        default: 0.0
     }
 }, {
     versionKey: false,
