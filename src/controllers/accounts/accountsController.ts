@@ -2,7 +2,7 @@ import { Validators } from "../../utils/validators";
 import {z} from "zod";
 import { idValidation } from "../../utils/defaultValidations";
 import ApiResponse from "../../models/base/ApiResponse";
-import {Accounts, accountStatus, accountValidation, Receipt} from "../../models/Accounts";
+import {Accounts, accountStatus, accountValidation, Receipt, ReceiptPayments} from "../../models/Accounts";
 import NotFoundError from "../../models/errors/NotFound";
 import InvalidParameter from "../../models/errors/InvalidParameters";
 import mongoose, { ObjectId } from "mongoose";
@@ -12,6 +12,7 @@ import ApiFilters from "../../models/base/ApiFilters";
 import OrdersController from "../orders/ordersController";
 import PaymentController from "../payments/paymentController";
 import { clientsSchemaValidation } from "../../models/Clients";
+import { PaymentMethods } from "../../models/PaymentMethods";
 var ObjectId = mongoose.Types.ObjectId;
 
 const populateClient = "client";
@@ -107,9 +108,9 @@ export default class AccountsController extends ApiFilters {
     static async del(req: Request, res: Response, next: NextFunction) {
         try {
             const body = z.object({
-                id: z.string().min(1).max(24)
+                id: idValidation
             }).parse(req.body);
-            const checkData = await getAccountData(body.id);
+            const checkData = await getReceipt(body.id);
             if (checkData.payments.length) {
                 throw ApiResponse.badRequest("Conta não pode ser excluida, conta possui recebimentos");
             }
@@ -163,15 +164,12 @@ export default class AccountsController extends ApiFilters {
 }
 
 async function accountCanBeClosed(accountId: string) {
-    const ACCOUNT = await getAccountData(accountId);
+    const ACCOUNT = await getReceipt(accountId);
     if (!ACCOUNT) {
         return false;
     }
-    const payments = ACCOUNT.payments as Array<any>;
-    const orders = ACCOUNT.orders as Array<any>;
-    let totalPayed = payments.reduce((a, b) => b.value.value + a, 0);
-    let products = orders.map((e) => e.products);
-    let totalOrdered = products.flat().reduce((a, b) => (b.quantity * b.unitPrice) + a, 0);
+    let totalPayed = ACCOUNT.totalPayment;
+    let totalOrdered = ACCOUNT.totalOrder + ACCOUNT.totalTip;
     return totalPayed === totalOrdered;
 }
 
@@ -222,6 +220,9 @@ async function getReceipt(accountId: string) {
         }, {
           '$project': {
             'description': 1, 
+            'status': 1,
+            'storeCode': 1,
+            'client': 1,
             'payments': 1, 
             'orders._id': 1, 
             'orders.products.quantity': 1, 
@@ -246,9 +247,15 @@ async function getReceipt(accountId: string) {
     const dt = receipts[0] as Receipt;
     dt.orders.forEach((e) => {
         e.totalTip = e.products.reduce((prev, next) => prev + next.tipValue, 0.0);
-        e.totalProduct = e.products.reduce((prev, next) => prev + (next.quantity * next.unitPrice), 0.0)
+        e.totalProduct = e.products.reduce((prev, next) => prev + (next.quantity * next.unitPrice), 0.0);
     })
-    dt.totalPayment = dt.payments.reduce((prev, next) => prev + next.value, 0.0)
-    dt.totalOrder = dt.orders.reduce((prev, next) => prev + (next.totalProduct + (next.totalProduct * next.totalTip)), 0.0)
+    dt.totalTip = dt.orders.reduce((prev, next) => prev + (next.totalTip * next.totalProduct), 0.0);
+    dt.totalPayment = dt.payments.reduce((prev, next) => prev + next.value, 0.0);
+    dt.totalOrder = dt.orders.reduce((prev, next) => prev + next.totalProduct, 0.0);
+    for (let i = 0; i < dt.payments.length; i++) {
+        const pay = dt.payments[i];
+        const payDetail = await PaymentMethods.findById(pay.method, {description: 1, _id: 0, id: 1});
+        pay.description = payDetail.description;
+    }
     return dt;
 }
