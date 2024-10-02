@@ -12,6 +12,7 @@ interface Receipt {
     orders: Array<ReceiptOrders>
     totalOrder?: number,
     totalPayment?: number,
+    totalTip?: number
 }
 interface ReceiptOrders {
     _id: typeof ObjectId,
@@ -31,7 +32,7 @@ interface ReceiptOrdersProducts {
 interface ReceiptPayments {
     method: typeof ObjectId,
     value: number,
-    methodDetail?: any
+    description?: string
 }
 
 const accountStatus = ['open', 'closed', 'checkSolicitation'];
@@ -70,4 +71,4 @@ const Accounts = mongoose.model("accounts", new mongoose.Schema({
     payments: {}
 }))
 
-export {accountStatus, Accounts, accountValidation, Receipt};
+export {accountStatus, Accounts, accountValidation, Receipt, ReceiptPayments};

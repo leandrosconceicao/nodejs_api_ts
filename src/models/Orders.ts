@@ -55,6 +55,25 @@ const orderSchema = new mongoose.Schema({
   dateDiff: {}
 });
 
+const orderProductValidation = z.object({
+  quantity: z.number(),
+  productName: z.string().optional(),
+  productId: idValidation,
+  orderDescription: z.string().optional(),
+  category: z.string().optional(),
+  needsPreparation: z.boolean().optional(),
+  setupIsFinished: z.boolean().optional(),
+  unitPrice: z.number(),
+  tipValue: z.number().optional(),
+  hasTipValue: z.boolean().default(false),
+  addOnes: z.array(z.object({
+      addOneName: z.string(),
+      quantity: z.number(),
+      price: z.number(),
+      name: z.string(),
+  }).optional()).optional()
+});
+
 const orderValidation = z.object({
   pedidosId: z.number().optional(),
   accountId: idValidation.optional(),
@@ -81,25 +100,9 @@ const orderValidation = z.object({
   observations: z.string().optional(),
   storeCode: idValidation,
   payment: paymentValidation.optional(),
-  products: z.array(z.object({
-      quantity: z.number(),
-      productName: z.string().optional(),
-      productId: idValidation,
-      orderDescription: z.string().optional(),
-      category: z.string().optional(),
-      needsPreparation: z.boolean().optional(),
-      setupIsFinished: z.boolean().optional(),
-      unitPrice: z.number(),
-      tipValue: z.number().optional(),
-      addOnes: z.array(z.object({
-          addOneName: z.string(),
-          quantity: z.number(),
-          price: z.number(),
-          name: z.string(),
-      }).optional()).optional()
-  })).nonempty(),
+  products: z.array(orderProductValidation).nonempty(),
 });
 
 const Orders = mongoose.model("orders", orderSchema);
 
-export {Orders, orderSchema, orderValidation};
+export {Orders, orderSchema, orderValidation, orderProductValidation};
