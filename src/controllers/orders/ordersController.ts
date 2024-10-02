@@ -4,10 +4,10 @@ import { idValidation } from "../../utils/defaultValidations";
 import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery";
 import { Request, Response, NextFunction } from "express";
 import { Validators } from "../../utils/validators";
-import { Orders, orderSchema, orderValidation } from "../../models/Orders";
+import { orderProductValidation, Orders, orderSchema, orderValidation } from "../../models/Orders";
 import ApiResponse from "../../models/base/ApiResponse";
 import {Users} from "../../models/Users";
-import { updateUserToken } from "../users/userController.js";
+import { updateUserToken } from "../users/userController";
 import Counters from "../../models/Counters";
 import NotFoundError from "../../models/errors/NotFound";
 import {Accounts} from "../../models/Accounts";
@@ -19,7 +19,7 @@ import { Payments } from "../../models/Payments";
 import LogsController from "../logs/logsController";
 import EstablishmentsController from "../establishments/establishmentController";
 import FirebaseMessaging from "../../utils/firebase/messaging";
-import { getOpenCashRegister } from "../payments/cashRegisterController.js";
+import { getOpenCashRegister } from "../payments/cashRegisterController";
 
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -336,10 +336,11 @@ export default class OrdersController {
         try {
             const token = z.string().optional().parse(req.headers.firebasetoken);
             const data = orderValidation.parse(req.body);
+            await checkTipInvoicement(data.storeCode, data.products);
             const newOrder = new Orders(data);
             await EstablishmentsController.checkOpening(newOrder.storeCode, newOrder.orderType);
             const openCashes = await getOpenCashRegister(data.userCreate)
-            if (!data.accountId && !openCashes) {
+            if (!openCashes) {
                 throw ApiResponse.badRequest("Usuário não possui caixa aberto")
             }
             if (data.orderType && data.orderType === "frontDesk") { 
@@ -464,5 +465,17 @@ async function notififyUser(userData: any, title: string, body: string) {
             title,
             body
         });
+    }
+}
+
+async function checkTipInvoicement(storeCode: string, products: z.infer<typeof orderProductValidation>[]) {
+    const store = await Establishments.findById(storeCode);
+    if (!store) {
+        return;
+    }
+    for (let i = 0; i < products.length; i++) {
+        const product = products[i];
+        if (product.hasTipValue) 
+            product.tipValue = store.tipValue;
     }
 }
