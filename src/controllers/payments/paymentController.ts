@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import { Validators } from "../../utils/validators";
 import { Request, Response, NextFunction } from "express";
 import ApiResponse from "../../models/base/ApiResponse";
-import { Payments, paymentValidation } from "../../models/Payments";
+import { PAYMENT_SEARCH_VALIDATION, Payments, paymentValidation } from "../../models/Payments";
 import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery";
 import NotFoundError from "../../models/errors/NotFound";
 import InvalidParameter from "../../models/errors/InvalidParameters";
@@ -24,6 +24,22 @@ interface QuerySearch {
 
 export default class PaymentController {
     
+    static async findAllByAccount(req: Request, res: Response, next: NextFunction) {
+        try {
+            const storeCode = idValidation.parse(req.params.storeCode);
+            const accountId = idValidation.parse(req.params.accountId);
+            const payments = await Payments.find({
+                storeCode: storeCode,
+                accountId: accountId
+            })
+            // .populate("userCreateDetail", populateEstablish)
+            // .populate("userUpdatedDetail", populateEstablish)
+            .populate("value.methodData");
+            return ApiResponse.success(payments).send(res);
+        } catch (e) {
+            next(e);
+        }
+    }
     static async findAll(req: Request, res: Response, next: NextFunction) {
         try {
             const {storeCode, userCreate, to, from, type} = req.query;
