@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { idValidation } from "../utils/defaultValidations";
 import { z } from "zod";
+import { DateQuery, PeriodQuery } from '../utils/PeriodQuery';
 var ObjectId = mongoose.Types.ObjectId;
 
 const valueSchema = new mongoose.Schema({
@@ -33,6 +34,35 @@ const paymentSchema = new mongoose.Schema({
     timestamps: true
 });
 
+const PAYMENT_SEARCH_VALIDATION = z.object({
+    storeCode: idValidation,
+    accountId: idValidation.optional(),
+    cashRegisterId: idValidation.optional(),
+    refunded: z.boolean().optional(),
+    userCreate: idValidation.optional(),
+    createAtStart: z.string().datetime({offset: true}).optional(),
+    createAtEnd: z.string().datetime({offset: true}).optional(),
+}).transform((value) => {
+    interface QuerySearch {
+        storeCode: string,
+        accountId?: string,
+        cashRegisterId?: string,
+        refunded?: boolean
+        userCreate: string;
+        createDate: DateQuery;
+    }
+    const query = <QuerySearch> {
+        storeCode: value.storeCode,
+    }
+    if (value.accountId) query.accountId = value.accountId;
+    if (value.cashRegisterId) query.cashRegisterId = value.cashRegisterId;
+    if (value.refunded) query.refunded = value.refunded;
+    if (value.userCreate) query.userCreate = value.userCreate;
+    if (value.createAtStart && value.createAtEnd) {
+        query.createDate = new PeriodQuery(value.createAtStart, value.createAtEnd).build()
+    }
+    return query;
+});
 
 const paymentValidation = z.object({
     accountId: idValidation.optional(),
@@ -62,8 +92,26 @@ valueSchema.virtual("methodData", {
 valueSchema.set('toObject', { virtuals: true });
 valueSchema.set('toJSON', { virtuals: true });
 
+paymentSchema.virtual("userCreateDetail", {
+    ref: "users",
+    localField: "userCreate",
+    foreignField: "_id",
+    justOne: true
+});
+
+paymentSchema.virtual("userUpdateDetail", {
+    ref: "users",
+    localField: "userUpdated",
+    foreignField: "_id",
+    justOne: true
+});
+
+
+paymentSchema.set('toObject', { virtuals: true });
+paymentSchema.set('toJSON', { virtuals: true });
+
 
 
 const Payments = mongoose.model("payments", paymentSchema);
 
-export { paymentSchema, Payments , paymentValidation};
+export { paymentSchema, Payments , paymentValidation, PAYMENT_SEARCH_VALIDATION};
