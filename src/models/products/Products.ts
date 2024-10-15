@@ -11,6 +11,7 @@ const PRODUCT_SCHEMA_VALIDATION = z.object({
   preco: z.number().optional(),
   produto: z.string().min(1).optional(),
   tipValue: z.number().optional(),
+  hasTipValue: z.boolean().optional(),
   descricao: z.string().optional(),
   preparacao: z.boolean().optional(),
   dataImage: z.object({
@@ -41,9 +42,9 @@ const productSchema = new mongoose.Schema({
   category: {
     type: ObjectId, ref: "categories", required: true
   },
-  tipValue: {
-    type: Number,
-    default: 0.0
+  hasTipValue: {
+    type: Boolean,
+    default: false
   },
   preco: { type: Number },
   produto: { type: String, 

@@ -65,7 +65,7 @@ const orderProductValidation = z.object({
   setupIsFinished: z.boolean().optional(),
   unitPrice: z.number(),
   tipValue: z.number().optional(),
-  hasTipValue: z.boolean().default(false),
+  hasTipValue: z.boolean().optional(),
   addOnes: z.array(z.object({
       addOneName: z.string(),
       quantity: z.number(),
