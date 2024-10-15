@@ -2,16 +2,18 @@ import { Validators } from "../../utils/validators";
 import {z} from "zod";
 import { idValidation } from "../../utils/defaultValidations";
 import ApiResponse from "../../models/base/ApiResponse";
-import {Accounts, accountStatus, accountValidation, Receipt, ReceiptPayments} from "../../models/Accounts";
+import {Accounts, accountStatus, accountValidation, Receipt} from "../../models/Accounts";
 import NotFoundError from "../../models/errors/NotFound";
 import InvalidParameter from "../../models/errors/InvalidParameters";
 import mongoose, { ObjectId } from "mongoose";
-import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery";
+import { PeriodQuery } from "../../utils/PeriodQuery";
 import { Request, Response, NextFunction } from "express";
 import ApiFilters from "../../models/base/ApiFilters";
 import OrdersController from "../orders/ordersController";
 import PaymentController from "../payments/paymentController";
 import { clientsSchemaValidation } from "../../models/Clients";
+import { Establishments } from "../../models/Establishments";
+import {Orders} from "../../models/Orders";
 import { PaymentMethods } from "../../models/PaymentMethods";
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -120,6 +122,34 @@ export default class AccountsController extends ApiFilters {
             await Accounts.findByIdAndUpdate(body.id, {
                 deleted_id: body.id
             })
+            return ApiResponse.success().send(res);
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    static async manageAccountTip(req: Request, res: Response, next: NextFunction) {
+        try {
+            const storeCode = idValidation.parse(req.params.storeCode);
+            const accountId = idValidation.parse(req.params.accountId);
+            const data = z.object({
+                enabledTip: z.boolean()
+            }).parse(req.body);
+            const store = await Establishments.findById(storeCode);
+            if (!store) {
+                return;
+            }
+            const process = await Orders.updateMany({
+                accountId: accountId,
+                storeCode: storeCode
+            }, {
+                $set: {
+                    "products.$[].tipValue": data.enabledTip ? store.tipValue : 0
+                }
+            });
+            if (process.modifiedCount == 0) {
+                throw ApiResponse.badRequest("Nenhum dado atualizado, verifique os filtros informados");
+            }
             return ApiResponse.success().send(res);
         } catch (e) {
             next(e);
@@ -257,5 +287,6 @@ async function getReceipt(accountId: string) {
         const payDetail = await PaymentMethods.findById(pay.method, {description: 1, _id: 0, id: 1});
         pay.description = payDetail.description;
     }
+    dt.allProductsHasTipValue = dt.orders.every((order) => order.products.every((product) => product.tipValue > 0));
     return dt;
 }
