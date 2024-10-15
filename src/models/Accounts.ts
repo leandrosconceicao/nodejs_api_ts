@@ -5,23 +5,34 @@ import { idValidation } from "../utils/defaultValidations";
 
 var ObjectId = mongoose.Types.ObjectId;
 
-interface Receipt {
+class Receipt implements IReceipt {
+    _id: typeof ObjectId;
+    description: string;
+    payments: Array<IReceiptPayments>;
+    orders: Array<IReceiptOrders>
+    totalOrder?: number;
+    totalPayment?: number;
+    totalTip?: number;
+    allProductsHasTipValue?: boolean
+}
+
+interface IReceipt {
     _id: typeof ObjectId,
     description: string,
-    payments: Array<ReceiptPayments>,
-    orders: Array<ReceiptOrders>
+    payments: Array<IReceiptPayments>,
+    orders: Array<IReceiptOrders>
     totalOrder?: number,
     totalPayment?: number,
     totalTip?: number
 }
-interface ReceiptOrders {
+interface IReceiptOrders {
     _id: typeof ObjectId,
-    products: Array<ReceiptOrdersProducts>
+    products: Array<IReceiptOrdersProducts>
     totalTip?: number,
     totalProduct?: number
 }
 
-interface ReceiptOrdersProducts {
+interface IReceiptOrdersProducts {
     quantity: number,
     productName: string,
     category: string,
@@ -29,7 +40,7 @@ interface ReceiptOrdersProducts {
     tipValue: number
 }
 
-interface ReceiptPayments {
+interface IReceiptPayments {
     method: typeof ObjectId,
     value: number,
     description?: string
@@ -71,4 +82,4 @@ const Accounts = mongoose.model("accounts", new mongoose.Schema({
     payments: {}
 }))
 
-export {accountStatus, Accounts, accountValidation, Receipt, ReceiptPayments};
+export {accountStatus, Accounts, accountValidation, Receipt};
