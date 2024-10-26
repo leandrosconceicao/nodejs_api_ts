@@ -3,7 +3,6 @@ import { idValidation } from '../utils/defaultValidations';
 import z from 'zod';
 import { DateQuery, PeriodQuery } from '../utils/PeriodQuery';
 import { ElementMatch } from './base/MongoDBFilters';
-import { paymentSchema } from './Payments';
 var ObjectId = mongoose.Types.ObjectId;
 
 const CASHREGISTER_VALUES_SCHEMA = new mongoose.Schema({
@@ -148,6 +147,12 @@ cashRegisterSchema.virtual("suppliersAndWithdraws", {
     localField: '_id',
     foreignField: 'cashRegisterId',
 })
+
+cashRegisterSchema.virtual("cashRegisterCompare", {
+    ref: 'cashRegisterCompare',
+    localField: '_id',
+    foreignField: 'cashId'
+});
 
 CASHREGISTER_VALUES_SCHEMA.set('toObject', { virtuals: true });
 CASHREGISTER_VALUES_SCHEMA.set('toJSON', { virtuals: true });
