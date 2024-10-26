@@ -9,11 +9,9 @@ import NotFoundError from "../../models/errors/NotFound";
 import mongoose from "mongoose";
 import CashRegisterError from "../../models/errors/CashRegisterError";
 import { checkIfUserExists } from "../users/userController";
-import {Users} from "../../models/Users";
 import TokenGenerator from "../../utils/tokenGenerator";
-import { PeriodQuery } from "../../utils/PeriodQuery";
-import { Payments } from "../../models/Payments";
 import PaymentController from "./paymentController";
+import { CASH_REGISTER_COMPARE_VALIDATION, CashRegisterCompare } from "../../models/CashRegisterCompare";
 var ObjectId = mongoose.Types.ObjectId;
 
 class CashRegisterController implements BaseController {
@@ -44,14 +42,12 @@ class CashRegisterController implements BaseController {
                 $eq: null
             }
             req.result = CashRegister.find(query)
-                // .populate("openValues.paymentMethodDetail")
-                .populate("suppliersAndWithdraws");
             next();
         } catch (e) {
             next(e);
         }
     }
-    async onFindOne(req: Request, res: Response, next: NextFunction): Promise<void> {
+    async getUserCash(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const id = idValidation.parse(req.params.userId);
             const data = await CashRegister.findOne({
@@ -60,6 +56,25 @@ class CashRegisterController implements BaseController {
             })
             // .populate("openValues.paymentMethodDetail")
             .populate("suppliersAndWithdraws")
+            .populate("cashRegisterCompare")
+            if (!data) {
+                throw new NotFoundError("Usuário não possui caixa em aberto");
+            }
+            data.paymentsByMethod = await PaymentController.getPayments({
+                cashRegisterId: data._id
+            })
+            return ApiResponse.success(data).send(res);
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    async detail(req: Request, res: Response, next: NextFunction): Promise<void> {
+        try {
+            const id = idValidation.parse(req.params.id);
+            const data = await CashRegister.findById(id)
+            .populate("suppliersAndWithdraws")
+            .populate("cashRegisterCompare")
             if (!data) {
                 throw new NotFoundError("Usuário não possui caixa em aberto");
             }
@@ -74,6 +89,7 @@ class CashRegisterController implements BaseController {
     async onDeleteData(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const id = idValidation.parse(req.params.id);
+            const compareData = CASH_REGISTER_COMPARE_VALIDATION.parse(req.body);
             const process = await CashRegister.findByIdAndUpdate(id, {
                 status: "closed",
                 closedAt: new Date(),
@@ -81,6 +97,8 @@ class CashRegisterController implements BaseController {
             if (!process) {
                 throw new NotFoundError("Registro não localizado");
             }
+            const cashCompare = new CashRegisterCompare(compareData);
+            await cashCompare.save();
             return ApiResponse.success().send(res);
         } catch (e) {
             next(e);
