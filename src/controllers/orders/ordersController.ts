@@ -339,11 +339,11 @@ export default class OrdersController {
             await checkTipInvoicement(data.storeCode, data.products);
             const newOrder = new Orders(data);
             await EstablishmentsController.checkOpening(newOrder.storeCode, newOrder.orderType);
-            const openCashes = await getOpenCashRegister(data.userCreate)
-            if (!openCashes) {
-                throw ApiResponse.badRequest("Usuário não possui caixa aberto")
-            }
             if (data.orderType && data.orderType === "frontDesk") { 
+                const openCashes = await getOpenCashRegister(data.userCreate)
+                if (!openCashes) {
+                    throw ApiResponse.forbidden("Usuário não possui caixa aberto")
+                }
                 data.payment.cashRegisterId = openCashes._id.toString();
                 const pay = await PaymentController.savePayment(data.payment);
                 newOrder.payment = pay._id as any;
