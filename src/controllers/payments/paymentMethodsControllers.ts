@@ -33,7 +33,7 @@ export default class PaymentMethodsController implements BaseController {
             next(e);
         }
     }
-    async onFindOne(req: Request, res: Response, next: NextFunction): Promise<void> {
+    async getUserCash(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const id = idValidation.parse(req.params.id);
             const query = await PaymentMethods.findById(id)

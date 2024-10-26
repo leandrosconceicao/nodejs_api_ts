@@ -31,8 +31,8 @@ export default class AccountsController extends ApiFilters {
         try {
             const searchQuery = z.object({
                 storeCode: idValidation,
-                userCreate: idValidation.optional(),
                 from: z.string().optional(),
+                created_by: idValidation.optional(),
                 to: z.string().optional(),
                 createDate: z.any().optional(),
                 status: z.enum(['open', 'closed', 'checkSolicitation']).optional(),
@@ -252,6 +252,7 @@ async function getReceipt(accountId: string) {
             'description': 1, 
             'status': 1,
             'storeCode': 1,
+            'created_by': 1,
             'client': 1,
             'payments': 1, 
             'orders._id': 1, 

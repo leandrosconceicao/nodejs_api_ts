@@ -6,7 +6,7 @@ export default interface BaseController {
 
     onFindAll(req: Request, res: Response, next: NextFunction) : Promise<void>
 
-    onFindOne(req: Request, res: Response, next: NextFunction) : Promise<void>
+    getUserCash(req: Request, res: Response, next: NextFunction) : Promise<void>
 
     onDeleteData(req: Request, res: Response, next: NextFunction) : Promise<void>
 
