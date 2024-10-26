@@ -65,6 +65,14 @@ export default class ApiResponse<T={}> extends Error {
         });
     }
 
+    static forbidden(message?: string) : ApiResponse {
+        return new ApiResponse({
+            statusProcess: false,
+            message: message ?? "Acesso não permitido",
+            status: 403,
+        })
+    }
+
     send(res: express.Response) {
         res.status(this.response.status).json(this.response);
     }
