@@ -8,4 +8,10 @@ const idValidation = z.string().refine(value => {
     message: "ID inválido"
 });
 
-export {idValidation};
+const booleanStringValidation = z.string().toLowerCase()
+    .refine((value) => value === "true" || value === "false", {
+    message: "Value must be a boolean",
+    })
+    .transform((value) => value === "true");
+
+export {idValidation, booleanStringValidation};
