@@ -5,6 +5,7 @@ import orders_delivery_address from "./orders/orders_delivery_address";
 import { clientsSchema } from "./Clients";
 import { idValidation } from "../utils/defaultValidations";
 import { paymentValidation } from "./Payments";
+import MongoId from "./custom_types/mongoose_types";
 var ObjectId = mongoose.Types.ObjectId;
 
 const orderSchema = new mongoose.Schema({
@@ -103,6 +104,83 @@ const orderValidation = z.object({
   products: z.array(orderProductValidation).nonempty(),
 });
 
+enum OrderStatus {
+  pending = 'pending', 
+  cancelled = 'cancelled', 
+  finished = 'finished', 
+  onTheWay = 'onTheWay'
+}
+
+enum OrderType {
+  frontdesk = 'frontDesk', 
+  account = 'account',
+  delivery = 'delivery',
+  withdraw = 'withdraw'
+}
+
+interface IOrder {
+  _id: MongoId,
+  pedidosId?: number,
+  accountId?: {
+    description?: string
+  },
+  // accepted?: string,
+  status?: OrderStatus,
+  createDate?: Date,
+  orderType?: OrderType,
+  client?: {
+    cgc?: string,
+    name?: string,
+    email?: string,
+    phoneNumber?: string,
+    address?: Array<{
+      address?: string,
+      city?: string,
+      complement?: string,
+      district?: string,
+      number?: string,
+      state?: string,
+      zipCode?: string,
+    }>
+  },
+  userCreate?: {
+    username: string
+  },
+  observations?: string,
+  storeCode: MongoId,
+  payment?: {
+    accountId?: MongoId,
+    cashRegisterId: MongoId,
+    userCreate: MongoId,
+    value: {
+      method: {
+        description: string,
+        _id: MongoId
+      },
+      value: number
+    }
+  },
+  products: Array<{
+    quantity: number,
+    productName?: string,
+    productId: MongoId,
+    orderDescription?: string,
+    category?: string,
+    needsPreparation?: boolean,
+    setupIsFinished?: boolean,
+    unitPrice: number,
+    tipValue?: number,
+    hasTipValue?: boolean,
+    subTotal?: number,
+    addOnes: Array<{
+      addOneName: string,
+      quantity: number,
+      price: number,
+      name: string,
+    }>      
+  }>,
+}
+
 const Orders = mongoose.model("orders", orderSchema);
 
-export {Orders, orderSchema, orderValidation, orderProductValidation};
+export {Orders, orderSchema, orderValidation, orderProductValidation, IOrder};
