@@ -5,10 +5,9 @@ var ObjectId = mongoose.Types.ObjectId;
 import { NextFunction, Request, Response } from "express";
 import ApiResponse from "../../models/base/ApiResponse";
 import PassGenerator from "../../utils/passGenerator";
-import { Validators } from "../../utils/validators";
 import NotFoundError from "../../models/errors/NotFound";
 import TokenGenerator from "../../utils/tokenGenerator";
-import { idValidation } from "../../utils/defaultValidations";
+import { booleanStringValidation, idValidation } from "../../utils/defaultValidations";
 import { DELETED_SEARCH } from "../../models/base/MongoDBFilters";
 // import admin from "../../../config/firebaseConfig.js"
 
@@ -109,28 +108,35 @@ class UserController {
       group_user?: string,
       username?: string,
       deleted?: any,
+      isActive?: boolean
     }
     try {
-      const searchQuery = z.object({
+      const query: searchQuery = {};
+      
+      z.object({
         storeCode: idValidation.optional(),
         group_user: z.string().min(1).optional(),
         username: z.string().min(1).optional(),
+        isActive: booleanStringValidation.optional()
+      }).transform((data) => {
+        query.deleted = DELETED_SEARCH;
+        if (data.storeCode) {
+          query.establishments = {
+            $in: [new ObjectId(data.storeCode)]
+          }
+        }
+        if (data.group_user) {
+          query.group_user = data.group_user;
+        }
+        
+        if (data.username) {
+          query.username = data.username;
+        }
+        if (data.isActive !== undefined) {
+          query.isActive = data.isActive;
+        }
       }).parse(req.query);
       
-      const query: searchQuery = {};
-      query.deleted = DELETED_SEARCH;
-      if (searchQuery.storeCode) {
-        query.establishments = {
-          $in: [new ObjectId(searchQuery.storeCode)]
-        }
-      }
-      if (searchQuery.group_user) {
-        query.group_user = searchQuery.group_user;
-      }
-      
-      if (searchQuery.username) {
-        query.username = searchQuery.username;
-      }
       req.result = Users.find(query).select({
         pass: 0
       }).populate("establishments");

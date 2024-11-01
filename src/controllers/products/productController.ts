@@ -1,7 +1,7 @@
 import { Validators } from "../../utils/validators";
 import { z } from "zod";
 import ApiResponse from "../../models/base/ApiResponse";
-import { idValidation } from "../../utils/defaultValidations";
+import { booleanStringValidation, idValidation } from "../../utils/defaultValidations";
 import NotFoundError from "../../models/errors/NotFound";
 import { PRODUCT_SCHEMA_VALIDATION, Products } from "../../models/products/Products";
 import { Request, Response, NextFunction } from "express";
@@ -21,30 +21,33 @@ interface ProductFilters {
 export default class ProductController {
     static async findAll(req: Request, _: Response, next: NextFunction) {
         try {
-            let { id, produto, storeCode, isActive, categoryId } = req.query;
             let prod = <ProductFilters>{};
-            const idValidation = new Validators("id", id).validate();
-            const produtoValidation = new Validators("produto", produto).validate();
-            const storeValidation = new Validators("storeCode", storeCode).validate();
-            const isActiveValidation = new Validators("isActive", isActive).validate();
-            const categoryIdValidation = new Validators("categoryId", categoryId).validate();
+            z.object({
+                id: idValidation.optional(),
+                produto: z.string().optional(),
+                storeCode: idValidation.optional(),
+                isActive: booleanStringValidation.optional(),
+                categoryId: idValidation.optional(),
+            }).transform((val) => {
+                if (val.id) {
+                    prod._id = new ObjectId(val.id);
+                }
+                if (val.produto) {
+                    prod.produto = RegexBuilder.searchByName(val.produto);
+                }
+                if (val.categoryId) {
+                    prod.category = new ObjectId(val.categoryId);
+                }
+                if (val.isActive) {
+                    prod.isActive = val.isActive;
+                }
+                if (val.storeCode) {
+                    prod.storeCode = new ObjectId(val.storeCode);
+                }
+            }).parse(req.query);
 
-            if (idValidation.isValid) {
-                prod._id = new ObjectId(id as string);
-            }
-            if (produtoValidation.isValid) {
-                prod.produto = RegexBuilder.searchByName(produto as string);
-            }
-            if (categoryIdValidation.isValid) {
-                prod.category = new ObjectId(categoryId as string);
-            }
-            if (isActiveValidation.isValid) {
-                prod.isActive = (isActive as unknown) as boolean;
-            }
-            if (storeValidation.isValid) {
-                prod.storeCode = new ObjectId(storeCode as string);
-            }
-            req.result = Products.find(prod).populate("category")
+            req.result = Products.find(prod).populate("category");
+
             next();
         } catch (e) {
             next(e);

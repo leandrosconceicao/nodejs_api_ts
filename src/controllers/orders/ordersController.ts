@@ -237,17 +237,12 @@ export default class OrdersController {
 
     static async pushNewItems(req: Request, res: Response, next: NextFunction) {
         try {
-            const id = req.params.id;
-            const {orders} : {orders: Array<any>} = req.body;
-            const orderVal = new Validators("orders", orders, "array").validate();
-            if (!orderVal.isValid) {
-                throw new InvalidParameter(orderVal);
-            }
-            if (!orders.length) {
-                throw ApiResponse.badRequest("Nenhum pedido foi informado");
-            }
+            const id = idValidation.parse(req.params.id);
+            const data = z.object({
+                orders: z.array(orderProductValidation).nonempty({message: "Lista de produtos não pode ser vazia"})
+            }).parse(req.body);
             const process = await Orders.findByIdAndUpdate(id, {
-                $push: {products: orders}
+                $push: {products: data.orders}
             }, {new: true});
             return ApiResponse.success(process).send(res);
         } catch (e) {
@@ -364,7 +359,8 @@ export default class OrdersController {
                 .populate(populateClient)
                 .populate(popuAccId, [popuPayment, popuOrders])
                 .populate(popuUser, [popuEstablish, popuPass]);
-            return ApiResponse.success(updatedOrder).send(res);
+            req.result = updatedOrder;
+            next();
         } catch (e) {
             next(e);
         }
