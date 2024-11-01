@@ -27,11 +27,11 @@ const orders_products_schema = new mongoose.Schema({
     },
   })
 
-//   orders_products_schema.virtual("subTotal")
-//     .get(function() {
-//       let subTotal = (this.quantity * this.unitPrice);
-//       return subTotal + (this.tipValue * subTotal)
-//     })
+  orders_products_schema.virtual("subTotal")
+    .get(function() {
+      let subTotal = (this.quantity * this.unitPrice);
+      return subTotal + (this.tipValue * subTotal)
+    })
 // orders_products_schema.set('toObject', { virtuals: true });
 // orders_products_schema.set('toJSON', { virtuals: true });
 
