@@ -13,7 +13,8 @@ class Receipt implements IReceipt {
     totalOrder?: number;
     totalPayment?: number;
     totalTip?: number;
-    allProductsHasTipValue?: boolean
+    allProductsHasTipValue?: boolean;
+    client?: IReceiptClient;
 }
 
 interface IReceipt {
@@ -23,7 +24,15 @@ interface IReceipt {
     orders: Array<IReceiptOrders>
     totalOrder?: number,
     totalPayment?: number,
-    totalTip?: number
+    totalTip?: number,
+    client?: IReceiptClient,
+}
+
+interface IReceiptClient {
+    cgc: string,
+    name: string,
+    email: string,
+    phoneNumber: string,
 }
 interface IReceiptOrders {
     _id: typeof ObjectId,
@@ -37,7 +46,12 @@ interface IReceiptOrdersProducts {
     productName: string,
     category: string,
     unitPrice: number,
-    tipValue: number
+    tipValue: number,
+    addOnes: Array<IReceiptOrdersProductsAddOnes>
+}
+
+interface IReceiptOrdersProductsAddOnes {
+    name: string
 }
 
 interface IReceiptPayments {
