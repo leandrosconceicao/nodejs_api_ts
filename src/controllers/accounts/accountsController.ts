@@ -70,7 +70,7 @@ export default class AccountsController extends ApiFilters {
     static async findOneV2(req: Request, res: Response, next: NextFunction) {
         try {
             const id = idValidation.parse(req.params.id);
-            const account = await getReceipt(id);
+            const account = await AccountsController.getReceipt(id);
             return ApiResponse.success(account).send(res);
         } catch (e) {
             next(e);
@@ -112,7 +112,7 @@ export default class AccountsController extends ApiFilters {
             const body = z.object({
                 id: idValidation
             }).parse(req.body);
-            const checkData = await getReceipt(body.id);
+            const checkData = await AccountsController.getReceipt(body.id);
             if (checkData.payments.length) {
                 throw ApiResponse.badRequest("Conta não pode ser excluida, conta possui recebimentos");
             }
@@ -191,10 +191,84 @@ export default class AccountsController extends ApiFilters {
         const account = await Accounts.findById(accountId, {status: -1});
         return account.status === "open";
     }
+
+    static async getReceipt(accountId: string) {
+        const receipts = await Accounts.aggregate([
+            {
+              '$match': {
+                '_id': new ObjectId(accountId)
+              }
+            }, {
+              '$lookup': {
+                'from': 'orders', 
+                'localField': '_id', 
+                'foreignField': 'accountId', 
+                'as': 'orders', 
+                'pipeline': [
+                  {
+                    '$match': {
+                      'status': {
+                        '$ne': 'cancelled'
+                      }
+                    }
+                  }
+                ]
+              }
+            }, {
+              '$lookup': {
+                'from': 'payments', 
+                'localField': '_id', 
+                'foreignField': 'accountId', 
+                'as': 'payments'
+              }
+            }, {
+              '$project': {
+                'description': 1, 
+                'status': 1,
+                'storeCode': 1,
+                'created_by': 1,
+                'client': 1,
+                'payments': 1, 
+                'orders._id': 1, 
+                'orders.products.quantity': 1, 
+                'orders.products.tipValue': 1, 
+                'orders.products.unitPrice': 1, 
+                'orders.products.productName': 1, 
+                'orders.products.category': 1, 
+                'orders.products.addOnes': 1
+              }
+            }, {
+              '$addFields': {
+                'payments': {
+                  '$map': {
+                    'input': '$payments', 
+                    'as': 'pay', 
+                    'in': '$$pay.value'
+                  }
+                }
+              }
+            }
+          ]);
+        const dt = receipts[0] as Receipt;
+        dt.orders.forEach((e) => {
+            e.totalTip = e.products.reduce((prev, next) => prev + next.tipValue, 0.0);
+            e.totalProduct = e.products.reduce((prev, next) => prev + (next.quantity * next.unitPrice), 0.0);
+        })
+        dt.totalTip = dt.orders.reduce((prev, next) => prev + (next.totalTip * next.totalProduct), 0.0);
+        dt.totalPayment = dt.payments.reduce((prev, next) => prev + next.value, 0.0);
+        dt.totalOrder = dt.orders.reduce((prev, next) => prev + next.totalProduct, 0.0);
+        for (let i = 0; i < dt.payments.length; i++) {
+            const pay = dt.payments[i];
+            const payDetail = await PaymentMethods.findById(pay.method, {description: 1, _id: 0, id: 1});
+            pay.description = payDetail.description;
+        }
+        dt.allProductsHasTipValue = dt.orders.every((order) => order.products.every((product) => product.tipValue > 0));
+        return dt;
+    }
 }
 
 async function accountCanBeClosed(accountId: string) {
-    const ACCOUNT = await getReceipt(accountId);
+    const ACCOUNT = await AccountsController.getReceipt(accountId);
     if (!ACCOUNT) {
         return false;
     }
@@ -216,78 +290,4 @@ async function getAccountData(accountId: string) {
     account.orders = orders;
     account.payments = payments;
     return account;
-}
-
-async function getReceipt(accountId: string) {
-    const receipts = await Accounts.aggregate([
-        {
-          '$match': {
-            '_id': new ObjectId(accountId)
-          }
-        }, {
-          '$lookup': {
-            'from': 'orders', 
-            'localField': '_id', 
-            'foreignField': 'accountId', 
-            'as': 'orders', 
-            'pipeline': [
-              {
-                '$match': {
-                  'status': {
-                    '$ne': 'cancelled'
-                  }
-                }
-              }
-            ]
-          }
-        }, {
-          '$lookup': {
-            'from': 'payments', 
-            'localField': '_id', 
-            'foreignField': 'accountId', 
-            'as': 'payments'
-          }
-        }, {
-          '$project': {
-            'description': 1, 
-            'status': 1,
-            'storeCode': 1,
-            'created_by': 1,
-            'client': 1,
-            'payments': 1, 
-            'orders._id': 1, 
-            'orders.products.quantity': 1, 
-            'orders.products.tipValue': 1, 
-            'orders.products.unitPrice': 1, 
-            'orders.products.productName': 1, 
-            'orders.products.category': 1, 
-            'orders.products.addOnes': 1
-          }
-        }, {
-          '$addFields': {
-            'payments': {
-              '$map': {
-                'input': '$payments', 
-                'as': 'pay', 
-                'in': '$$pay.value'
-              }
-            }
-          }
-        }
-      ]);
-    const dt = receipts[0] as Receipt;
-    dt.orders.forEach((e) => {
-        e.totalTip = e.products.reduce((prev, next) => prev + next.tipValue, 0.0);
-        e.totalProduct = e.products.reduce((prev, next) => prev + (next.quantity * next.unitPrice), 0.0);
-    })
-    dt.totalTip = dt.orders.reduce((prev, next) => prev + (next.totalTip * next.totalProduct), 0.0);
-    dt.totalPayment = dt.payments.reduce((prev, next) => prev + next.value, 0.0);
-    dt.totalOrder = dt.orders.reduce((prev, next) => prev + next.totalProduct, 0.0);
-    for (let i = 0; i < dt.payments.length; i++) {
-        const pay = dt.payments[i];
-        const payDetail = await PaymentMethods.findById(pay.method, {description: 1, _id: 0, id: 1});
-        pay.description = payDetail.description;
-    }
-    dt.allProductsHasTipValue = dt.orders.every((order) => order.products.every((product) => product.tipValue > 0));
-    return dt;
 }
