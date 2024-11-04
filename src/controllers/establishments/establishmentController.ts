@@ -93,11 +93,9 @@ export default class EstablishmentsController {
     }
 
     static async checkOpening(establishmentId: any, orderType: string) {
-        const establishment = await Establishments.findById(establishmentId)
-        if (orderType === "frontDesk" || orderType == "account") {
-            if (!establishment.services.customer_service.enabled) {
-                throw ApiResponse.badRequest("Estabelecimento não está aberto no momento.");
-            }
+        const establishment = await Establishments.findById(establishmentId);
+        if (!establishment.services.customer_service.enabled) {
+            throw ApiResponse.badRequest("Estabelecimento não está aberto no momento.");
         }
         if (orderType === "delivery") {
             if (!establishment.services.delivery.enabled) {
@@ -105,7 +103,7 @@ export default class EstablishmentsController {
             }
         }
         if (orderType === "withdraw") {
-            if (establishment.services.withdraw.enabled) {
+            if (!establishment.services.withdraw.enabled) {
                 throw ApiResponse.badRequest("Serviço de retira não está disponível no momento.");
             }
         }
