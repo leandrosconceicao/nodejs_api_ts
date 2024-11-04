@@ -125,7 +125,7 @@ export default class SpoolHandler implements ISpoolHandler {
     
         const subTotal = parsedOrder.products.reduce((ol, newV) => ol + (newV.quantity * newV.unitPrice), 0)
     
-        const totPay = parsedOrder.payment.value.value;
+        const totPay = parsedOrder.payment?.value.value ?? 0.0;
         
         parsedOrder.products.forEach((prod) => {
             encoder.text(`${prod.quantity}x ${this.removerAcentos(prod.orderDescription)}   ${this.formatNumber(prod.quantity * prod.unitPrice)}`);
