@@ -256,7 +256,7 @@ export default class AccountsController extends ApiFilters {
         })
         dt.totalTip = dt.orders.reduce((prev, next) => prev + (next.totalTip * next.totalProduct), 0.0);
         dt.totalPayment = dt.payments.reduce((prev, next) => prev + next.value, 0.0);
-        dt.totalOrder = dt.orders.reduce((prev, next) => prev + next.totalProduct, 0.0);
+        dt.totalOrder = dt.orders.reduce((prev, next) => prev + next.totalProduct, 0.0) + dt.totalTip;
         for (let i = 0; i < dt.payments.length; i++) {
             const pay = dt.payments[i];
             const payDetail = await PaymentMethods.findById(pay.method, {description: 1, _id: 0, id: 1});
@@ -273,7 +273,7 @@ async function accountCanBeClosed(accountId: string) {
         return false;
     }
     let totalPayed = ACCOUNT.totalPayment;
-    let totalOrdered = ACCOUNT.totalOrder + ACCOUNT.totalTip;
+    let totalOrdered = ACCOUNT.totalOrder;
     return totalPayed === totalOrdered;
 }
 
