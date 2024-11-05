@@ -456,7 +456,7 @@ async function updateId(id: string, storeCode: string) {
 
 async function notififyUser(userData: any, title: string, body: string) {
     const user = await Users.findById(userData._id);
-    if (user) {
+    if (user.token) {
         FBMESSAGING.sendToUser(user.token, {
             title,
             body
