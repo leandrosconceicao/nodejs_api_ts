@@ -54,11 +54,7 @@ export default class OrdersController {
 
     static async findOne(req: Request, res: Response, next: NextFunction) {
         try {
-            const id = req.params.id;
-            const idVal = new Validators("id", id).validate();
-            if (!idVal.isValid) {
-                throw new InvalidParameter(idVal);
-            }
+            const id = idValidation.parse(req.params.id);
             const order = await Orders.findById(id)
                 .populate(populateClient)
                 .populate(popuAccId, [popuPayment, popuOrders])
@@ -319,7 +315,9 @@ export default class OrdersController {
             .populate(popuAccId, [popuPayment, popuOrders])
             .populate(popuUser, [popuEstablish, popuPass]).lean();
             
-            notififyUser(process.userCreate, "Preparação de pedido", body.isReady ? `Atenção, pedido: ${process.pedidosId} está pronto` : "Alerta de pedido");
+            if (process.userCreate) {
+                notififyUser(process.userCreate, "Preparação de pedido", body.isReady ? `Atenção, pedido: ${process.pedidosId} está pronto` : "Alerta de pedido");
+            }
 
             return ApiResponse.success(process).send(res);
         } catch (e) {

@@ -146,7 +146,7 @@ export default class SpoolHandler implements ISpoolHandler {
     
     
         this.genText(encoder, `Obs: ${this.removerAcentos(parsedOrder.observations ?? "")}`);
-        this.genText(encoder, `Vendedor: ${parsedOrder.userCreate.username}`);
+        this.genText(encoder, `Vendedor: ${parsedOrder.userCreate?.username ?? "Sistema"}`);
         encoder.text(`Nome do cliente: ${parsedOrder.client.name ?? ""}\n`);
         encoder.text(`Telefone: ${parsedOrder.client.phoneNumber ?? ""}\n`);
         encoder.text(`Endereco: ${parsedOrder.client.address ?? ""}\n`);

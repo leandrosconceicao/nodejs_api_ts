@@ -53,6 +53,10 @@ const orderSchema = new mongoose.Schema({
   payment: {
     type: mongoose.Types.ObjectId, ref: 'payments'
   },
+  paymentMethod: {
+    type: ObjectId,
+    ref: "paymentMethods",
+  },
   dateDiff: {}
 });
 
@@ -101,6 +105,7 @@ const orderValidation = z.object({
   observations: z.string().optional(),
   storeCode: idValidation,
   payment: paymentValidation.optional(),
+  paymentMethod: idValidation.optional(),
   products: z.array(orderProductValidation).nonempty(),
 });
 
