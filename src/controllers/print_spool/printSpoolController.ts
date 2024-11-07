@@ -4,6 +4,7 @@ import {PrinterSpool, IPrinterSpool} from "../../models/PrinterSpool";
 import mongoose from "mongoose";
 import ApiResponse from "../../models/base/ApiResponse";
 import ISpoolHandler from "../../domain/interfaces/ISpoolHandler";
+import NotFoundError from "../../models/errors/NotFound";
 
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -31,8 +32,12 @@ export default class PrintSpoolController {
             const data = await PrinterSpool.findOne({
                 storeCode: new ObjectId(storeCode),
             })
-            const parsed = await this.handler.prepareData(data as IPrinterSpool);
-            ApiResponse.success(parsed).send(res);
+            if (!data) {
+                res.sendStatus(204);
+            } else {
+                const parsed = await this.handler.prepareData(data as IPrinterSpool);
+                ApiResponse.success(parsed).send(res);
+            }
         } catch (e) {
             next(e);
         }
