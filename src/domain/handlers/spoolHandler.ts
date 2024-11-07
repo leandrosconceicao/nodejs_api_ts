@@ -26,7 +26,7 @@ export default class SpoolHandler implements ISpoolHandler {
         const encoder = new ReceiptEnconder();
         
         encoder.setPinterType(PrinterWidthEnum._58);
-        encoder.size(1);
+        encoder.size(.5);
         encoder.newline();
         
         this.genText(encoder, "EXTRATO");
@@ -50,7 +50,7 @@ export default class SpoolHandler implements ISpoolHandler {
         
         data.orders.forEach((orders) => {
             orders.products.forEach((prod) => {
-                encoder.text(`${prod.quantity}x ${this.removerAcentos(prod.productName)}   ${this.formatNumber(prod.quantity * prod.unitPrice)}`);
+                encoder.text(`${prod.quantity}x ${this.removerAcentos(prod.productName)}   ${(prod.quantity * prod.unitPrice).toFixed(2)}`);
                 encoder.emptyLine()
                 // if (prod.addOnes.length) {
                     //     prod.addOnes.forEach((add) => {
@@ -60,22 +60,24 @@ export default class SpoolHandler implements ISpoolHandler {
                     })
                 });
                 
+        encoder.newline();
+
         data.payments.forEach((payments) => {
-            encoder.text(`${payments.description} - ${this.formatNumber(payments.value)}`).align("center")
+            encoder.text(`${this.removerAcentos(payments.description)} - ${payments.value.toFixed(2)}`).align("center")
             encoder.emptyLine()
         })
     
         encoder.newline();
         encoder.newline().align("left");
     
-        this.genText(encoder, `Valor do pedido: ${this.formatNumber(subTotal)}`)
-        this.genText(encoder, `Total pago: ${this.formatNumber(totPay)}`)
-        this.genText(encoder, `Restando: ${this.formatNumber(subTotal - totPay)}`)
+        this.genText(encoder, `Valor do pedido: ${subTotal.toFixed(2)}`)
+        this.genText(encoder, `Total pago: ${totPay.toFixed(2)}`)
+        this.genText(encoder, `Restando: ${(subTotal - totPay).toFixed(2)}`)
     
         encoder.newline();
         encoder.newline();
     
-        encoder.text(`Nome do cliente: ${data.client.name ?? ""}\n`);
+        encoder.text(`Nome do cliente: ${this.removerAcentos(data.client.name ?? "")}\n`);
         encoder.text(`Telefone: ${data.client.phoneNumber ?? ""}\n`);
     
         
@@ -91,8 +93,8 @@ export default class SpoolHandler implements ISpoolHandler {
         const encoder = new ReceiptEnconder();
     
         encoder.setPinterType(PrinterWidthEnum._58);
-        encoder.size(1);
         encoder.newline();
+        encoder.size(.5);
         
         const order = await Orders.findById(`${data.orderId}`)
             .populate(["payment", "payment.value.method"])
@@ -107,13 +109,14 @@ export default class SpoolHandler implements ISpoolHandler {
         encoder.newline();
         
         if (data.reprint) {
-            encoder.text("REIMPRESSAO")
+            encoder.text("REIMPRESSAO").align("center");
             encoder.newline();
         }
         encoder.text(parsedOrder.createDate.toLocaleString())
     
         encoder.newline();
         encoder.newline();
+        encoder.align("left");
         
         encoder.text("      ")
         encoder.text("Produto");
@@ -128,31 +131,34 @@ export default class SpoolHandler implements ISpoolHandler {
         const totPay = parsedOrder.payment?.value.value ?? 0.0;
         
         parsedOrder.products.forEach((prod) => {
-            encoder.text(`${prod.quantity}x ${this.removerAcentos(prod.orderDescription)}   ${this.formatNumber(prod.quantity * prod.unitPrice)}`);
-            if (prod.addOnes?.length)
+            encoder.text(`${prod.quantity}x ${this.removerAcentos(prod.orderDescription)}   ${(prod.quantity * prod.unitPrice).toFixed(2)}`).align("center");
+            if (prod.addOnes?.length) {
                 prod.addOnes.forEach((add) => {
-                    encoder.text(`\n${add.name}`)
+                    encoder.text(`\n${this.removerAcentos(add.name)}`)
                 })
+                encoder.emptyLine();
+            }
+            encoder.emptyLine();
         });
         encoder.newline();
-        encoder.newline();
+        encoder.newline().align("left");
     
-        this.genText(encoder, `Valor do pedido: ${this.formatNumber(subTotal)}`)
-        this.genText(encoder, `Total pago: ${this.formatNumber(totPay)}`)
-        this.genText(encoder, `Restando: ${this.formatNumber(subTotal - totPay)}`)
+        this.genText(encoder, `Valor do pedido: ${subTotal.toFixed(2)}`)
+        this.genText(encoder, `Total pago: ${totPay.toFixed(2)}`)
+        this.genText(encoder, `Restando: ${(subTotal - totPay).toFixed(2)}`)
     
         encoder.newline();
         encoder.newline();
     
     
         this.genText(encoder, `Obs: ${this.removerAcentos(parsedOrder.observations ?? "")}`);
-        this.genText(encoder, `Vendedor: ${parsedOrder.userCreate?.username ?? "Sistema"}`);
-        encoder.text(`Nome do cliente: ${parsedOrder.client.name ?? ""}\n`);
+        this.genText(encoder, `Vendedor: ${this.removerAcentos(parsedOrder.userCreate?.username ?? "Sistema")}`);
+        encoder.text(`Nome do cliente: ${this.removerAcentos(parsedOrder.client.name ?? "")}\n`);
         encoder.text(`Telefone: ${parsedOrder.client.phoneNumber ?? ""}\n`);
-        encoder.text(`Endereco: ${parsedOrder.client.address ?? ""}\n`);
+        // encoder.text(`Endereco: ${this.removerAcentos(parsedOrder.client.address ?? "")}\n`);
     
         if (parsedOrder.accountId)
-            this.genText(encoder, `Conta: ${parsedOrder.accountId.description ?? ""}`)
+            this.genText(encoder, `Conta: ${this.removerAcentos(parsedOrder.accountId.description ?? "")}`)
     
         encoder.newline();
         encoder.newline();
