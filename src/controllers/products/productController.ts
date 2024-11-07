@@ -57,7 +57,7 @@ export default class ProductController {
     static async findOne(req: Request, res: Response, next: NextFunction) {
         try {
             const id = idValidation.parse(req.params.id);
-            const product = await Products.findById(id);
+            const product = await Products.findById(id).populate("category");
             if (!product) {
                 throw new NotFoundError("Produto não localizado");
             }
