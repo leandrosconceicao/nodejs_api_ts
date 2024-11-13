@@ -319,7 +319,11 @@ export default class OrdersController {
                 notififyUser(process.userCreate, "Preparação de pedido", body.isReady ? `Atenção, pedido: ${process.pedidosId} está pronto` : "Alerta de pedido");
             }
 
-            return ApiResponse.success(process).send(res);
+            req.result = {
+                isReady: body.isReady,
+                order: process
+            };
+            next();
         } catch (e) {
             next(e);
         }
@@ -392,12 +396,8 @@ export default class OrdersController {
     static async getOrdersOnPreparation(req: Request, res: Response, next: NextFunction) {
         try {
             const storeCode = idValidation.parse(req.params.id);
-            const dates = z.object({
-                from: z.string().datetime({offset: true}),
-                to: z.string().datetime({offset: true})
-            }).parse(req.query);
-            let orders = await ordersOnPreparation(storeCode, dates.from, dates.to);
-            return ApiResponse.success(orders).send(res);
+            req.result = storeCode;
+            next();
         } catch (e) {
             next(e);
         }
