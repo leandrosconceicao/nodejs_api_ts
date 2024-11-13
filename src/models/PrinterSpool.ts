@@ -22,6 +22,7 @@ const printer_spool_schema = new mongoose.Schema({
     },
     type: {
         type: String,
+        default: "order",
         require: [true, "type é obrigatório, informe um valor valido: (order, account_receipt, other)"],
         enum: {
             values: ["order", "account_receipt", "other"],
@@ -74,10 +75,10 @@ enum SpoolType {
 }
 
 interface IPrinterSpool {
-    storeCode?: MongoId,
+    storeCode?: MongoId | string,
     reprint: boolean,
-    orderId?: MongoId,
-    accountId?: MongoId,
+    orderId?: MongoId | string,
+    accountId?: MongoId | string,
     type: SpoolType,
     buffer?: string
 }
