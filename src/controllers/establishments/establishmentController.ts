@@ -4,25 +4,27 @@ import {Establishments, establishmentAttributes } from "../../models/Establishme
 import {z} from "zod";
 import NotFoundError from "../../models/errors/NotFound";
 import ApiResponse from "../../models/base/ApiResponse";
-import InvalidParameter from "../../models/errors/InvalidParameters";
 import establishmentDataCheck from "./establishmentDataCheck";
 import FirebaseStorage from "../../utils/firebase/storage";
-import fs from "fs/promises";
+import updateRemoteConfig from "../../utils/firebase/remoteConfig";
+import { idValidation } from "../../utils/defaultValidations";
 
 
 export default class EstablishmentsController {
 
     static async findAll(req: Request, res: Response, next: NextFunction) {
-        interface establishmentQuery {
-            _id?: string
-        }
         try {
-            let { id } = req.query;
-            let myQuery: establishmentQuery = {};
-            const idValidation = new Validators("id", id, "string").validate();
-            if (idValidation.isValid) {
-                myQuery._id = `${id}`;
-            }
+            let myQuery: {
+                _id?: string
+            };
+            z.object({
+                storeCode: idValidation.optional()
+            }).transform((val) => {
+                if (val.storeCode) {
+                    myQuery._id = val.storeCode
+                }
+            })
+            .parse(req.query);
             req.result = Establishments.find(myQuery).select({ ownerId: 0 });
             next();
         } catch (e) {
@@ -32,8 +34,7 @@ export default class EstablishmentsController {
 
     static async findOne(req: Request, res: Response, next: NextFunction) {
         try {
-            const id = req.params.id;
-            z.string().min(24).max(24).parse(id);
+            const id = idValidation.parse(req.params.id);
             const establishment = await Establishments.findById(id);
             if (!establishment) {
                 throw new NotFoundError();
@@ -56,16 +57,14 @@ export default class EstablishmentsController {
 
     static async delete(req: Request, res: Response, next: NextFunction) {
         try {
-            const id = req.body.id as string;
-            const idValidation = new Validators("id", id, "string").validate();
-            if (!idValidation.isValid) {
-                throw new InvalidParameter(idValidation);
-            }
-            const checks = await establishmentDataCheck.check(id);
+            const data = z.object({
+                id: idValidation
+            }).parse(req.body);
+            const checks = await establishmentDataCheck.check(data.id);
             if (!checks) {
                 return ApiResponse.badRequest("Estabelecimento possui informações vinculadas, não é possível excluir.").send(res);
             }
-            const process = await Establishments.findByIdAndDelete(id);
+            const process = await Establishments.findByIdAndDelete(data.id);
             return ApiResponse.success(process.value).send(res);
         } catch (e) {
             next(e);
@@ -74,8 +73,7 @@ export default class EstablishmentsController {
 
     static async put(req: Request, res: Response, next: NextFunction) {
         try {
-            const id = req.params.id;
-            z.string().min(24).max(24).parse(id);
+            const id = idValidation.parse(req.params.id);
             const establishments = establishmentAttributes.parse(req.body);
             if (establishments.dataImage) {
                 establishments.logo = await updateLogo({
@@ -86,6 +84,9 @@ export default class EstablishmentsController {
             const process = await Establishments.findByIdAndUpdate(id, establishments, {
                 new: true
             });
+            if (establishments.services?.customer_service?.enabled !== undefined) {
+                updateRemoteConfig(id, "isOpen", `${establishments.services?.customer_service?.enabled}`);
+            }
             return ApiResponse.success(process).send(res);
         } catch (e) {
             next(e);
