@@ -116,30 +116,10 @@ function setOrderOnPreparation(req: Request, res: Response, next: NextFunction) 
     ApiResponse.success(data.order).send(res);
 }
 
-function getOrdersOnPreparation(req: Request, res: Response, next: NextFunction) {
-    try {
-        const storeCode = req.result as string;
-        const db = getDatabase();
-        const ref = db.ref(storeCode);
-        ref.once("value", (data) => {
-            const dt = data.val();
-            if (!dt) {
-                res.sendStatus(204);
-            } else {
-                ApiResponse.success(dt).send(res);
-            }
-        }, (error) => {
-            throw error;
-        })
-    } catch (e) {
-        next(e);
-    }
-}
-
 function notifyClient(title: string, body: string, token?: string) {
     if  (token) {
         FBMESSAGING.sendToUser(token, {title, body});
     }
 }
 
-export {addPreparationOrder, getOrdersOnPreparation, setOrderOnPreparation, manageWithDrawMonitor, updateWithDrawMonitor};
+export {addPreparationOrder, setOrderOnPreparation, manageWithDrawMonitor, updateWithDrawMonitor};
