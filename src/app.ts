@@ -19,13 +19,15 @@ var app = express();
 dotenv.config();
 
 const storageDB = process.env.FIREBASESTORAGE;
+const firebaseDb = process.env.FIREBASEDB;
 
 db.on("error", console.log.bind(console, "Erro de conexão"));
 db.once("open", () => console.log("Conexão com o banco feita com sucesso"));
 
 initializeApp({
     credential: cert(serviceAccount as any),
-    storageBucket: storageDB
+    storageBucket: storageDB,
+    databaseURL: firebaseDb
 })
 
 app.use(cors());
