@@ -10,6 +10,7 @@ var ObjectId = mongoose.Types.ObjectId;
 
 const orderSchema = new mongoose.Schema({
   pedidosId: { type: Number },
+  firebaseToken: {type: String},
   accountId: {
     type: ObjectId, ref: "accounts",
   },
@@ -82,6 +83,7 @@ const orderProductValidation = z.object({
 const orderValidation = z.object({
   pedidosId: z.number().optional(),
   accountId: idValidation.optional(),
+  firebaseToken: z.string().optional(),
   accepted: z.boolean().optional(),
   status: z.enum(['pending', 'cancelled', 'finished', 'onTheWay']).optional(),
   orderType: z.enum(['frontDesk', 'account', 'delivery', 'withdraw']).optional(),
@@ -126,6 +128,7 @@ enum OrderType {
 interface IOrder {
   _id: MongoId,
   pedidosId?: number,
+  firebaseToken?: string,
   accountId?: {
     description?: string
   },
@@ -177,7 +180,71 @@ interface IOrder {
     tipValue?: number,
     hasTipValue?: boolean,
     subTotal?: number,
-    addOnes: Array<{
+    addOnes?: Array<{
+      addOneName: string,
+      quantity: number,
+      price: number,
+      name: string,
+    }>      
+  }>,
+}
+
+interface IFirebaseOrder {
+  _id: string,
+  pedidosId?: number,
+  firebaseToken?: string,
+  accountId?: {
+    description?: string
+  },
+  // accepted?: string,
+  status?: OrderStatus,
+  createDate?: string,
+  orderType?: OrderType,
+  client?: {
+    cgc?: string,
+    name?: string,
+    email?: string,
+    phoneNumber?: string,
+    address?: Array<{
+      address?: string,
+      city?: string,
+      complement?: string,
+      district?: string,
+      number?: string,
+      state?: string,
+      zipCode?: string,
+    }>
+  },
+  userCreate?: {
+    username: string
+  },
+  observations?: string,
+  storeCode: string,
+  payment?: {
+    accountId?: string,
+    cashRegisterId: string,
+    userCreate: string,
+    value: {
+      method: {
+        description: string,
+        _id: string
+      },
+      value: number
+    }
+  },
+  products: Array<{
+    quantity: number,
+    productName?: string,
+    productId: string,
+    orderDescription?: string,
+    category?: string,
+    needsPreparation?: boolean,
+    setupIsFinished?: boolean,
+    unitPrice: number,
+    tipValue?: number,
+    hasTipValue?: boolean,
+    subTotal?: number,
+    addOnes?: Array<{
       addOneName: string,
       quantity: number,
       price: number,
@@ -188,4 +255,4 @@ interface IOrder {
 
 const Orders = mongoose.model("orders", orderSchema);
 
-export {Orders, orderSchema, orderValidation, orderProductValidation, IOrder};
+export {Orders, orderSchema, orderValidation, orderProductValidation, IOrder, IFirebaseOrder, OrderType, OrderStatus};
