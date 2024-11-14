@@ -315,7 +315,7 @@ export default class OrdersController {
             .populate(popuAccId, [popuPayment, popuOrders])
             .populate(popuUser, [popuEstablish, popuPass]).lean();
             
-            if (process.userCreate) {
+            if (process?.userCreate) {
                 notififyUser(process.userCreate, "Preparação de pedido", body.isReady ? `Atenção, pedido: ${process.pedidosId} está pronto` : "Alerta de pedido");
             }
 
