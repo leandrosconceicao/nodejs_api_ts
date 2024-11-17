@@ -3,7 +3,7 @@ import Endpoints from "../models/Endpoints";
 import validateToken from "../middlewares/tokenController";
 import paginationAndFilters from "../middlewares/paginationAndFilters";
 import OrdersController from "../controllers/orders/ordersController";
-import printerSpoolMiddleware from "../middlewares/printerSpoolMiddleware";
+import {printerSpoolMiddleware} from "../middlewares/printerSpoolMiddleware";
 import {addPreparationOrder, manageWithDrawMonitor, setOrderOnPreparation, updateWithDrawMonitor} from "../middlewares/ordersMiddleware";
 
 export default express.Router()
