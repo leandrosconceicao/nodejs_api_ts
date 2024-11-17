@@ -1,10 +1,9 @@
 import { NextFunction, Request, Response } from "express";
 import { idValidation } from "../../utils/defaultValidations";
-import {PrinterSpool, IPrinterSpool} from "../../models/PrinterSpool";
+import {PrinterSpool, IPrinterSpool, PRINTER_SPOOL_VALIDATION} from "../../models/PrinterSpool";
 import mongoose from "mongoose";
 import ApiResponse from "../../models/base/ApiResponse";
 import ISpoolHandler from "../../domain/interfaces/ISpoolHandler";
-import NotFoundError from "../../models/errors/NotFound";
 
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -18,9 +17,9 @@ export default class PrintSpoolController {
 
     async add(req: Request, res: Response, next: NextFunction) {
         try {
-            const body = new PrinterSpool(req.body);
-            const newSpool = await body.save()
-            return ApiResponse.success(newSpool).send(res);
+            const body = PRINTER_SPOOL_VALIDATION.parse(req.body);
+            req.result = body;
+            next();
         } catch (e) {
             next(e);
         }
