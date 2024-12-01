@@ -4,8 +4,7 @@ import ReceiptEnconder, { PrinterWidthEnum } from "@mexicocss/esc-pos-encoder-ts
 import AccountsController from "../../controllers/accounts/accountsController";
 import ISpoolHandler from "../interfaces/ISpoolHandler";
 
-const populateClient = "client";
-const popuAccId = "accountId";
+const popuAccId = "accountDetail";
 const popuPayment = "-payments";
 const popuOrders = "-orders";
 const popuUser = "userCreate";
@@ -97,12 +96,13 @@ export default class SpoolHandler implements ISpoolHandler {
         encoder.size(.5);
         
         const order = await Orders.findById(`${data.orderId}`)
-            .populate(["payment", "payment.value.method"])
-            .populate(populateClient)
+            .populate("storeCodeDetail", ["-ownerId"])
+            .populate("paymentMethodDetail")
+            .populate("paymentDetail")
             .populate(popuAccId, [popuPayment, popuOrders])
-            .populate(popuUser, [popuEstablish, popuPass]).lean();
+            .populate(popuUser, [popuEstablish, popuPass]);
         
-        const parsedOrder = order as unknown as IOrder;
+        const parsedOrder = order as IOrder;
     
         encoder.text(`Numero: ${parsedOrder.pedidosId}`)
         
@@ -112,7 +112,7 @@ export default class SpoolHandler implements ISpoolHandler {
             encoder.text("REIMPRESSAO").align("center");
             encoder.newline();
         }
-        encoder.text(parsedOrder.createDate.toLocaleString())
+        encoder.text(parsedOrder.createdAt.toLocaleString())
     
         encoder.newline();
         encoder.newline();
@@ -128,7 +128,7 @@ export default class SpoolHandler implements ISpoolHandler {
     
         const subTotal = parsedOrder.products.reduce((ol, newV) => ol + (newV.quantity * newV.unitPrice), 0)
     
-        const totPay = parsedOrder.payment?.value.value ?? 0.0;
+        const totPay = parsedOrder.paymentDetail?.total ?? 0.0;
         
         parsedOrder.products.forEach((prod) => {
             encoder.text(`${prod.quantity}x ${this.removerAcentos(prod.orderDescription)}   ${(prod.quantity * prod.unitPrice).toFixed(2)}`).align("center");
@@ -151,14 +151,13 @@ export default class SpoolHandler implements ISpoolHandler {
         encoder.newline();
     
     
-        this.genText(encoder, `Obs: ${this.removerAcentos(parsedOrder.observations ?? "")}`);
         this.genText(encoder, `Vendedor: ${this.removerAcentos(parsedOrder.userCreate?.username ?? "Sistema")}`);
         encoder.text(`Nome do cliente: ${this.removerAcentos(parsedOrder.client.name ?? "")}\n`);
         encoder.text(`Telefone: ${parsedOrder.client.phoneNumber ?? ""}\n`);
         // encoder.text(`Endereco: ${this.removerAcentos(parsedOrder.client.address ?? "")}\n`);
     
-        if (parsedOrder.accountId)
-            this.genText(encoder, `Conta: ${this.removerAcentos(parsedOrder.accountId.description ?? "")}`)
+        if (parsedOrder.accountDetail)
+            this.genText(encoder, `Conta: ${this.removerAcentos(parsedOrder.accountDetail.description ?? "")}`)
     
         encoder.newline();
         encoder.newline();
