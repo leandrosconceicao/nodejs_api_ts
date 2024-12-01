@@ -2,6 +2,7 @@ import z from 'zod';
 import mongoose from "mongoose";
 import { idValidation } from '../utils/defaultValidations';
 import PassGenerator from "../utils/passGenerator";
+import MongoId from './custom_types/mongoose_types';
 var ObjectId = mongoose.Schema.Types.ObjectId;
 
 const userValidaton = z.object({
@@ -32,6 +33,37 @@ const userPatchValidation = z.object({
     establishments: z.array(idValidation).optional()
   });
 
+
+enum GroupUser {
+    admin = "1",
+    operator = "2",
+    super = "99"
+}
+
+interface IUsers {
+    email: string,
+    pass: string,
+    group_user: GroupUser | "1" | "2" | "99",
+    // group_user: {
+    //     type: String, default: '1',
+    //     enum: {
+    //         values: ['1', '2', '99'],
+    //         message: "O tipo {VALUE} não é um valor permitido"
+    //     }
+    // },
+    updatedBy: string | MongoId,
+    updatedAt?: Date,
+    changePassword: boolean,
+    username: string,
+    isActive: boolean,
+    storeCode: string | MongoId
+    // establishments: [{
+    //     type: ObjectId,
+    //     ref: "establishments"
+    // }],
+    token?: string,
+}
+
 const userSchema = new mongoose.Schema({
     email: {type: String},
     pass: {type: String},
@@ -60,4 +92,4 @@ const userSchema = new mongoose.Schema({
 const Users = mongoose.model('users', userSchema);
 
 
-export {Users, userValidaton, userPatchValidation};
+export {Users, userValidaton, userPatchValidation, IUsers};
