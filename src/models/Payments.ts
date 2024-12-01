@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { idValidation } from "../utils/defaultValidations";
 import { z } from "zod";
 import { DateQuery, PeriodQuery } from '../utils/PeriodQuery';
+import MongoId from "./custom_types/mongoose_types";
 var ObjectId = mongoose.Types.ObjectId;
 
 const valueSchema = new mongoose.Schema({
@@ -15,6 +16,25 @@ const valueSchema = new mongoose.Schema({
     value: { type: Number, required: [true, "Parametro (value) é obrigatório"] },
 });
 
+interface IPayment {
+    accountId?: mongoose.Types.ObjectId,
+    cashRegisterId: mongoose.Types.ObjectId,
+    userCreate: mongoose.Types.ObjectId,
+    total: number,
+    taxes: number,
+    methodData?: {
+        _id: mongoose.Types.ObjectId,
+        taxes: number,
+        created_by: mongoose.Types.ObjectId,
+        enabled: boolean,
+        storeCode: mongoose.Types.ObjectId,
+        description: string,
+        createdAt: string,
+        updatedAt: string
+    }
+  }
+  
+
 const paymentSchema = new mongoose.Schema({
     accountId: {
         type: ObjectId, ref: 'accounts'
@@ -26,40 +46,49 @@ const paymentSchema = new mongoose.Schema({
     refunded: { type: Boolean, default: false },
     storeCode: { type: ObjectId, ref: "establishments", required: [true, "Parametro (storeCode) é obrigatório"] },
     userCreate: { type: ObjectId, ref: "users"},
-    createDate: { type: Date, default: () => { return new Date() }},
     userUpdated: { type: ObjectId, ref: "users", },
-    updateDate: { type: Date },
-    value: valueSchema
+    orderId: {type: ObjectId, ref: "orders"},
+    method: {
+        type: ObjectId,
+        ref: "paymentMethods",
+        required: [true, "Informe a forma de pagamento"]
+    },
+    total: {
+        type: Number
+    },
+    taxes: {
+        type: Number,
+        default: 0.0
+    }
+    // value: valueSchema
 }, {
     timestamps: true
 });
 
 const PAYMENT_SEARCH_VALIDATION = z.object({
     storeCode: idValidation,
-    accountId: idValidation.optional(),
-    cashRegisterId: idValidation.optional(),
-    refunded: z.boolean().optional(),
+    from: z.string().datetime({offset: true}),
+    to: z.string().datetime({offset: true}),
+    method: idValidation.optional(),
     userCreate: idValidation.optional(),
-    createAtStart: z.string().datetime({offset: true}).optional(),
-    createAtEnd: z.string().datetime({offset: true}).optional(),
-}).transform((value) => {
+}).transform((values) => {
     interface QuerySearch {
-        storeCode: string,
-        accountId?: string,
-        cashRegisterId?: string,
-        refunded?: boolean
-        userCreate: string;
-        createDate: DateQuery;
+        storeCode?: mongoose.Types.ObjectId,
+        createdAt?: DateQuery,
+        userCreate?: mongoose.Types.ObjectId,
+        method?: mongoose.Types.ObjectId,
     }
-    const query = <QuerySearch> {
-        storeCode: value.storeCode,
+    const query = <QuerySearch> {}
+
+    query.storeCode = new ObjectId(values.storeCode);
+    query.createdAt = new PeriodQuery(values.from, values.to).build();
+
+    if (values.method) {
+        query.method = new ObjectId(values.method);
     }
-    if (value.accountId) query.accountId = value.accountId;
-    if (value.cashRegisterId) query.cashRegisterId = value.cashRegisterId;
-    if (value.refunded) query.refunded = value.refunded;
-    if (value.userCreate) query.userCreate = value.userCreate;
-    if (value.createAtStart && value.createAtEnd) {
-        query.createDate = new PeriodQuery(value.createAtStart, value.createAtEnd).build()
+
+    if (values.userCreate) {
+        query.userCreate = new ObjectId(values.userCreate);
     }
     return query;
 });
@@ -72,25 +101,17 @@ const paymentValidation = z.object({
     userCreate: idValidation.optional(),
     userUpdated: idValidation.optional(),
     updateDate: z.string().datetime({offset: true}).optional(),
-    value: z.object({
-        txId: z.string().optional(),
-        cardPaymentId: z.string().optional(),
-        method: idValidation,
-        // form: z.enum(['money', 'debit', 'credit', 'pix']),
-        value: z.number()
-    })
+    method: idValidation,
+    total: z.number(),
+    taxes: z.number().default(0.0)
 });
 
-valueSchema.virtual("methodData", {
+paymentSchema.virtual("methodData", {
     ref: "paymentMethods",
     localField: "method",
     foreignField: "_id",
     justOne: true
 });
-
-
-valueSchema.set('toObject', { virtuals: true });
-valueSchema.set('toJSON', { virtuals: true });
 
 paymentSchema.virtual("userCreateDetail", {
     ref: "users",
@@ -106,7 +127,6 @@ paymentSchema.virtual("userUpdateDetail", {
     justOne: true
 });
 
-
 paymentSchema.set('toObject', { virtuals: true });
 paymentSchema.set('toJSON', { virtuals: true });
 
@@ -114,4 +134,4 @@ paymentSchema.set('toJSON', { virtuals: true });
 
 const Payments = mongoose.model("payments", paymentSchema);
 
-export { paymentSchema, Payments , paymentValidation, PAYMENT_SEARCH_VALIDATION};
+export { paymentSchema, Payments , paymentValidation, PAYMENT_SEARCH_VALIDATION, IPayment};
