@@ -4,22 +4,20 @@ import { idValidation } from "../../utils/defaultValidations";
 import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery";
 import { Request, Response, NextFunction } from "express";
 import { Validators } from "../../utils/validators";
-import { orderProductValidation, Orders, orderSchema, orderValidation } from "../../models/Orders";
+import { orderProductValidation, Orders, OrderStatus, OrderType, orderValidation } from "../../models/Orders";
 import ApiResponse from "../../models/base/ApiResponse";
 import {Users} from "../../models/Users";
-import { updateUserToken } from "../users/userController";
 import Counters from "../../models/Counters";
 import NotFoundError from "../../models/errors/NotFound";
 import {Accounts} from "../../models/Accounts";
 import {Establishments} from "../../models/Establishments";
 import InvalidParameter from "../../models/errors/InvalidParameters";
-import PaymentController from "../payments/paymentController";
-import AccountsController from "../accounts/accountsController";
 import { Payments } from "../../models/Payments";
 import LogsController from "../logs/logsController";
 import EstablishmentsController from "../establishments/establishmentController";
 import FirebaseMessaging from "../../utils/firebase/messaging";
-import { getOpenCashRegister } from "../payments/cashRegisterController";
+import MongoId from "../../models/custom_types/mongoose_types";
+import OrderHandler from "../../domain/handlers/orderHandler";
 
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -28,22 +26,22 @@ const logControl = new LogsController();
 const FBMESSAGING = new FirebaseMessaging();
 
 const populateClient = "client";
-const popuAccId = "accountId";
+const popuAccId = "accountDetail";
 const popuPayment = "-payments";
 const popuOrders = "-orders";
 const popuUser = "userCreate";
 const popuEstablish = "-establishments";
 const popuPass = "-pass";
 
-interface OrderSearchQuery {
+interface IOrderSearchQuery {
     isPreparation?: boolean,
     type?: string,
-    createDate: DateQuery,
-    clientId?: any,
-    payment?: any,
+    createdAt: DateQuery,
+    // clientId?: any,
+    // payment?: any,
     accountId?: any,
-    status?: any,
-    userCreate?: any,
+    status?: string | object,
+    createdBy?: any,
     accepted?: boolean,
     storeCode: any,
     products?: any,
@@ -55,10 +53,14 @@ export default class OrdersController {
     static async findOne(req: Request, res: Response, next: NextFunction) {
         try {
             const id = idValidation.parse(req.params.id);
+
             const order = await Orders.findById(id)
-                .populate(populateClient)
+                .populate("storeCodeDetail", ["-ownerId"])
+                .populate("paymentMethodDetail")
+                .populate("paymentDetail")
                 .populate(popuAccId, [popuPayment, popuOrders])
                 .populate(popuUser, [popuEstablish, popuPass]);
+
             if (!order) {
                 throw new NotFoundError("Pedido não localizado");
             }
@@ -70,74 +72,59 @@ export default class OrdersController {
 
     static async findAll(req: Request, res: Response, next: NextFunction) {
         try {
-            const {
-                isPreparation,
-                type,
-                from,
-                to,
-                id,
-                clientId,
-                paymentId,
-                accountId,
-                status,
-                userCreate,
-                accepted,
-                storeCode,
-            } = req.query;
-            const storeVal = new Validators("storeCode", storeCode, "string").validate();
-            const fromVal = new Validators("from", from, "string").validate();
-            const toVal = new Validators("to", to, "string").validate();
-            if (!storeVal.isValid) {
-                throw new InvalidParameter(storeVal);
-            }
-            if (!fromVal.isValid) {
-                throw new InvalidParameter(fromVal);
-            }
-            if (!toVal.isValid) {
-                throw new InvalidParameter(toVal);
-            }
-            const query: OrderSearchQuery = {
-                storeCode: new ObjectId(storeCode as string),
-                createDate: new PeriodQuery(from as string, to as string).build(),
-            }
-            if (type) {
-                query.type = type as string;
-            }
-            if (isPreparation) {
-                query.products = {
-                    $elemMatch: { setupIsFinished: false, needsPreparation: true },
-                };
-                query.status = {
-                    $nin: ["cancelled", "finished"]
+            const today = new Date();
+            const optionalTo = `${new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999).toISOString()}`;
+            const query: Partial<IOrderSearchQuery> = {};
+            z.object({
+                from: z.string().datetime({offset: true}),
+                to: z.string().datetime({offset: true}).default(optionalTo),
+                id: idValidation.optional(),
+                status: z.nativeEnum(OrderStatus).optional(),
+                storeCode: idValidation,
+                isPreparation: z.boolean().optional(),
+                type: z.nativeEnum(OrderType).optional(),
+                accountId: idValidation.optional(),
+                createdBy: idValidation.optional(),
+            }).transform((val) => {
+                query.storeCode = new ObjectId(val.storeCode);
+
+                query.createdAt = new PeriodQuery(val.from, val.to).build();
+
+                if (val.type) {
+                    query.type = val.type;
                 }
-            }
-            if (id) {
-                query._id = new ObjectId(id as string);
-            }
-            if (clientId) {
-                query.clientId = {
-                    _id: new ObjectId(id as string)
-                };
-            }
-            if (accountId) {
-                query.accountId = new ObjectId(accountId as string);
-            }
-            if (userCreate) {
-                query.userCreate = new ObjectId(userCreate as string);
-            }
-            if (accepted) {
-                query.accepted = accepted === "true";
-            }
-            if (status && !isPreparation) {
-                query.status = status;
-            }
-            if (paymentId) {
-                query.payment = new ObjectId(paymentId as string);
-            }
+
+                if (val.id) {
+                    query._id = new ObjectId(val.id);
+                }
+
+                if (val.accountId) {
+                    query.accountId = new ObjectId(val.accountId);
+                }
+
+                if (val.createdBy) {
+                    query.createdBy = new ObjectId(val.createdBy);
+                }
+
+                if (val.status) {
+                    query.status = val.status;
+                }
+
+                if (val.isPreparation) {
+
+                    query.products = {
+                        $elemMatch: { setupIsFinished: false, needsPreparation: true },
+                    };
+                    query.status = {
+                        $nin: ["cancelled", "finished"]
+                    }
+
+                }
+
+
+            }).parse(req.query);
+            
             req.result = Orders.find(query)
-                .populate(populateClient)
-                .populate(popuAccId, [popuPayment, popuOrders])
-                .populate(popuUser, [popuEstablish, popuPass])
             next();
         } catch (e) {
             next(e);
@@ -163,7 +150,9 @@ export default class OrdersController {
             }, {
                 returnDocument: "after"
             });
-            await Payments.findByIdAndDelete(process.payment);
+            await Payments.findOneAndDelete({
+                orderId: process._id
+            });
             return ApiResponse.success(process).send(res);
         } catch (e) {
             next(e);
@@ -315,8 +304,8 @@ export default class OrdersController {
             .populate(popuAccId, [popuPayment, popuOrders])
             .populate(popuUser, [popuEstablish, popuPass]).lean();
             
-            if (process?.userCreate) {
-                notififyUser(process.userCreate, "Preparação de pedido", body.isReady ? `Atenção, pedido: ${process.pedidosId} está pronto` : "Alerta de pedido");
+            if (process?.storeCode) {
+                notififyUser(process.storeCode, "Preparação de pedido", body.isReady ? `Atenção, pedido: ${process.pedidosId} está pronto` : "Alerta de pedido");
             }
 
             req.result = {
@@ -331,34 +320,17 @@ export default class OrdersController {
 
     static async newOrder(req: Request, res: Response, next: NextFunction) {
         try {
-            const token = z.string().optional().parse(req.headers.firebasetoken);
-            const data = orderValidation.parse(req.body);
-            await checkTipInvoicement(data.storeCode, data.products);
-            const newOrder = new Orders(data);
-            await EstablishmentsController.checkOpening(newOrder.storeCode, newOrder.orderType);
-            if (data.orderType && data.orderType === "frontDesk") { 
-                const openCashes = await getOpenCashRegister(data.userCreate)
-                if (!openCashes) {
-                    throw ApiResponse.forbidden("Usuário não possui caixa aberto")
-                }
-                data.payment.cashRegisterId = openCashes._id.toString();
-                const pay = await PaymentController.savePayment(data.payment);
-                newOrder.payment = pay._id as any;
-            }
-            if (data.accountId) {
-                const canRecieveNewOrder = await AccountsController.canReceiveNewOrder(data.accountId);
-                if (!canRecieveNewOrder) {
-                    throw ApiResponse.badRequest("Conta não pode receber pedidos pois não está com o status de (ABERTA).");
-                }
-                
-            }
-            if (token) {
-                updateUserToken(data.userCreate, token);
-            }
-            const process = await newOrder.save();
-            await updateId(process._id.toString(), data.storeCode);
-            const updatedOrder = await Orders.findById(process._id)
-                .populate(populateClient)
+            // const token = z.string().optional().parse(req.headers.firebasetoken);
+            const rawData = orderValidation.parse(req.body);
+
+            await EstablishmentsController.checkOpening(rawData.storeCode, rawData.orderType)
+
+            const handler = OrderHandler.getInstance(req.body)
+
+            const order = await handler.create();
+            await updateId(order._id.toString(),  order.storeCode.toString());
+            const updatedOrder = await Orders.findById(order._id)
+                // .populate(populateClient)
                 .populate(popuAccId, [popuPayment, popuOrders])
                 .populate(popuUser, [popuEstablish, popuPass]);
             req.result = updatedOrder;
@@ -452,9 +424,9 @@ async function updateId(id: string, storeCode: string) {
     })
 }
 
-async function notififyUser(userData: any, title: string, body: string) {
-    const user = await Users.findById(userData._id);
-    if (user.token) {
+async function notififyUser(userData: string | MongoId, title: string, body: string) {
+    const user = await Users.findById(userData);
+    if (user?.token) {
         FBMESSAGING.sendToUser(user.token, {
             title,
             body

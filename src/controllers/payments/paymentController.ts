@@ -12,15 +12,8 @@ import { idValidation } from "../../utils/defaultValidations";
 import z from "zod";
 var ObjectId = mongoose.Types.ObjectId;
 
-const populateUser = "userCreate";
+const populateUser = "userCreateDetail";
 const populateEstablish = ["-establishments", "-pass"]
-
-interface QuerySearch {
-    storeCode?: string
-    createDate?: DateQuery,
-    userCreate?: string | number | mongoose.mongo.BSON.ObjectId | mongoose.mongo.BSON.ObjectIdLike | Uint8Array,
-    form?: string,
-}
 
 export default class PaymentController {
     
@@ -42,32 +35,9 @@ export default class PaymentController {
     }
     static async findAll(req: Request, res: Response, next: NextFunction) {
         try {
-            const {storeCode, userCreate, to, from, type} = req.query;
-            const query: QuerySearch = {};
-            const storeVal = new Validators("storeCode", storeCode, "string").validate();
-            if (!storeVal.isValid) {
-                throw new InvalidParameter(storeVal);
-            }
-            const fromVal = new Validators("from", from, "string").validate();
-            const toVal = new Validators("to", to, "string").validate();
-            query.storeCode = storeCode as string;
-            if (!fromVal.isValid) {
-                throw new InvalidParameter(fromVal);
-            }
-            if (!toVal.isValid) {
-                throw new InvalidParameter(toVal);
-            }
-            const period = new PeriodQuery(from as string, to as string);
-            query.createDate = period.build();
-            const usrVal = new Validators("userCreate", userCreate, "string").validate();
-            const typeVal = new Validators("type", type, "string").validate();
-            if (usrVal.isValid) {
-                query.userCreate = new ObjectId(userCreate as string);
-            }
-            if (typeVal.isValid) {
-                query.form = type as string
-            }
-            req.result = Payments.find(query).populate(populateUser, populateEstablish);
+            const query = PAYMENT_SEARCH_VALIDATION.parse(req.query);
+            req.result = Payments.find(query)
+                // .populate(populateUser, populateEstablish);
             next();
         } catch (e) {
             next(e);
@@ -77,7 +47,9 @@ export default class PaymentController {
     static async findOne(req: Request, res: Response, next: NextFunction) {
         try {
             const id = idValidation.parse(req.params.id);
-            const payment = await Payments.findById(id).populate(populateUser, populateEstablish);
+            const payment = await Payments.findById(id)
+                .populate(populateUser, populateEstablish)
+                .populate("methodData");
             if (!payment) {
                 throw new NotFoundError("Pagamento não localizado");
             }
@@ -136,7 +108,7 @@ export default class PaymentController {
             cancelCharge(filtred)
             filtred.forEach((e) => {
                 delete e._id;
-                e.value.value = e.value.value * (-1);
+                e.total = e.total * (-1);
                 e.refunded = true;
             });
             await Payments.insertMany(filtred.map((e) => new Payments(e)));
@@ -163,17 +135,18 @@ export default class PaymentController {
     //     }
     // }
 
-    static async savePayment(data: any) {
-        if (!data.value) {
-            throw ApiResponse.invalidParameter("value");
-        }
-        if (data.value.txId) {
-            const payment = await Payments.findOne({
-                "value.txId": data.value.txId
-            });
-            return payment;
-        }
-        const newPayment = new Payments(paymentValidation.parse(data));
+    static async savePayment(value: any) {
+        const data = paymentValidation.parse(value)
+        // if (!data.value) {
+        //     throw ApiResponse.invalidParameter("value");
+        // }
+        // if (data.value.txId) {
+        //     const payment = await Payments.findOne({
+        //         "value.txId": data.value.txId
+        //     });
+        //     return payment;
+        // }
+        const newPayment = new Payments(data);
         const process = await newPayment.save();
         return process;
     }
