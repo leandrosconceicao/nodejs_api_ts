@@ -1,5 +1,5 @@
 import {Request, Response, NextFunction} from "express";
-import { IFirebaseOrder, IOrder, OrderType } from "../models/Orders";
+import { IOrder, IFirebaseOrder, OrderType, IOrderProduct} from "../models/Orders";
 import {getDatabase} from "firebase-admin/database";
 import ApiResponse from "../models/base/ApiResponse";
 import FirebaseMessaging from "../utils/firebase/messaging";
@@ -16,13 +16,12 @@ function handlerOrder(order: IOrder) {
         firebaseToken: `${order.firebaseToken ?? ""}`,
         orderType: order.orderType,
         status: order.status,
-        createDate: order.createDate.toISOString(),
-        observations: order.observations ?? "",
+        createdAt: order.createdAt?.toISOString() ?? order.createdAt?.toISOString(),
         userCreate: {
             username: order.userCreate?.username ?? "Sistema"
         },
-        accountId: {
-            description: order.accountId?.description ?? ""
+        accountDetail: {
+            description: order.accountDetail?.description ?? ""
         },
         products: [
             ...order.products.map((e) => {
@@ -34,10 +33,11 @@ function handlerOrder(order: IOrder) {
                         price: a.price
                     }
                 })] : [];
-                return {
+                return <IOrderProduct>{
                     quantity: e.quantity,
                     productName: e.productName,
-                    productId: `${e.productId}`,
+                    productId: e.productId,
+                    observations: e.observations,
                     orderDescription: e.orderDescription,
                     needsPreparation: e.needsPreparation,
                     setupIsFinished: e.setupIsFinished,
