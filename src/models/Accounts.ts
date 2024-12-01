@@ -1,7 +1,8 @@
 import mongoose from "mongoose";
-import { clientsSchema, clientsSchemaValidation } from "./Clients";
+import { clientsSchema, clientsSchemaValidation, IClient } from "./Clients";
 import {z} from "zod";
 import { idValidation } from "../utils/defaultValidations";
+import MongoId from "./custom_types/mongoose_types";
 
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -14,7 +15,7 @@ class Receipt implements IReceipt {
     totalPayment?: number;
     totalTip?: number;
     allProductsHasTipValue?: boolean;
-    client?: IReceiptClient;
+    client?: IClient;
 }
 
 interface IReceipt {
@@ -25,14 +26,7 @@ interface IReceipt {
     totalOrder?: number,
     totalPayment?: number,
     totalTip?: number,
-    client?: IReceiptClient,
-}
-
-interface IReceiptClient {
-    cgc: string,
-    name: string,
-    email: string,
-    phoneNumber: string,
+    client?: IClient,
 }
 interface IReceiptOrders {
     _id: typeof ObjectId,
@@ -71,6 +65,23 @@ const accountValidation = z.object({
     created_by: idValidation.optional()
 });
 
+enum AccountStatus {
+    open,
+    closed,
+    checkSolicitation
+}
+
+interface IAccount {
+    deleted_id?: string,
+    description: string,
+    storeCode: string | MongoId,
+    createDate: Date,
+    updatedAt?: Date,
+    status: AccountStatus,
+    client?: IClient,
+    created_by: string | MongoId
+}
+
 const Accounts = mongoose.model("accounts", new mongoose.Schema({
     deleted_id: {type: mongoose.Types.ObjectId, default: undefined},
     description: { type: String, required: [true, "Parametro (description) é obrigatório"] },
@@ -96,4 +107,4 @@ const Accounts = mongoose.model("accounts", new mongoose.Schema({
     payments: {}
 }))
 
-export {accountStatus, Accounts, accountValidation, Receipt};
+export {accountStatus, Accounts, accountValidation, Receipt, IAccount};
