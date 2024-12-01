@@ -16,6 +16,10 @@ const schema = new mongoose.Schema({
         type: ObjectId, ref: 'users', required: [true, "Parametro (created_by) é obrigatório"],
     },
     enabled: { type: Boolean, default: true },
+    taxes: {
+        type: Number,
+        default: 0.0
+    },
     deleted: {
         type: ObjectId,
         default: undefined,
