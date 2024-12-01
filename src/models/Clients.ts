@@ -13,8 +13,13 @@ const clientsSchemaValidation = z.object({
         district: z.string().optional(),
         number: z.string().optional(),
         state: z.string().optional(),
-        zipCode: z.string().optional(),
-    })).optional()
+        zipCode: z.string().optional()
+    })).nonempty().optional(),
+}).default({
+  cgc: "",
+  name: "",
+  email: "",
+  phoneNumber: "",
 })
 
 const clientsSchema = new mongoose.Schema({
@@ -45,7 +50,23 @@ const clientsSchema = new mongoose.Schema({
     },
 })
 
-export {clientsSchema, clientsSchemaValidation};
+interface IClient {
+    cgc?: string,
+    name?: string,
+    email?: string,
+    phoneNumber?: string,
+    address?: Array<{
+      address?: string,
+      city?: string,
+      complement?: string,
+      district?: string,
+      number?: string,
+      state?: string,
+      zipCode?: string,
+    }>
+  }
+
+export {clientsSchema, clientsSchemaValidation, IClient};
 
 // const Clients = mongoose.model('clients', clientsSchema)
 
