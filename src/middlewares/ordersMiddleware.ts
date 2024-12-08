@@ -17,6 +17,12 @@ function handlerOrder(order: IOrder) {
         orderType: order.orderType,
         status: order.status,
         createdAt: order.createdAt?.toISOString() ?? order.createdAt?.toISOString(),
+        client: {
+            name: order?.client?.name ?? "",
+            phoneNumber: order?.client?.phoneNumber ?? "",
+            email: order?.client?.email ?? "",
+            cgc: order?.client.cgc ?? "",
+        },
         userCreate: {
             username: order.userCreate?.username ?? "Sistema"
         },
@@ -122,4 +128,15 @@ function notifyClient(title: string, body: string, token?: string) {
     }
 }
 
-export {addPreparationOrder, setOrderOnPreparation, manageWithDrawMonitor, updateWithDrawMonitor};
+async function removePreparation(req: Request, res: Response, next: NextFunction) {
+    const order = req.result as IOrder;
+    try {
+        const db = getDatabase();
+        db.ref(`${order.storeCode}`).child(PREPARATION_PATH).child(`${order._id}`).remove()
+    } catch (e) {
+        console.log(e);
+    }
+    next();
+}
+
+export {addPreparationOrder, setOrderOnPreparation, manageWithDrawMonitor, updateWithDrawMonitor, removePreparation};
