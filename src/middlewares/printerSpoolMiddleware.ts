@@ -44,4 +44,20 @@ async function printerSpoolMiddleware(req: Request, res: Response, next: NextFun
     return ApiResponse.success(order).send(res);
 }
 
-export {printerSpoolMiddleware, spoolManagement}
+async function removePrinterSpool(req: Request, res: Response, next: NextFunction) {
+    const order = req.result as IOrder;
+    try {
+        const db = getDatabase();
+        const ref = db.ref(`${order.storeCode}`).child("spool");
+        const snap = await ref.get();
+        const values = snap.val();
+        const value = Object.entries(values).find((data) => (data[1] as IPrinterSpool).orderId === order._id.toString())
+        if (value[0]) {
+            ref.child(value[0]).remove();
+        }
+    } catch (e) {
+    }
+    ApiResponse.success(req.result).send(res);
+}
+
+export {printerSpoolMiddleware, spoolManagement, removePrinterSpool}
