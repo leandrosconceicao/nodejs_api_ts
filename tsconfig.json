@@ -13,12 +13,13 @@
         "lib": [
           "ES2021.String"
         ],
-        "baseUrl": ".",
+        "baseUrl": "./",
         "typeRoots" : [
             "@types",
             "./node_modules/@types", 
         ],
         "paths": {
+            "@/*": ["./src/*"],
             "*": [
                 "node_modules/*",
             ]
