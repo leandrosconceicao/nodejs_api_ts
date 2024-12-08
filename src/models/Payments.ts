@@ -71,12 +71,14 @@ const PAYMENT_SEARCH_VALIDATION = z.object({
     to: z.string().datetime({offset: true}),
     method: idValidation.optional(),
     userCreate: idValidation.optional(),
+    orderId: idValidation.optional()
 }).transform((values) => {
     interface QuerySearch {
         storeCode?: mongoose.Types.ObjectId,
         createdAt?: DateQuery,
         userCreate?: mongoose.Types.ObjectId,
         method?: mongoose.Types.ObjectId,
+        orderId?: mongoose.Types.ObjectId,
     }
     const query = <QuerySearch> {}
 
@@ -89,6 +91,10 @@ const PAYMENT_SEARCH_VALIDATION = z.object({
 
     if (values.userCreate) {
         query.userCreate = new ObjectId(values.userCreate);
+    }
+
+    if (values.orderId) {
+        query.orderId = new ObjectId(values.orderId);
     }
     return query;
 });
