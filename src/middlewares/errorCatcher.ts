@@ -9,6 +9,7 @@ import NotFoundError from "../models/errors/NotFound";
 import DuplicateError from "../models/errors/DuplicateError";
 import { AxiosError } from "axios";
 import {z} from "zod";
+import ErrorAlerts from "../utils/errorAlerts";
 
 export default function(err: Error, req: express.Request, res: express.Response, next: NextFunction) {
     
@@ -44,6 +45,7 @@ export default function(err: Error, req: express.Request, res: express.Response,
     if (err instanceof ApiResponse) {
         return err.send(res);
     }
+    ErrorAlerts.sendAlert(err, req);
     return ApiResponse.serverError(err.message).send(res);
     
 }
