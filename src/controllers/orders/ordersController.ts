@@ -18,6 +18,7 @@ import EstablishmentsController from "../establishments/establishmentController"
 import FirebaseMessaging from "../../utils/firebase/messaging";
 import MongoId from "../../models/custom_types/mongoose_types";
 import OrderHandler from "../../domain/handlers/orderHandler";
+import TokenGenerator from "../../utils/tokenGenerator";
 
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -133,27 +134,24 @@ export default class OrdersController {
 
     static async cancelOrder(req: Request, res: Response, next: NextFunction) {
         try {
-            const {id, userCode} : {id: string, userCode: string} = req.body;
-            const idVal = new Validators("id", id, "string").validate();
-            const updatedVal = new Validators("userCode", userCode, "string").validate();
-            if (!idVal.isValid) {
-                throw new InvalidParameter(idVal);
-            }
-            if (!updatedVal.isValid) {
-                throw new InvalidParameter(updatedVal);
-            }
+            const id = idValidation.parse(req.params.id);
+            const authUserData = z.object({
+                id: idValidation
+            }).parse(TokenGenerator.verify(req.headers.authorization));
+
             const process = await Orders.findByIdAndUpdate(id, {
                 status: "cancelled",
                 isPayed: false,
                 updated_at: new Date(),
-                updated_by: new ObjectId(userCode)
+                updated_by: new ObjectId(authUserData.id)
             }, {
                 returnDocument: "after"
             });
-            await Payments.findOneAndDelete({
-                orderId: process._id
-            });
-            return ApiResponse.success(process).send(res);
+
+            
+            req.result = process;
+            
+            next();
         } catch (e) {
             next(e);
         }
