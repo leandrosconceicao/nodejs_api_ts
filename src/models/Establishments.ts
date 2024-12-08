@@ -140,6 +140,56 @@ const schema = new mongoose.Schema({
     versionKey: false,
 });
 
+enum GeolocationType {
+    point = "Point"
+}
+
+interface IEstablishments {
+    name: string,
+    createDate: Date,
+    location: string,   
+    geoLocation: {
+        type: GeolocationType,
+        coordinates: [{type: Number, required: true}]
+    },
+    ownerId: string,
+    logo: string,
+    pixKey: string,
+    telegramChatId: string,
+    url: string,
+    social: {
+        instagram: string,
+        facebook: string,
+        whatsapp: string,
+        email: string,
+        phone: string,
+    },
+    services: {
+        customer_service: {
+            enabled: boolean,
+            opening_hours: {
+                start: string,
+                end: string
+            },
+        },
+        delivery: {
+            enabled: boolean,
+            opening_hours: {
+                start: string,
+                end: string
+            },
+        },
+        withdraw: {
+            enabled: {type: Boolean, default: false},
+            opening_hours: {
+                start: string,
+                end: string
+            },
+        }
+    },
+    tipValue: number
+}
+
 const Establishments = mongoose.model('establishments', schema);
 
-export {schema, Establishments, establishmentAttributes }
+export {schema, Establishments, establishmentAttributes, IEstablishments }
