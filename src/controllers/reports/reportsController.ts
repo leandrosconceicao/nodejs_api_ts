@@ -1,13 +1,11 @@
 import mongoose from "mongoose";
 import {z} from "zod";
-import {OrderType} from "../../models/Orders";
-import { Products } from "../../models/products/Products";
+import {IOrder, IOrderProduct, OrderType} from "../../models/Orders";
+import { IProduct, Products } from "../../models/products/Products";
 import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery";
-import { Validators } from "../../utils/validators";
 import { Request, Response, NextFunction } from "express";
 import ApiResponse from "../../models/base/ApiResponse";
 import NotFoundError from "../../models/errors/NotFound";
-import InvalidParameter from "../../models/errors/InvalidParameters";
 import TotalSales from "../../models/reports/Sales";
 import { idValidation } from "../../utils/defaultValidations";
 import ReportHandler from "../../domain/handlers/reports/reportsHandler";
@@ -128,49 +126,75 @@ export default class ReportsController {
 
     static async quantifySalesByProduct(req: Request, res: Response, next: NextFunction) {
         try {
-            const { storeCode, from, to, saller, type, product, category } = req.query;
-            const storeVal = new Validators("storeCode", storeCode).validate();
-            const fromVal = new Validators("from", from).validate();
-            const toVal = new Validators("to", to).validate();
-            if (!storeVal.isValid) {
-                throw new InvalidParameter(storeVal);
-            }
-            if (!fromVal.isValid) {
-                throw new InvalidParameter(fromVal);
-            }
-            if (!toVal.isValid) {
-                throw new InvalidParameter(toVal);
-            }
-            const query: ReportQuery = {
-                storeCode: new ObjectId(storeCode as string),
-                createdAt: new PeriodQuery(from as string, to as string).build(),
-                status: {
+            const search: Partial<ReportQuery> = {};
+
+            const query = z.object({
+                storeCode: idValidation,
+                from: z.string().datetime({offset: true}),
+                to: z.string().datetime({offset: true}),
+                saller: idValidation.optional(),
+                type: z.nativeEnum(OrderType).optional(),
+                product: idValidation.or(z.array(idValidation)).optional(),
+                category: idValidation.optional(),
+            })
+            .transform((values) => {
+                search.storeCode = new ObjectId(values.storeCode),
+
+                search.createdAt = new PeriodQuery(values.from, values.to).build(),
+
+                search.status = {
                     $ne: "cancelled"
                 }
-            };
-            let products;
-            if (saller) {
-                query.createdBy = new ObjectId(saller as string);
-            }
-            if (type) {
-                query.orderType = type as string;
-            }
-            const prods = await getProducts(storeCode as string, category as any, product as any);
-            const prodList = prods.map((e) => e._id);
-            query.products = {
-                $elemMatch: {
-                    productId: {
-                        $in: prodList
+
+                if (values.saller) {
+                    search.createdBy = new ObjectId(values.saller);
+                }
+
+                if (values.type) {
+                    search.orderType = values.type;
+                }
+
+                return values;
+            })
+            .parse(req.query);
+
+            const prods = await getProducts(query.category, query.product);
+
+            const detailProducts : Array<Partial<{
+                product: string,
+                total: number
+            }>> = [];
+
+            for (let i = 0; i < prods.length; i++) {
+                const prod = prods[i];
+                const value: Partial<{
+                    product: string,
+                    total: number
+                }> = {}
+
+                value.product = prod.produto;
+
+                search.products = {
+                    $elemMatch: {
+                        productId: new ObjectId(prod._id)
                     }
                 }
+
+                const orders2 = await querySales(search);
+
+                const data = prepareData(orders2, [prod._id.toString()]);
+
+                const total = getTotal(data);
+
+                value.total = total;
+
+                detailProducts.push(value);
             }
-            products = prodList.map((e) => e.toString());
-            const orders2 = await querySales(query);
-            const data = prepareData(orders2, products);
-            const total = getTotal(data);
-            return ApiResponse.success({
-                total: total
+            ApiResponse.success({
+                totalSale: detailProducts.reduce((a, b) => a + (b.total ?? 0.0), 0.0),
+                details: detailProducts
             }).send(res);
+
         } catch (e) {
             next(e);
         }
@@ -224,7 +248,7 @@ async function querySales(query: Partial<ReportQuery>) {
     ]);
 }
 
-async function getProducts(storeCode: string, categoryId?: string | Array<string>, productId?: string | Array<string>) {
+async function getProducts(categoryId?: string | Array<string>, productId?: string | Array<string>) : Promise<Array<IProduct>> {
     if (categoryId) {
         let query;
         const isList = typeof categoryId === "object";
@@ -241,12 +265,12 @@ async function getProducts(storeCode: string, categoryId?: string | Array<string
                 isActive: true
             }
         }
-        return Products.find(query, {_id: 1}).lean();
+        return Products.find(query, {_id: 1, produto: 1});
     }
-    return Products.find({storeCode: new ObjectId(storeCode), _id: productId}, {_id: 1}).lean();
+    return Products.find({_id: productId}, {_id: 1, produto: 1});
 }
 
-function prepareData(orders: Array<any>, products: Array<any>) {
+function prepareData(orders: Array<IOrder>, products: Array<string>) : Array<{order: mongoose.Types.ObjectId, products: Array<IOrderProduct>}> {
     let data = <any>[];
     orders.forEach((order) => {
         const or: {
