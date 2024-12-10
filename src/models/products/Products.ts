@@ -34,6 +34,14 @@ const PRODUCT_SCHEMA_VALIDATION = z.object({
   })).optional(),
 });
 
+interface IProduct {
+  _id: mongoose.Types.ObjectId,
+  isActive: boolean,
+  category: mongoose.Types.ObjectId,
+  produto: string,
+  preco: number,
+}
+
 const productSchema = new mongoose.Schema({
   // _id: { type: Number },
   isActive: { type: Boolean, 
@@ -83,4 +91,4 @@ const productSchema = new mongoose.Schema({
 
 const Products = mongoose.model("products", productSchema);
 
-export {productSchema, PRODUCT_SCHEMA_VALIDATION, Products};
+export {productSchema, PRODUCT_SCHEMA_VALIDATION, Products, IProduct};
