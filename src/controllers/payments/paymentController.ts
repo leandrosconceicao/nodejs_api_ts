@@ -163,40 +163,40 @@ export default class PaymentController {
     static async getPayments(query: mongoose.FilterQuery<typeof Payments>) {
         return await Payments.aggregate([
             {
-                '$match': query
+              '$match': query
             }, {
-                '$group': {
-                '_id': '$value.method', 
+              '$group': {
+                '_id': '$method', 
                 'total': {
-                    '$sum': '$value.value'
+                  '$sum': '$total'
                 }
-                }
+              }
             }, {
-                '$lookup': {
+              '$lookup': {
                 'from': 'paymentmethods', 
                 'localField': '_id', 
                 'foreignField': '_id', 
                 'as': 'result'
-                }
+              }
             }, {
-                '$replaceRoot': {
+              '$replaceRoot': {
                 'newRoot': {
-                    '$mergeObjects': [
+                  '$mergeObjects': [
                     {
-                        '$arrayElemAt': [
+                      '$arrayElemAt': [
                         '$result', 0
-                        ]
+                      ]
                     }, '$$ROOT'
-                    ]
+                  ]
                 }
-                }
+              }
             }, {
-                '$project': {
+              '$project': {
                 'total': 1, 
                 'description': 1
-                }
+              }
             }
-            ]);
+          ]);
     }
 }
 
