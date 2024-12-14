@@ -224,6 +224,7 @@ export default class AccountsController extends ApiFilters {
             }, {
                 $project: {
                   description: 1,
+                  status: 1,
                   "orders._id": 1,
                   "orders.products.quantity": 1,
                   "orders.products.tipValue": 1,
