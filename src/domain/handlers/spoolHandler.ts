@@ -62,7 +62,7 @@ export default class SpoolHandler implements ISpoolHandler {
         encoder.newline();
 
         data.payments.forEach((payments) => {
-            encoder.text(`${this.removerAcentos(payments.description)} - ${payments.value.toFixed(2)}`).align("center")
+            encoder.text(`${this.removerAcentos(payments.description)} - ${payments.total.toFixed(2)}`).align("center")
             encoder.emptyLine()
         })
     

@@ -222,32 +222,20 @@ export default class AccountsController extends ApiFilters {
                 'as': 'payments'
               }
             }, {
-              '$project': {
-                'description': 1, 
-                'status': 1,
-                'storeCode': 1,
-                'created_by': 1,
-                'client': 1,
-                'payments': 1, 
-                'orders._id': 1, 
-                'orders.products.quantity': 1, 
-                'orders.products.tipValue': 1, 
-                'orders.products.unitPrice': 1, 
-                'orders.products.productName': 1, 
-                'orders.products.category': 1, 
-                'orders.products.addOnes': 1
-              }
-            }, {
-              '$addFields': {
-                'payments': {
-                  '$map': {
-                    'input': '$payments', 
-                    'as': 'pay', 
-                    'in': '$$pay.value'
-                  }
+                $project: {
+                  description: 1,
+                  "orders._id": 1,
+                  "orders.products.quantity": 1,
+                  "orders.products.tipValue": 1,
+                  "orders.products.unitPrice": 1,
+                  "orders.products.productName": 1,
+                  "orders.products.category": 1,
+                  "orders.products.addOnes": 1,
+                  "payments.total": 1,
+                  "payments.method": 1,
+                  "payments.cashRegisterId": 1
                 }
               }
-            }
           ]);
         const dt = receipts[0] as Receipt;
         dt.orders.forEach((e) => {
@@ -255,7 +243,7 @@ export default class AccountsController extends ApiFilters {
             e.totalProduct = e.products.reduce((prev, next) => prev + (next.quantity * next.unitPrice), 0.0);
         })
         dt.totalTip = dt.orders.reduce((prev, next) => prev + (next.totalTip * next.totalProduct), 0.0);
-        dt.totalPayment = dt.payments.reduce((prev, next) => prev + next.value, 0.0);
+        dt.totalPayment = dt.payments.reduce((prev, next) => prev + next.total, 0.0);
         dt.totalOrder = dt.orders.reduce((prev, next) => prev + next.totalProduct, 0.0) + dt.totalTip;
         for (let i = 0; i < dt.payments.length; i++) {
             const pay = dt.payments[i];

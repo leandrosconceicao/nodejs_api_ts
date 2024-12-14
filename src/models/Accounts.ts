@@ -50,7 +50,7 @@ interface IReceiptOrdersProductsAddOnes {
 
 interface IReceiptPayments {
     method: typeof ObjectId,
-    value: number,
+    total: number,
     description?: string
 }
 
