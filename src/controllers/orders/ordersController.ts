@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import {z} from "zod";
-import { idValidation } from "../../utils/defaultValidations";
+import { booleanStringValidation, idValidation } from "../../utils/defaultValidations";
 import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery";
 import { Request, Response, NextFunction } from "express";
 import { Validators } from "../../utils/validators";
@@ -12,7 +12,6 @@ import NotFoundError from "../../models/errors/NotFound";
 import {Accounts} from "../../models/Accounts";
 import {Establishments} from "../../models/Establishments";
 import InvalidParameter from "../../models/errors/InvalidParameters";
-import { Payments } from "../../models/Payments";
 import LogsController from "../logs/logsController";
 import EstablishmentsController from "../establishments/establishmentController";
 import FirebaseMessaging from "../../utils/firebase/messaging";
@@ -41,7 +40,7 @@ interface IOrderSearchQuery {
     // clientId?: any,
     // payment?: any,
     accountId?: any,
-    status?: string | object,
+    status?: Array<String> | object,
     createdBy?: any,
     accepted?: boolean,
     storeCode: any,
@@ -80,8 +79,9 @@ export default class OrdersController {
                 from: z.string().datetime({offset: true}),
                 to: z.string().datetime({offset: true}).default(optionalTo),
                 id: idValidation.optional(),
-                status: z.nativeEnum(OrderStatus).optional(),
+                status: z.nativeEnum(OrderStatus).or(z.array(z.nativeEnum(OrderStatus))).optional(),
                 storeCode: idValidation,
+                excludeStatus: booleanStringValidation.optional(),
                 isPreparation: z.boolean().optional(),
                 type: z.nativeEnum(OrderType).optional(),
                 accountId: idValidation.optional(),
@@ -108,7 +108,11 @@ export default class OrdersController {
                 }
 
                 if (val.status) {
-                    query.status = val.status;
+                    query.status = val.excludeStatus ? {
+                        $nin: [...val.status]
+                    } : {
+                        $in: [...val.status]
+                    };
                 }
 
                 if (val.isPreparation) {
