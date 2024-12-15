@@ -3,7 +3,6 @@ import { Validators } from "../../utils/validators";
 import { Request, Response, NextFunction } from "express";
 import ApiResponse from "../../models/base/ApiResponse";
 import { PAYMENT_SEARCH_VALIDATION, Payments, paymentValidation } from "../../models/Payments";
-import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery";
 import NotFoundError from "../../models/errors/NotFound";
 import InvalidParameter from "../../models/errors/InvalidParameters";
 import PixChargesController from "./pixChargesController";
@@ -27,7 +26,7 @@ export default class PaymentController {
             })
             // .populate("userCreateDetail", populateEstablish)
             // .populate("userUpdatedDetail", populateEstablish)
-            .populate("value.methodData");
+            .populate("methodData");
             return ApiResponse.success(payments).send(res);
         } catch (e) {
             next(e);
@@ -76,36 +75,32 @@ export default class PaymentController {
 
     static async rollBackPayments(req: Request, res: Response, next: NextFunction) {
         try {
-            const {payments, userId} : {payments?: Array<string>, userId: string} = req.body;
-            const paymentVal = new Validators("payments", payments, "array").validate();
-            if (!paymentVal.isValid) {
-                throw new InvalidParameter(paymentVal);
-            }
-            if (!payments.length) {
-                throw ApiResponse.badRequest("Nenhum ID de pagamento foi informado");
-            }
-            const userIdVal = new Validators("userId", userId, "string").validate();
-            if (!userIdVal.isValid) {
-                throw new InvalidParameter(userIdVal);
-            }
+            const validation = z.object({
+                payments: z.array(idValidation).nonempty(),
+                userId: idValidation
+            }).parse(req.body);
+
             const fetchedPays = await Payments.find({
-                _id: {$in: payments}
+                _id: {$in: validation.payments}
             }).lean();
+
             const filtred = fetchedPays.filter((e) => !e.refunded);
+
             if (!filtred.length) {
                 return ApiResponse.badRequest("Pagamentos já foram estornados").send(res);
             }
+
             await Payments.updateMany({
                 refunded: false,
                 _id: {$in: filtred.map((e) => e._id)}
             }, {
                 $set: {
                     refunded: true,
-                    userUpdated: new ObjectId(userId),
+                    userUpdated: new ObjectId(validation.userId),
                     updateDate: new Date()
                 }
             });
-            cancelCharge(filtred)
+            
             filtred.forEach((e) => {
                 delete e._id;
                 e.total = e.total * (-1);

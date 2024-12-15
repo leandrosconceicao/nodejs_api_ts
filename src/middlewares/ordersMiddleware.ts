@@ -16,18 +16,18 @@ function handlerOrder(order: IOrder) {
         firebaseToken: `${order.firebaseToken ?? ""}`,
         orderType: order.orderType,
         status: order.status,
-        createdAt: order.createdAt?.toISOString() ?? order.createdAt?.toISOString(),
+        createdAt: order.createdAt?.toISOString() ?? new Date().toISOString(),
         client: {
             name: order?.client?.name ?? "",
             phoneNumber: order?.client?.phoneNumber ?? "",
             email: order?.client?.email ?? "",
-            cgc: order?.client.cgc ?? "",
+            cgc: order?.client?.cgc ?? "",
         },
         userCreate: {
-            username: order.userCreate?.username ?? "Sistema"
+            username: order?.userCreate?.username ?? "Sistema"
         },
         accountDetail: {
-            description: order.accountDetail?.description ?? ""
+            description: order?.accountDetail?.description ?? ""
         },
         products: [
             ...order.products.map((e) => {

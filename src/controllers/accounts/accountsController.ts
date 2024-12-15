@@ -31,9 +31,9 @@ export default class AccountsController extends ApiFilters {
         try {
             const searchQuery = z.object({
                 storeCode: idValidation,
-                from: z.string().optional(),
+                from: z.string().datetime({offset: true}),
                 created_by: idValidation.optional(),
-                to: z.string().optional(),
+                to: z.string().datetime({offset: true}),
                 createDate: z.any().optional(),
                 status: z.enum(['open', 'closed', 'checkSolicitation']).optional(),
                 deleted_id: z.null().optional(),
@@ -48,8 +48,6 @@ export default class AccountsController extends ApiFilters {
                 delete searchQuery.to;
             }
             req.result = Accounts.find(searchQuery)
-                .populate(populateClient)
-                .populate(populateCreated, populateEstablish);
             next();
         } catch (e) {
             next(e);
@@ -147,7 +145,7 @@ export default class AccountsController extends ApiFilters {
                     "products.$[].tipValue": data.enabledTip ? store.tipValue : 0
                 }
             });
-            if (process.modifiedCount == 0) {
+            if (!process.modifiedCount) {
                 throw ApiResponse.badRequest("Nenhum dado atualizado, verifique os filtros informados");
             }
             return ApiResponse.success().send(res);
@@ -232,6 +230,7 @@ export default class AccountsController extends ApiFilters {
                   "orders.products.productName": 1,
                   "orders.products.category": 1,
                   "orders.products.addOnes": 1,
+                  "payments._id": 1,
                   "payments.total": 1,
                   "payments.method": 1,
                   "payments.cashRegisterId": 1
