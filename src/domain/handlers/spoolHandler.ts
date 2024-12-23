@@ -76,8 +76,8 @@ export default class SpoolHandler implements ISpoolHandler {
         encoder.newline();
         encoder.newline();
     
-        encoder.text(`Nome do cliente: ${this.removerAcentos(data.client.name ?? "")}\n`);
-        encoder.text(`Telefone: ${data.client.phoneNumber ?? ""}\n`);
+        encoder.text(`Nome do cliente: ${this.removerAcentos(data?.client?.name ?? "")}\n`);
+        encoder.text(`Telefone: ${data?.client?.phoneNumber ?? ""}\n`);
     
         
         encoder.newline();

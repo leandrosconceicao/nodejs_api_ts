@@ -43,7 +43,7 @@ const cashRegisterValidationOptional = z.object({
     openAtEnd: z.string().datetime({offset: true}).optional(),
     closedAtStart: z.string().datetime({offset: true}).optional(),
     closedAtEnd: z.string().datetime({offset: true}).optional(),
-    status: z.enum(["open", "closed"]).default("open"),
+    status: z.enum(["open", "closed"]).optional(),
     deleted: z.object({}).optional(),
 }).transform((data) => {
     interface QuerySearch {
