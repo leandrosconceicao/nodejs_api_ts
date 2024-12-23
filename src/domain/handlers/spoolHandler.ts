@@ -137,7 +137,11 @@ export default class SpoolHandler implements ISpoolHandler {
                     encoder.text(`\n${this.removerAcentos(add.name)}`)
                 })
                 encoder.emptyLine();
+            } else {
+                encoder.emptyLine();
             }
+            encoder.text(`Obs: ${this.removerAcentos(prod.observations)}`).align("center");
+            encoder.emptyLine();
             encoder.emptyLine();
         });
         encoder.newline();
