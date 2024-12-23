@@ -42,6 +42,7 @@ class CashRegisterController implements BaseController {
                 $eq: null
             }
             req.result = CashRegister.find(query)
+                .populate("userDetail", ["-establishments", "-pass"])
             next();
         } catch (e) {
             next(e);
