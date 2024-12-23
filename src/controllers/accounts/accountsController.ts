@@ -48,6 +48,7 @@ export default class AccountsController extends ApiFilters {
                 delete searchQuery.to;
             }
             req.result = Accounts.find(searchQuery)
+                .populate(populateCreated, populateEstablish)
             next();
         } catch (e) {
             next(e);
@@ -223,6 +224,7 @@ export default class AccountsController extends ApiFilters {
                 $project: {
                   description: 1,
                   status: 1,
+                  storeCode: 1,
                   "orders._id": 1,
                   "orders.products.quantity": 1,
                   "orders.products.tipValue": 1,
