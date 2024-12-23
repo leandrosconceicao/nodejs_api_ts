@@ -12,6 +12,7 @@ class Receipt implements IReceipt {
     payments: Array<IReceiptPayments>;
     orders: Array<IReceiptOrders>
     totalOrder?: number;
+    storeCode: mongoose.Types.ObjectId;
     totalPayment?: number;
     totalTip?: number;
     allProductsHasTipValue?: boolean;
@@ -20,6 +21,7 @@ class Receipt implements IReceipt {
 
 interface IReceipt {
     _id: typeof ObjectId,
+    storeCode: mongoose.Types.ObjectId,
     description: string,
     payments: Array<IReceiptPayments>,
     orders: Array<IReceiptOrders>
