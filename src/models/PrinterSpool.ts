@@ -57,6 +57,7 @@ const PRINTER_SPOOL_VALIDATION = z.object({
     storeCode: idValidation,
     type: z.enum(["order", "account_receipt", "other"]),
     reprint: z.boolean().default(false),
+    createdAt: z.string().datetime({offset: true}).optional(),
 }).and(
     z.union([
         z.object({
@@ -80,7 +81,8 @@ interface IPrinterSpool {
     orderId?: MongoId | string,
     accountId?: MongoId | string,
     type: SpoolType,
-    buffer?: string
+    buffer?: string,
+    createdAt?: Date | string,
 }
 
 const PrinterSpool = mongoose.model("printerSpool", printer_spool_schema);

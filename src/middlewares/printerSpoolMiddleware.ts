@@ -32,7 +32,8 @@ async function printerSpoolMiddleware(req: Request, res: Response, next: NextFun
             storeCode: `${order.storeCode}`,
             orderId: `${order._id}`,
             accountId: `${order?.accountId ?? ""}`,
-            reprint: false
+            reprint: false,
+            createdAt: new Date().toISOString()
         })
         const db = getDatabase();
         db.ref(`${data.storeCode}`).child("spool").push(data);

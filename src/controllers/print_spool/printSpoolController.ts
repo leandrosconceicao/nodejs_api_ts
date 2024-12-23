@@ -17,7 +17,12 @@ export default class PrintSpoolController {
 
     async add(req: Request, res: Response, next: NextFunction) {
         try {
-            const body = PRINTER_SPOOL_VALIDATION.parse(req.body);
+            const body = PRINTER_SPOOL_VALIDATION
+            .transform((data) => {
+                data.createdAt = new Date().toISOString();
+                return data;
+            })
+            .parse(req.body);
             req.result = body;
             next();
         } catch (e) {
