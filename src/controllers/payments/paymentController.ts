@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { Request, Response, NextFunction } from "express";
 import ApiResponse from "../../models/base/ApiResponse";
-import { PAYMENT_SEARCH_VALIDATION, Payments, paymentValidation } from "../../models/Payments";
+import { IPaymentByMethod, PAYMENT_SEARCH_VALIDATION, Payments, paymentValidation } from "../../models/Payments";
 import NotFoundError from "../../models/errors/NotFound";
 import PixChargesController from "./pixChargesController";
 import { getOpenCashRegister } from "./cashRegisterController";
@@ -164,7 +164,7 @@ export default class PaymentController {
     }
 
     static async getPayments(query: mongoose.FilterQuery<typeof Payments>) {
-        return await Payments.aggregate([
+        return await Payments.aggregate<IPaymentByMethod>([
             {
               '$match': query
             }, {
