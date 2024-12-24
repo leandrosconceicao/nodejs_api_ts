@@ -12,6 +12,7 @@ import { checkIfUserExists } from "../users/userController";
 import TokenGenerator from "../../utils/tokenGenerator";
 import PaymentController from "./paymentController";
 import { CASH_REGISTER_COMPARE_VALIDATION, CashRegisterCompare } from "../../models/CashRegisterCompare";
+import { IPrinterSpool, SpoolType } from "../../models/PrinterSpool";
 var ObjectId = mongoose.Types.ObjectId;
 
 class CashRegisterController implements BaseController {
@@ -108,7 +109,14 @@ class CashRegisterController implements BaseController {
             }
             const cashCompare = new CashRegisterCompare(compareData);
             await cashCompare.save();
-            return ApiResponse.success().send(res);
+            req.result = <IPrinterSpool>{
+                type: SpoolType.cashRegister,
+                storeCode: process.storeCode,
+                cashRegisterId: process._id,
+                reprint: false,
+                createdAt: new Date().toISOString()
+            }
+            next();
         } catch (e) {
             next(e);
         }
