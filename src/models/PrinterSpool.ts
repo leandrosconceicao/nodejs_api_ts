@@ -55,7 +55,7 @@ printer_spool_schema.pre('validate', function(next) {
 
 const PRINTER_SPOOL_VALIDATION = z.object({
     storeCode: idValidation,
-    type: z.enum(["order", "account_receipt", "other"]),
+    type: z.enum(["order", "account_receipt", "other", "cashRegister"]),
     reprint: z.boolean().default(false),
     createdAt: z.string().datetime({offset: true}).optional(),
 }).and(
@@ -65,6 +65,9 @@ const PRINTER_SPOOL_VALIDATION = z.object({
         }), 
         z.object({
             orderId: idValidation
+        }),
+        z.object({
+            cashRegisterId: idValidation
         })
     ])
 )
@@ -72,6 +75,7 @@ const PRINTER_SPOOL_VALIDATION = z.object({
 enum SpoolType {
     order = "order",
     account_receipt = "account_receipt",
+    cashRegister = "cashRegister",
     other = "other",
 }
 
@@ -80,6 +84,7 @@ interface IPrinterSpool {
     reprint: boolean,
     orderId?: MongoId | string,
     accountId?: MongoId | string,
+    cashRegisterId?: MongoId | string,
     type: SpoolType,
     buffer?: string,
     createdAt?: Date | string,
