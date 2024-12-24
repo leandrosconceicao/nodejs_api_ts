@@ -263,8 +263,8 @@ async function accountCanBeClosed(accountId: string) {
     if (!ACCOUNT) {
         return false;
     }
-    let totalPayed = ACCOUNT.totalPayment;
-    let totalOrdered = ACCOUNT.totalOrder;
+    let totalPayed = ACCOUNT.totalPayment.toFixed(2);
+    let totalOrdered = ACCOUNT.totalOrder.toFixed(2);
     return totalPayed === totalOrdered;
 }
 
