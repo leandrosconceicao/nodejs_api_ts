@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import BaseController from "../base/baseController";
-import {CashRegister, cashRegisterCreationValidation, cashRegisterValidationOptional } from "../../models/CashRegister";
+import {CashRegister, cashRegisterCreationValidation, cashRegisterValidationOptional, ICashRegister } from "../../models/CashRegister";
 import {CASH_MOVEMENT_VALIDATION, CashRegisterMovements} from "../../models/CashRegisterMovement";
 import ApiResponse from "../../models/base/ApiResponse";
 import { idValidation } from "../../utils/defaultValidations";
@@ -73,9 +73,17 @@ class CashRegisterController implements BaseController {
     async detail(req: Request, res: Response, next: NextFunction): Promise<void> {
         try {
             const id = idValidation.parse(req.params.id);
-            const data = await CashRegister.findById(id)
+            const data = await CashRegister.findById<ICashRegister>(id)
+            .populate("userDetail", ["-establishments", "-pass"])
             .populate("suppliersAndWithdraws")
             .populate("cashRegisterCompare")
+            .populate({
+                path: "cashRegisterCompare",
+                populate: {
+                    path: "valuesByMethod.methodData",
+                    model: "paymentMethods"
+                }
+            })
             if (!data) {
                 throw new NotFoundError("Usuário não possui caixa em aberto");
             }
