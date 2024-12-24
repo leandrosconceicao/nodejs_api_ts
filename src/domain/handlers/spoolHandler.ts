@@ -3,6 +3,9 @@ import { IOrder, Orders } from "../../models/Orders";
 import ReceiptEnconder, { PrinterWidthEnum } from "@mexicocss/esc-pos-encoder-ts";
 import AccountsController from "../../controllers/accounts/accountsController";
 import ISpoolHandler from "../interfaces/ISpoolHandler";
+import { CashRegister, ICashRegister } from "../../models/CashRegister";
+import NotFoundError from "../../models/errors/NotFound";
+import PaymentController from "../../controllers/payments/paymentController";
 
 const popuAccId = "accountDetail";
 const popuPayment = "-payments";
@@ -12,6 +15,123 @@ const popuEstablish = "-establishments";
 const popuPass = "-pass";
 
 export default class SpoolHandler implements ISpoolHandler {
+
+    prepareCashRegisterData = async (data: IPrinterSpool) => {
+        const cash = await CashRegister.findById<ICashRegister>(data.cashRegisterId)
+            .populate("userDetail", ["-establishments", "-pass"])
+            .populate("suppliersAndWithdraws")
+            .populate("cashRegisterCompare")
+            .populate({
+                path: "cashRegisterCompare",
+                populate: {
+                    path: "valuesByMethod.methodData",
+                    model: "paymentMethods"
+                }
+            })
+        if (!cash) {
+            throw new NotFoundError("Usuário não possui caixa em aberto");
+        }
+        cash.paymentsByMethod = await PaymentController.getPayments({
+            cashRegisterId: cash._id
+        });
+
+        const encoder = new ReceiptEnconder();
+        
+        encoder.setPinterType(PrinterWidthEnum._58);
+
+        encoder.size(.5);
+
+        encoder.newline();
+
+        this.genText(encoder, "Registo de caixa");
+
+        encoder.newline();
+        encoder.newline();
+
+        this.genText(encoder, `Aberto por: ${cash.userDetail?.username ?? ""}`);
+        
+        encoder.newline();
+
+        this.genText(encoder, `Abertura: ${cash.openAt.toLocaleString()}`);
+
+        encoder.newline();
+
+        if (cash.closedAt) 
+            this.genText(encoder, `Fechamento: ${cash.closedAt.toLocaleString()}`);
+
+        encoder.newline();
+
+        this.genText(encoder, `Saldo inicial: ${cash.openValue.toFixed(2)}`);
+
+        const incomes = cash.suppliersAndWithdraws.filter((sw) => sw.type === "supply");
+
+        const totalIncomes = incomes.reduce((ol, newV) => ol + newV.value, 0);
+        
+        const outcomes = cash.suppliersAndWithdraws.filter((sw) => sw.type === "withdraw");    
+
+        const totalOutcomes = outcomes.reduce((ol, newV) => ol + newV.value, 0);
+
+        const totalPayments = cash.paymentsByMethod.reduce((ol, newV) => ol + newV.total, 0);
+
+        const totalReceived = totalPayments + totalIncomes;
+
+        const operationTotal = totalReceived - totalOutcomes;
+
+        this.genText(encoder, `Total Recebido: ${totalReceived.toFixed(2)}`);
+
+        this.genText(encoder, `Total Saidas: ${(totalOutcomes).toFixed(2)}`);
+
+        this.genText(encoder, `Saldo Final: ${operationTotal + cash.openValue}`);
+
+        encoder.newline();
+        encoder.newline();
+
+        this.genText(encoder, "Rec. p/ forma de pagamento")
+
+        cash.paymentsByMethod.forEach((payment) => {
+            this.genText(encoder, `${this.removerAcentos(payment.description)}: ${payment.total.toFixed(2)}`)
+        })
+
+        encoder.newline();
+
+        this.genText(encoder, `Entradas`);
+
+        incomes.forEach((income) => {
+            this.genText(encoder, `${this.removerAcentos(income.description)}: ${income.value.toFixed(2)}`)
+        })
+
+        encoder.newline();
+
+        this.genText(encoder, `Saidas`);
+
+        outcomes.forEach((outcome) => {
+            this.genText(encoder, `${this.removerAcentos(outcome.description)}: ${outcome.value.toFixed(2)}`)
+        })
+
+        if (cash.status === "closed" && cash.cashRegisterCompare.length) {
+            encoder.newline();
+            this.genText(encoder, "Confronto de caixa");
+            encoder.newline();
+
+            const compare = cash.cashRegisterCompare[0];
+            
+            compare.valuesByMethod.forEach((method) => {
+                const methodDetail = method.methodData;
+                this.genText(encoder, `${this.removerAcentos(methodDetail.description)}: ${method.total.toFixed(2)}`)
+            });
+
+        }
+
+        encoder.newline();
+        encoder.newline();
+        encoder.newline();
+
+
+
+        data.buffer = Buffer.from(encoder.encode()).toString("base64");
+
+        return data;
+    }
     
     prepareData = (data: IPrinterSpool) => {
         switch (data.type) {
