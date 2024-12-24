@@ -29,6 +29,13 @@ const CASH_MOVEMENT_SCHEMA = new mongoose.Schema({
     timestamps: true
 });
 
+interface ICashRegisterMovements {
+    cashRegisterId: string,
+    value: number,
+    description: string,
+    type: "supply" | "withdraw"
+}
+
 const CASH_MOVEMENT_VALIDATION = z.object({
     cashRegisterId: idValidation,
     value: z.number().refine(value => {
@@ -42,4 +49,4 @@ const CASH_MOVEMENT_VALIDATION = z.object({
 
 const CashRegisterMovements = mongoose.model("cashRegisterMovements", CASH_MOVEMENT_SCHEMA);
 
-export {CASH_MOVEMENT_VALIDATION, CashRegisterMovements};
+export {CASH_MOVEMENT_VALIDATION, CashRegisterMovements, ICashRegisterMovements};
