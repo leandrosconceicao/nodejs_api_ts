@@ -7,6 +7,7 @@ import validateToken from "../middlewares/tokenController";
 import CardPaymentsController from "../controllers/payments/cardPayments";
 import PaymentMethodsController from "../controllers/payments/paymentMethodsControllers";
 import {CashRegisterController} from "../controllers/payments/cashRegisterController";
+import { spoolManagement } from "../middlewares/printerSpoolMiddleware";
 
 const paymentMethodsCtrl = new PaymentMethodsController();
 const cashRegisterCtrl = new CashRegisterController();
@@ -17,7 +18,7 @@ export default express.Router()
     .get(`${Endpoints.payments}/cash_register/:userId`,  validateToken, cashRegisterCtrl.getUserCash)
     .get(`${Endpoints.payments}/cash_register/detail/:id`, validateToken, cashRegisterCtrl.detail)
     .patch(`${Endpoints.payments}/cash_register/:id`,  validateToken, cashRegisterCtrl.onUpdateData)
-    .delete(`${Endpoints.payments}/cash_register/:id`,  validateToken, cashRegisterCtrl.onDeleteData)
+    .delete(`${Endpoints.payments}/cash_register/:id`,  validateToken, cashRegisterCtrl.onDeleteData, spoolManagement)
     .post(`${Endpoints.payments}/payment_methods`, validateToken, paymentMethodsCtrl.onNewData)
     .get(`${Endpoints.payments}/payment_methods`, paymentMethodsCtrl.onFindAll)
     .get(`${Endpoints.payments}/payment_methods/:id`, validateToken, paymentMethodsCtrl.getUserCash)
