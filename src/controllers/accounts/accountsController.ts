@@ -225,6 +225,7 @@ export default class AccountsController extends ApiFilters {
                   description: 1,
                   status: 1,
                   storeCode: 1,
+                  client: 1,
                   "orders._id": 1,
                   "orders.products.quantity": 1,
                   "orders.products.tipValue": 1,
