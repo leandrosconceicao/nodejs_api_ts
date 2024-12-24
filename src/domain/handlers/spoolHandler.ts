@@ -14,10 +14,16 @@ const popuPass = "-pass";
 export default class SpoolHandler implements ISpoolHandler {
     
     prepareData = (data: IPrinterSpool) => {
-        if (data.accountId && data.type == SpoolType.account_receipt) {
-            return this.prepareReceiptData(data)
+        switch (data.type) {
+            case SpoolType.account_receipt:
+                return this.prepareReceiptData(data)
+            case SpoolType.order:
+                return this.prepareOrderData(data)
+            case SpoolType.cashRegister:
+                return this.prepareCashRegisterData(data)
+            default:
+                throw new Error("Method not implemented.");
         }
-        return this.prepareOrderData(data);
     }
     
     prepareReceiptData = async (spool: IPrinterSpool) => {
