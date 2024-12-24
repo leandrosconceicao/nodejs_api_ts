@@ -136,8 +136,13 @@ paymentSchema.virtual("userUpdateDetail", {
 paymentSchema.set('toObject', { virtuals: true });
 paymentSchema.set('toJSON', { virtuals: true });
 
+interface IPaymentByMethod {
+    description: string,
+    _id: string,
+    total: number
+}
 
 
 const Payments = mongoose.model("payments", paymentSchema);
 
-export { paymentSchema, Payments , paymentValidation, PAYMENT_SEARCH_VALIDATION, IPayment};
+export { paymentSchema, Payments , paymentValidation, PAYMENT_SEARCH_VALIDATION, IPayment, IPaymentByMethod};

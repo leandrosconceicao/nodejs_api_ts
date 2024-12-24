@@ -11,6 +11,33 @@ const CASH_REGISTER_COMPARE_VALIDATION = z.object({
     }))
 });
 
+interface ICashRegisterCompare {
+    cashId: string,
+    valuesByMethod: {
+        methodId: string,
+        methodData: {
+            description: string,
+            taxes: number
+        },
+        total: number
+    }[]
+}
+
+const CASH_REGISTER_COMPARE_VALUES = new mongoose.Schema({
+    methodId: {
+        type: ObjectId,
+        ref: 'paymentMethods'
+    },
+    total: Number
+})
+
+CASH_REGISTER_COMPARE_VALUES.virtual("methodData", {
+    ref: "paymentMethods",
+    localField: "methodId",
+    foreignField: "_id",
+    justOne: true
+});
+
 const CASH_REGISTER_COMPARE_SCHEMA = new mongoose.Schema({
     cashId: {
         type: ObjectId,
@@ -18,18 +45,9 @@ const CASH_REGISTER_COMPARE_SCHEMA = new mongoose.Schema({
         unique: true,
         index: true
     },
-    valuesByMethod: [{
-        type: {
-            methodId: {
-                type: ObjectId,
-                ref: 'paymentMethods'
-            },
-            total: mongoose.Types.Decimal128
-        },
-        version: false,
-    }]
+    valuesByMethod: [CASH_REGISTER_COMPARE_VALUES]
 }, { timestamps: true, });
 
 const CashRegisterCompare = mongoose.model("cashRegisterCompare", CASH_REGISTER_COMPARE_SCHEMA);
 
-export {CashRegisterCompare, CASH_REGISTER_COMPARE_VALIDATION}
+export {CashRegisterCompare, CASH_REGISTER_COMPARE_VALIDATION, ICashRegisterCompare}

@@ -3,6 +3,10 @@ import { idValidation } from '../utils/defaultValidations';
 import z from 'zod';
 import { DateQuery, PeriodQuery } from '../utils/PeriodQuery';
 import { ElementMatch } from './base/MongoDBFilters';
+import { IPaymentByMethod } from './Payments';
+import { ICashRegisterMovements } from './CashRegisterMovement';
+import { IUsers } from './Users';
+import { ICashRegisterCompare } from './CashRegisterCompare';
 var ObjectId = mongoose.Types.ObjectId;
 
 const CASHREGISTER_VALUES_SCHEMA = new mongoose.Schema({
@@ -18,6 +22,25 @@ const CASHREGISTER_VALUES_SCHEMA = new mongoose.Schema({
 }, {
     timestamps: true
 });
+
+enum CashRegistersStatus {
+    OPEN = "open",
+    CLOSED = "closed"
+}
+interface ICashRegister {
+    _id: string,
+    storeCode: string,
+    created_by: string,
+    openAt: Date | string,
+    closedAt?: Date,
+    userDetail?: IUsers,
+    status: CashRegistersStatus,
+    openValue?: number,
+    deleted?: string,
+    paymentsByMethod: IPaymentByMethod[],
+    suppliersAndWithdraws: ICashRegisterMovements[],
+    cashRegisterCompare: ICashRegisterCompare[]
+}
 
 
 // const CASH_REGISTER_VALUES_VALIDATION = z.object({
@@ -162,4 +185,4 @@ cashRegisterSchema.set('toJSON', { virtuals: true });
 const CashRegister = mongoose.model('cashRegister', cashRegisterSchema);
 
 
-export { CashRegister, cashRegisterCreationValidation, cashRegisterValidationOptional };
+export { CashRegister, cashRegisterCreationValidation, cashRegisterValidationOptional, ICashRegister };
