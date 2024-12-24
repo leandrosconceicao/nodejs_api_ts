@@ -1,14 +1,13 @@
 import mongoose from "mongoose";
-import { Validators } from "../../utils/validators";
 import { Request, Response, NextFunction } from "express";
 import ApiResponse from "../../models/base/ApiResponse";
 import { PAYMENT_SEARCH_VALIDATION, Payments, paymentValidation } from "../../models/Payments";
 import NotFoundError from "../../models/errors/NotFound";
-import InvalidParameter from "../../models/errors/InvalidParameters";
 import PixChargesController from "./pixChargesController";
 import { getOpenCashRegister } from "./cashRegisterController";
 import { idValidation } from "../../utils/defaultValidations";
 import z from "zod";
+import { Accounts } from "../../models/Accounts";
 var ObjectId = mongoose.Types.ObjectId;
 
 const populateUser = "userCreateDetail";
@@ -132,6 +131,15 @@ export default class PaymentController {
 
     static async savePayment(value: any) {
         const data = paymentValidation.parse(value)
+        if (data.accountId) {
+            const account = await Accounts.findById(data.accountId);
+            if (!account) {
+                throw new NotFoundError("Conta não localizada");
+            }
+            if (account.status === "closed") {
+                throw ApiResponse.badRequest("Conta fechada, impossível realizar lançamentos");
+            }
+        }
         // if (!data.value) {
         //     throw ApiResponse.invalidParameter("value");
         // }
