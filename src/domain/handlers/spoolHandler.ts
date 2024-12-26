@@ -52,12 +52,12 @@ export default class SpoolHandler implements ISpoolHandler {
         
         encoder.newline();
 
-        this.genText(encoder, `Abertura: ${cash.openAt.toLocaleString()}`);
+        this.genText(encoder, `Abertura: ${this.formatDate(cash.openAt)}`);
 
         encoder.newline();
 
         if (cash.closedAt) 
-            this.genText(encoder, `Fechamento: ${cash.closedAt.toLocaleString()}`);
+            this.genText(encoder, `Fechamento: ${this.formatDate(cash.closedAt)}`);
 
         encoder.newline();
 
@@ -238,7 +238,7 @@ export default class SpoolHandler implements ISpoolHandler {
             encoder.text("REIMPRESSAO").align("center");
             encoder.newline();
         }
-        encoder.text(parsedOrder.createdAt.toLocaleString())
+        encoder.text(this.formatDate(parsedOrder.createdAt))
     
         encoder.newline();
         encoder.newline();
@@ -322,5 +322,23 @@ export default class SpoolHandler implements ISpoolHandler {
             minimumFractionDigits: 2
         });
         return formCurrency.format(value);
+    }
+
+    formatDate = (date: Date | string) => {
+        if (typeof date === "string") {
+            try {
+                date = new Date(date);
+            } catch (e) {
+                date = new Date();
+            }
+        }
+        return date.toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
     }
 }
