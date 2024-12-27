@@ -15,6 +15,7 @@ function handlerOrder(order: IOrder) {
         _id: `${order._id}`,
         firebaseToken: `${order.firebaseToken ?? ""}`,
         orderType: order.orderType,
+        storeCode: `${order.storeCode}`,
         status: order.status,
         createdAt: order.createdAt?.toISOString() ?? new Date().toISOString(),
         client: {
