@@ -3,6 +3,7 @@ import { IOrder, IFirebaseOrder, OrderType, IOrderProduct} from "../models/Order
 import {getDatabase} from "firebase-admin/database";
 import ApiResponse from "../models/base/ApiResponse";
 import FirebaseMessaging from "../utils/firebase/messaging";
+import ErrorAlerts from "../utils/errorAlerts";
 
 const FBMESSAGING = new FirebaseMessaging();
 
@@ -65,7 +66,7 @@ function addPreparationOrder(req: Request, res: Response, next: NextFunction) {
         const db = getDatabase();
         db.ref(`${order.storeCode}`).child(PREPARATION_PATH).child(`${order._id}`).set(parsedOrder)
     } catch (e) {
-        console.log(e);
+        ErrorAlerts.sendAlert(e, req);
     }
     next();
 }
