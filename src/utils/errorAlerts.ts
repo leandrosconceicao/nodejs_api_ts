@@ -21,4 +21,16 @@ export default class ErrorAlerts {
             console.log(e);
         }
     }
+
+    static async sendDefaultAlert(error: Error, info: any = undefined) {
+        
+        try {
+            await axios.post(`${TELEGRAM_API_URL}/bot${BOT_TOKEN}/sendMessage`, {
+                "chat_id": CHAT_ID,
+                "text": `Houve um erro não tratado\n${error}INFO: ${info ? JSON.stringify(info) : ""}}`
+            });
+        } catch (e) {
+            console.log(e);
+        }
+    }
 }
