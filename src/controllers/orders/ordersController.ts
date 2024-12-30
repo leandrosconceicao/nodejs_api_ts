@@ -35,7 +35,7 @@ const popuPass = "-pass";
 
 interface IOrderSearchQuery {
     isPreparation?: boolean,
-    type?: string,
+    orderType?: string,
     createdAt: DateQuery,
     // clientId?: any,
     // payment?: any,
@@ -92,7 +92,7 @@ export default class OrdersController {
                 query.createdAt = new PeriodQuery(val.from, val.to).build();
 
                 if (val.type) {
-                    query.type = val.type;
+                    query.orderType = val.type;
                 }
 
                 if (val.id) {
