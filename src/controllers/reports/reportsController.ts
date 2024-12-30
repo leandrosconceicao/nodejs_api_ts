@@ -6,7 +6,7 @@ import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery";
 import { Request, Response, NextFunction } from "express";
 import ApiResponse from "../../models/base/ApiResponse";
 import NotFoundError from "../../models/errors/NotFound";
-import TotalSales from "../../models/reports/Sales";
+import {TotalSales, ITotalSales} from "../../models/reports/Sales";
 import { idValidation } from "../../utils/defaultValidations";
 import ReportHandler from "../../domain/handlers/reports/reportsHandler";
 
@@ -21,6 +21,11 @@ interface ReportQuery {
     status: any,
     updated_at?: any,
 }
+
+interface IPreparation {
+    order?: string,
+    products?: IProduct[]
+};
 
 export default class ReportsController {
 
@@ -162,14 +167,16 @@ export default class ReportsController {
 
             const detailProducts : Array<Partial<{
                 product: string,
-                total: number
+                total: number,
+                quantity: number
             }>> = [];
 
             for (let i = 0; i < prods.length; i++) {
                 const prod = prods[i];
                 const value: Partial<{
                     product: string,
-                    total: number
+                    total: number,
+                    quantity: number
                 }> = {}
 
                 value.product = prod.produto;
@@ -184,9 +191,9 @@ export default class ReportsController {
 
                 const data = prepareData(orders2, [prod._id.toString()]);
 
-                const total = getTotal(data);
+                value.total = getTotal(data);
 
-                value.total = total;
+                value.quantity = getQuantity(data);
 
                 detailProducts.push(value);
             }
@@ -202,12 +209,42 @@ export default class ReportsController {
 }
 
 async function querySales(query: Partial<ReportQuery>) {
-    return TotalSales.aggregate([
+    return TotalSales.aggregate<ITotalSales>([
         {
             $match: query
         },
         {
             $project: {
+                quantity: {
+                    $sum: {
+                        $map: {
+                        input: {
+                            $range: [
+                            0,
+                            {
+                                $size: "$products"
+                            }
+                            ]
+                        },
+                        as: "ix",
+                        in: {
+                            $let: {
+                            in: {
+                                $multiply: ["$$pre"]
+                            },
+                            vars: {
+                                pre: {
+                                $arrayElemAt: [
+                                    "$products.quantity",
+                                    "$$ix"
+                                ]
+                                }
+                            }
+                            }
+                        }
+                        }
+                    }
+                    },
                 total: {
                     $sum: {
                         $map: {
@@ -270,13 +307,12 @@ async function getProducts(categoryId?: string | Array<string>, productId?: stri
     return Products.find({_id: productId}, {_id: 1, produto: 1});
 }
 
-function prepareData(orders: Array<IOrder>, products: Array<string>) : Array<{order: mongoose.Types.ObjectId, products: Array<IOrderProduct>}> {
-    let data = <any>[];
+function prepareData(orders: Array<ITotalSales>, products: Array<string>) : Array<IPreparation> {
+    
+    const data : IPreparation[] = [];
+
     orders.forEach((order) => {
-        const or: {
-            order?: any,
-            products?: any
-        } = {};
+        const or: IPreparation = {};
         or.order = order._id;
         const filtred = order.products.filter((prod: any) => products.includes(prod.productId.toString()));
         or.products = filtred;
@@ -285,7 +321,7 @@ function prepareData(orders: Array<IOrder>, products: Array<string>) : Array<{or
     return data;
 }
 
-function getTotal(data: Array<any>): number {
+function getTotal(data: Array<IPreparation>): number {
     return data.reduce(
       (total, value) =>
         total +
@@ -293,3 +329,12 @@ function getTotal(data: Array<any>): number {
       0
     );
   }
+
+function getQuantity(data: IPreparation[]) : number {
+    return data.reduce(
+        (total, value) =>
+          total +
+          value.products.reduce((tot: any, vl: any) => tot + vl.quantity, 0),
+        0
+      );
+}
