@@ -12,9 +12,9 @@ async function spoolManagement(req: Request, res: Response, next: NextFunction) 
     try {
         const data = await handler.prepareData(spool);
         const db = getDatabase();
-        db.ref(`${data.storeCode}`).child("spool").push(data, (value) => {
-            if (value) {
-                throw value;
+        db.ref(`${data.storeCode}`).child("spool").push(data, (error) => {
+            if (error) {
+                throw error;
             }
             ApiResponse.success(data).send(res);
         });

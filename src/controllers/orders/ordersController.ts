@@ -306,8 +306,8 @@ export default class OrdersController {
             .populate(popuAccId, [popuPayment, popuOrders])
             .populate(popuUser, [popuEstablish, popuPass]).lean();
             
-            if (process?.storeCode) {
-                notififyUser(process.storeCode, "Preparação de pedido", body.isReady ? `Atenção, pedido: ${process.pedidosId} está pronto` : "Alerta de pedido");
+            if (process?.createdBy) {
+                notififyUser(process.createdBy, "Preparação de pedido", body.isReady ? `Atenção, pedido: ${process.pedidosId} está pronto` : "Alerta de pedido");
             }
 
             req.result = {

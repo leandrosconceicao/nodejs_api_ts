@@ -142,7 +142,7 @@ export default class SpoolHandler implements ISpoolHandler {
             case SpoolType.cashRegister:
                 return this.prepareCashRegisterData(data)
             default:
-                throw new Error("Method not implemented.");
+                return Promise.resolve(data);
         }
     }
     
