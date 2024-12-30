@@ -80,7 +80,7 @@ function manageWithDrawMonitor(req: Request, res: Response, next: NextFunction) 
             db.ref(`${order.storeCode}`).child(WITHDRAW_PATH).child(`${order._id}`).set(parsedOrder)
         }        
     } catch (e) {
-        console.log(e);
+        ErrorAlerts.sendAlert(e, req);
     }
     next();
 }
@@ -98,7 +98,7 @@ function updateWithDrawMonitor(req: Request, res: Response, next: NextFunction) 
             db.ref(`${data.order.storeCode}`).child(WITHDRAW_PATH).child(`${data.order._id}`).update(parsedOrder)
         }        
     } catch (e) {
-        console.log(e);
+        ErrorAlerts.sendAlert(e, req);
     }
     next();
 }
@@ -119,7 +119,7 @@ function setOrderOnPreparation(req: Request, res: Response, next: NextFunction) 
             ref.child(`${data.order._id}`).set(handlerOrder(data.order))
         }
     } catch (e) {
-        console.log(e);
+        ErrorAlerts.sendAlert(e, req);
     }
     ApiResponse.success(data.order).send(res);
 }
@@ -136,7 +136,7 @@ async function removePreparation(req: Request, res: Response, next: NextFunction
         const db = getDatabase();
         db.ref(`${order.storeCode}`).child(PREPARATION_PATH).child(`${order._id}`).remove()
     } catch (e) {
-        console.log(e);
+        ErrorAlerts.sendAlert(e, req);
     }
     next();
 }
