@@ -1,5 +1,6 @@
 import { messaging } from "firebase-admin";
 import { NotificationMessagePayload } from "firebase-admin/lib/messaging/messaging-api";
+import ErrorAlerts from "../errorAlerts";
 
 
 export default class FirebaseMessaging {
@@ -34,7 +35,7 @@ export default class FirebaseMessaging {
                 },
             })
         } catch (e) {
-            console.log(e);
+            ErrorAlerts.sendDefaultAlert(e);
             return undefined;
         }
     }
