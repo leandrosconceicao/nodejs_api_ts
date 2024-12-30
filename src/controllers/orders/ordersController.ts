@@ -35,7 +35,7 @@ const popuPass = "-pass";
 
 interface IOrderSearchQuery {
     isPreparation?: boolean,
-    orderType?: string,
+    orderType?: Array<string> | object,
     createdAt: DateQuery,
     // clientId?: any,
     // payment?: any,
@@ -83,7 +83,7 @@ export default class OrdersController {
                 storeCode: idValidation,
                 excludeStatus: booleanStringValidation.optional(),
                 isPreparation: z.boolean().optional(),
-                type: z.nativeEnum(OrderType).optional(),
+                type: z.nativeEnum(OrderType).or(z.array(z.nativeEnum(OrderType))).optional(),
                 accountId: idValidation.optional(),
                 createdBy: idValidation.optional(),
             }).transform((val) => {
@@ -92,7 +92,9 @@ export default class OrdersController {
                 query.createdAt = new PeriodQuery(val.from, val.to).build();
 
                 if (val.type) {
-                    query.orderType = val.type;
+                    query.orderType = {
+                        $in: typeof val.type === "object" ? [...val.type] : [val.type]
+                    };
                 }
 
                 if (val.id) {
@@ -109,9 +111,9 @@ export default class OrdersController {
 
                 if (val.status) {
                     query.status = val.excludeStatus ? {
-                        $nin: [...val.status]
+                        $nin: typeof val.status === "object" ? [...val.status] : [val.status]
                     } : {
-                        $in: [...val.status]
+                        $in: typeof val.status === "object" ? [...val.status] : [val.status]
                     };
                 }
 
