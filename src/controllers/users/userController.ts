@@ -152,7 +152,7 @@ class UserController {
       const body = z.object({
         email: z.string().min(1),
         password: z.string().min(1),
-        token: z.string().optional(),
+        firebaseToken: z.string().optional(),
       }).parse(req.body);
       const hashPass = new PassGenerator(body.password).build();
       const users = await Users.findOne({
@@ -167,8 +167,8 @@ class UserController {
       const authToken = TokenGenerator.generate(users.id);
       res.set("Authorization", authToken);
       res.set("Access-Control-Expose-Headers", "*");
-      if (body.token && users.token != body.token) {
-        updateUserToken(users.id, body.token);
+      if (body.firebaseToken && users.token != body.firebaseToken) {
+        updateUserToken(users.id, body.firebaseToken);
       }
       return ApiResponse.success(users).send(res);
     } catch (e) {
