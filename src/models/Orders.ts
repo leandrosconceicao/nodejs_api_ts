@@ -16,6 +16,16 @@ const orderSchema = new mongoose.Schema({
   accountId: {
     type: ObjectId, ref: "accounts",
   },
+  discount: { 
+    type: Number,
+    default: 0.0,
+    validate: {
+      validator: function (data: number) {
+        return data >= 0;
+      },
+      message: "O valor do desconto deve ser maior ou igual a 0"
+    }
+  },
   updated_at: { type: Date },
   updated_by: { type: ObjectId, ref: "users"},
   orderType: {
@@ -127,6 +137,9 @@ const orderValidation = z.object({
   orderType: z.enum(['frontDesk', 'account', 'delivery', 'withdraw']).default("frontDesk"),
   accepted: z.boolean().optional(),
   status: z.enum(['pending', 'cancelled', 'finished', 'onTheWay']).default("pending"),
+  discount: z.number().nonnegative({
+    message: "O valor do desconto deve ser maior ou igual a 0"
+  }).default(0.0),
   products: z.array(orderProductValidation).nonempty(),
   client: z.object({
       cgc: z.string().optional(),
@@ -195,6 +208,7 @@ interface IOrder {
   accountId: string | MongoId,
   orderType?: OrderType,
   accepted?: boolean,
+  discount?: number,
   status?: OrderStatus,
   products: Array<IOrderProduct>,
   client?: IClient,
@@ -216,6 +230,7 @@ interface IFirebaseOrder {
   accountId: string,
   orderType?: OrderType,
   accepted?: boolean,
+  discount?: number,
   status?: OrderStatus,
   products: Array<Partial<IOrderProduct>>,
   client?: IClient,
