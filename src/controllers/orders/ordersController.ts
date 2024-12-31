@@ -402,13 +402,13 @@ async function ordersOnPreparation(storeCode: string, from: string, to: string) 
 
 async function updateId(id: string, storeCode: string) {
     let count = 0;
-    let counter = await Counters.find({
+    let counter = await Counters.findOne({
         storeCode: new ObjectId(storeCode)
     });
-    if (!counter.length) {
+    if (!counter) {
         count += 1;
     } else {
-        const value = counter[0];
+        const value = counter;
         const now = new Date();
         if (value.createDate.toLocaleDateString() !== now.toLocaleDateString()) {
             count += 1;
@@ -416,16 +416,18 @@ async function updateId(id: string, storeCode: string) {
             count = value.seq_value + 1;
         }
     }
-    await Orders.findByIdAndUpdate(id, {
-        pedidosId: count
-    });
-    await Counters.updateMany({
-        storeCode: new ObjectId(storeCode)
-    }, {
-        seq_value: count, createDate: new Date()
-    }, {
-        upsert: true
-    })
+    await Promise.all([
+        Orders.findByIdAndUpdate(id, {
+            pedidosId: count
+        }),
+        Counters.updateMany({
+            storeCode: new ObjectId(storeCode)
+        }, {
+            seq_value: count, createDate: new Date()
+        }, {
+            upsert: true
+        })
+    ]);
 }
 
 async function notififyUser(userData: string | MongoId, title: string, body: string) {
