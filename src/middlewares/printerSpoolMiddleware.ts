@@ -6,6 +6,21 @@ import LogsController from "../controllers/logs/logsController";
 import SpoolHandler from "../domain/handlers/spoolHandler";
 import { getDatabase } from "firebase-admin/database";
 
+async function fetchSpool(req: Request, res: Response, next: NextFunction) {
+    const storeCode = req.result;
+    const db = getDatabase();
+    const ref = db.ref(storeCode).child("spool");
+
+    const snap = await ref.get();
+    const values = snap.val();
+    if (!values) {
+        res.sendStatus(204);
+    } else {
+        const data = Object.entries(values).map((value) => value[1]);
+        ApiResponse.success(data).send(res);
+    }
+}
+
 async function spoolManagement(req: Request, res: Response, next: NextFunction) {
     const spool = req.result as IPrinterSpool
     const handler = new SpoolHandler();
@@ -61,4 +76,4 @@ async function removePrinterSpool(req: Request, res: Response, next: NextFunctio
     ApiResponse.success(req.result).send(res);
 }
 
-export {printerSpoolMiddleware, spoolManagement, removePrinterSpool}
+export {printerSpoolMiddleware, spoolManagement, removePrinterSpool, fetchSpool}

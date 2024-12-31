@@ -33,15 +33,8 @@ export default class PrintSpoolController {
     get = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const storeCode = idValidation.parse(req.params.storeCode);
-            const data = await PrinterSpool.findOne({
-                storeCode: new ObjectId(storeCode),
-            })
-            if (!data) {
-                res.sendStatus(204);
-            } else {
-                const parsed = await this.handler.prepareData(data as IPrinterSpool);
-                ApiResponse.success(parsed).send(res);
-            }
+            req.result = storeCode;
+            next();
         } catch (e) {
             next(e);
         }
