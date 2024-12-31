@@ -224,42 +224,6 @@ export default class OrdersController {
         }
     }
 
-    static async pushNewItems(req: Request, res: Response, next: NextFunction) {
-        try {
-            const id = idValidation.parse(req.params.id);
-            const data = z.object({
-                orders: z.array(orderProductValidation).nonempty({message: "Lista de produtos não pode ser vazia"})
-            }).parse(req.body);
-            const process = await Orders.findByIdAndUpdate(id, {
-                $push: {products: data.orders}
-            }, {new: true});
-            return ApiResponse.success(process).send(res);
-        } catch (e) {
-            next(e);
-        }
-    }
-    
-    static async pullItem(req: Request, res: Response, next: NextFunction) {
-        try {
-            const id = req.params.id;
-            const {item_id} : {item_id: string} = req.body;
-            const itemval = new Validators("item_id", item_id, "string").validate();
-            const idVal = new Validators("id", id, "string").validate();
-            if (!idVal.isValid) {
-                throw new InvalidParameter(idVal);
-            }
-            if (!itemval.isValid) {
-                throw new InvalidParameter(itemval);
-            }
-            const process = await Orders.findByIdAndUpdate(id, {
-                $pull: {products: {_id: item_id}}
-            }, {new: true});
-            return ApiResponse.success(process).send(res);
-        } catch (e) {
-            next(e);
-        }
-    }
-
     static async changeSeller(req: Request, res: Response, next: NextFunction) {
         try {
             const {userTo, userCode} : {userTo: string, userCode: string} = req.body;
@@ -380,26 +344,6 @@ export default class OrdersController {
     }
 }
 
-async function ordersOnPreparation(storeCode: string, from: string, to: string) {
-    return Orders.find({
-        status: {
-            $ne: "cancelled"
-        },
-        storeCode: storeCode,
-        createDate: new PeriodQuery(
-            from,
-            to
-        ).build(),
-        products: {
-            $elemMatch: { setupIsFinished: false, needsPreparation: true },
-        }
-    }).sort({
-        ["createDate"]: 1
-    }).populate(populateClient)
-    .populate(popuAccId, [popuPayment, popuOrders])
-    .populate(popuUser, [popuEstablish, popuPass]);
-}
-
 async function updateId(id: string, storeCode: string) {
     let count = 0;
     let counter = await Counters.findOne({
@@ -437,17 +381,5 @@ async function notififyUser(userData: string | MongoId, title: string, body: str
             title,
             body
         });
-    }
-}
-
-async function checkTipInvoicement(storeCode: string, products: z.infer<typeof orderProductValidation>[]) {
-    const store = await Establishments.findById(storeCode);
-    if (!store) {
-        return;
-    }
-    for (let i = 0; i < products.length; i++) {
-        const product = products[i];
-        if (product.hasTipValue) 
-            product.tipValue = store.tipValue;
     }
 }
