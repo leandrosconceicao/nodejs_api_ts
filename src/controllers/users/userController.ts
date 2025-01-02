@@ -9,6 +9,7 @@ import NotFoundError from "../../models/errors/NotFound";
 import TokenGenerator from "../../utils/tokenGenerator";
 import { booleanStringValidation, idValidation } from "../../utils/defaultValidations";
 import { DELETED_SEARCH } from "../../models/base/MongoDBFilters";
+import { RegexBuilder } from "../../utils/regexBuilder";
 // import admin from "../../../config/firebaseConfig.js"
 
 // const FIREBASEAUTH = admin.auth();
@@ -31,16 +32,23 @@ class UserController {
       const authUserData = z.object({
         id: idValidation
       }).parse(TokenGenerator.verify(req.headers.authorization));
+
+      const updatedBy = await Users.findById(authUserData.id);
+
+      if (!updatedBy) {
+        throw new NotFoundError("Usuário é inválido ou não foi localizado");
+      }
+
       const process = await Users.findOneAndUpdate({
         _id: new ObjectId(id)
       }, {
         $set: {
           deleted: true,
-          updatedBy: new ObjectId(authUserData.id),
+          updatedBy: updatedBy._id,
         }
       }, {
         new: true
-      }).lean();
+      });
       return ApiResponse.success(process).send(res);
     } catch (e) {
       next(e);
@@ -89,9 +97,8 @@ class UserController {
   static async findOne(req: Request, res: Response, next: NextFunction) {
     try {
       const id = idValidation.parse(req.params.id);
-      const user = await Users.findOne({
-        _id: new ObjectId(id)
-      });
+      const user = await Users.findById(id)
+        .populate("establishmentDetail");
       if (!user) {
         throw new NotFoundError("Usuário não localizado");
       }
@@ -103,11 +110,11 @@ class UserController {
 
   static async findAll(req: Request, res: Response, next: NextFunction) {
     interface searchQuery {
-      storeCode?: string,
-      establishments?: Object,
+      storeCode?: mongoose.Types.ObjectId,
       group_user?: string,
-      username?: string,
+      username?: any,
       deleted?: any,
+      email?: string,
       isActive?: boolean
     }
     try {
@@ -117,29 +124,32 @@ class UserController {
         storeCode: idValidation.optional(),
         group_user: z.string().min(1).optional(),
         username: z.string().min(1).optional(),
+        email: z.string().min(1).optional(),
         isActive: booleanStringValidation.optional()
       }).transform((data) => {
         query.deleted = DELETED_SEARCH;
         if (data.storeCode) {
-          query.establishments = {
-            $in: [new ObjectId(data.storeCode)]
-          }
+          query.storeCode = new ObjectId(data.storeCode)
         }
         if (data.group_user) {
           query.group_user = data.group_user;
         }
         
         if (data.username) {
-          query.username = data.username;
+          query.username = RegexBuilder.searchByName(data.username);
         }
         if (data.isActive !== undefined) {
           query.isActive = data.isActive;
+        }
+
+        if (data.email) {
+          query.email = data.email;
         }
       }).parse(req.query);
       
       req.result = Users.find(query).select({
         pass: 0
-      }).populate("establishments");
+      })
       next();
     } catch (e) {
       next(e);
@@ -160,7 +170,7 @@ class UserController {
         pass: hashPass,
       }).select({
         pass: 0
-      }).populate("establishments");
+      }).populate("establishmentDetail");
       if (!users) {
         throw new NotFoundError("Dados incorretos ou inválidos.")
       }
