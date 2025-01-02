@@ -1,5 +1,4 @@
 import { Request, Response, NextFunction } from "express";
-import { Validators } from "../../utils/validators";
 import {Establishments, establishmentAttributes } from "../../models/Establishments";
 import {z} from "zod";
 import NotFoundError from "../../models/errors/NotFound";
@@ -8,6 +7,12 @@ import establishmentDataCheck from "./establishmentDataCheck";
 import FirebaseStorage from "../../utils/firebase/storage";
 import updateRemoteConfig from "../../utils/firebase/remoteConfig";
 import { idValidation } from "../../utils/defaultValidations";
+import mongoose from "mongoose";
+import TokenGenerator from "../../utils/tokenGenerator";
+import { Users } from "../../models/Users";
+import UnauthorizedError from "../../models/errors/UnauthorizedError";
+
+var ObjectId = mongoose.Types.ObjectId;
 
 
 export default class EstablishmentsController {
@@ -57,15 +62,34 @@ export default class EstablishmentsController {
 
     static async delete(req: Request, res: Response, next: NextFunction) {
         try {
-            const data = z.object({
+            const id = idValidation.parse(req.params.id);
+
+            const authUserData = z.object({
                 id: idValidation
-            }).parse(req.body);
-            const checks = await establishmentDataCheck.check(data.id);
-            if (!checks) {
+            }).parse(TokenGenerator.verify(req.headers.authorization));
+        
+            const updatedBy = await Users.findById(authUserData.id);
+    
+            if (!updatedBy) {
+                throw new NotFoundError("Usuário é inválido ou não foi localizado");
+            }
+
+            if (updatedBy.group_user !== "99")
+                throw new UnauthorizedError();
+
+            const checks = await establishmentDataCheck.check(id);
+            if (checks) {
                 return ApiResponse.badRequest("Estabelecimento possui informações vinculadas, não é possível excluir.").send(res);
             }
-            const process = await Establishments.findByIdAndDelete(data.id);
-            return ApiResponse.success(process.value).send(res);
+            const process = await Establishments.findOneAndUpdate({
+                _id: new ObjectId(id)
+            }, {
+                $set: {
+                    deleted: true
+                }
+            });
+
+            return ApiResponse.success(process).send(res);
         } catch (e) {
             next(e);
         }
