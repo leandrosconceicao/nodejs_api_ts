@@ -135,10 +135,14 @@ const schema = new mongoose.Schema({
     tipValue: {
         type: Number,
         default: 0.0
-    }
+    },
+    deleted: { type: Boolean }
 }, {
     versionKey: false,
+    timestamps: true
 });
+
+schema.index({ name: 1, ownerId: 1, deleted: 1 }, { unique: true, partialFilterExpression: { deleted: null } });
 
 enum GeolocationType {
     point = "Point"
