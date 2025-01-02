@@ -280,6 +280,7 @@ async function querySales(query: Partial<ReportQuery>) {
                 pedidosId: 1,
                 orderType: 1,
                 products: 1,
+                discount: 1
             },
         }
     ]);

@@ -16,6 +16,7 @@ interface ITotalSales {
     createdAt: Date,
     total: number;
     quantity: number;
+    discount: number;
     storeCode: string;
     products: Array<IProduct>;
 }
