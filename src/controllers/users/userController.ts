@@ -10,6 +10,7 @@ import TokenGenerator from "../../utils/tokenGenerator";
 import { booleanStringValidation, idValidation } from "../../utils/defaultValidations";
 import { DELETED_SEARCH } from "../../models/base/MongoDBFilters";
 import { RegexBuilder } from "../../utils/regexBuilder";
+import UnauthorizedError from "../../models/errors/UnauthorizedError";
 // import admin from "../../../config/firebaseConfig.js"
 
 // const FIREBASEAUTH = admin.auth();
@@ -171,9 +172,14 @@ class UserController {
       }).select({
         pass: 0
       }).populate("establishmentDetail");
-      if (!users) {
+
+      if (!users || users.deleted === true)
         throw new NotFoundError("Dados incorretos ou inválidos.")
-      }
+      
+
+      if (!users.isActive) 
+        throw new UnauthorizedError("Usuário não está ativo")
+
       const authToken = TokenGenerator.generate(users.id);
       res.set("Authorization", authToken);
       res.set("Access-Control-Expose-Headers", "*");
