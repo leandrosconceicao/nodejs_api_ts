@@ -34,6 +34,7 @@ interface IReceiptOrders {
     _id: typeof ObjectId,
     products: Array<IReceiptOrdersProducts>
     totalTip?: number,
+    discount?: number,
     totalProduct?: number
 }
 

@@ -228,6 +228,7 @@ export default class AccountsController extends ApiFilters {
                   client: 1,
                   "orders._id": 1,
                   "orders.products.quantity": 1,
+                  "orders.discount": 1,
                   "orders.products.tipValue": 1,
                   "orders.products.unitPrice": 1,
                   "orders.products.productName": 1,
