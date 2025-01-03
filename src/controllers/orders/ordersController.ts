@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import {z} from "zod";
-import { booleanStringValidation, idValidation } from "../../utils/defaultValidations";
+import { booleanStringValidation, decimalValidation, idValidation } from "../../utils/defaultValidations";
 import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery";
 import { Request, Response, NextFunction } from "express";
 import { Validators } from "../../utils/validators";
@@ -18,6 +18,7 @@ import FirebaseMessaging from "../../utils/firebase/messaging";
 import MongoId from "../../models/custom_types/mongoose_types";
 import OrderHandler from "../../domain/handlers/orderHandler";
 import TokenGenerator from "../../utils/tokenGenerator";
+import UnauthorizedError from "../../models/errors/UnauthorizedError";
 
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -338,6 +339,53 @@ export default class OrdersController {
             const storeCode = idValidation.parse(req.params.id);
             req.result = storeCode;
             next();
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    static async applyOrderDiscount(req: Request, res: Response, next: NextFunction) {
+        try {
+            const orderId = idValidation.parse(req.params.id)
+            
+            const data = z.object({
+                id: idValidation
+            }).parse(TokenGenerator.verify(req.headers.authorization));
+
+            const body = z.object({
+                discount: decimalValidation("O valor do desconto deve ser no formato de (0.00) limitado a 1.0 (100%)")
+            }).parse(req.body);
+
+            const updatedBy = await Users.findOne({
+                _id: new ObjectId(data.id),
+                isActive: true,
+                deleted: null,
+            }, {
+                group_user: 1,
+                _id: 1
+            });
+
+            if (!updatedBy) 
+                throw new NotFoundError("Usuário é inválido ou não foi localizado");
+
+            if (updatedBy.group_user === "2")
+                throw new UnauthorizedError("Usuário não possui permissão para aplicar desconto");
+
+            const updateOrder = await Orders.findOneAndUpdate({
+                _id: new ObjectId(orderId),
+                status: "pending"
+            }, {
+                discount: body.discount,
+                updatedBy: updatedBy._id,
+            }, {
+                new: true
+            });
+
+            if (!updateOrder)
+                throw new NotFoundError("Pedido não localizado")
+
+            ApiResponse.success(updateOrder).send(res);
+
         } catch (e) {
             next(e);
         }
