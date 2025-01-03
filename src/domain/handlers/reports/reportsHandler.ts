@@ -3,7 +3,8 @@ import mongoose from "mongoose";
 import { IPaymentsByMethods } from "../../../models/reports/Payments";
 import { PaymentMethods } from "../../../models/PaymentMethods";
 import { CashRegister } from "../../../models/CashRegister";
-import { Establishments } from "../../../models/Establishments";
+import { Orders } from "../../../models/Orders";
+import { Payments } from "../../../models/Payments";
 
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -97,78 +98,28 @@ export default class ReportHandler {
     }
 
     getAnalyticData = async (storeCode: string, period: DateQuery) => {
-      return Establishments.aggregate([
-        {
-          '$match': {
-            '_id': new ObjectId(storeCode)
+      const data = await Promise.all([
+        Orders.find({
+          storeCode,
+          createdAt: period,
+          status: {
+            $ne: "cancelled"
           }
-        }, {
-          '$lookup': {
-            'from': 'payments', 
-            'localField': '_id', 
-            'foreignField': 'storeCode', 
-            'as': 'payments', 
-            'pipeline': [
-              {
-                '$match': {
-                  'createdAt': period
-                }
-              }
-            ]
-          }
-        }, {
-          '$lookup': {
-            'from': 'orders', 
-            'localField': '_id', 
-            'foreignField': 'storeCode', 
-            'as': 'orders', 
-            'pipeline': [
-              {
-                '$match': {
-                  'createdAt': period, 
-                  'status': {
-                    '$ne': 'cancelled'
-                  }
-                }
-              }
-            ]
-          }
-        }, {
-          '$project': {
-            'payments': 1,
-            'orders': 1
-          }
-        }, {
-          '$addFields': {
-            'totalPayments': {
-              '$sum': '$payments.total'
-            }
-          }
-        }, {
-          '$unwind': '$orders'
-        }, {
-          '$unwind': '$orders.products'
-        }, {
-          '$group': {
-            '_id': '$_id',
-            'payments': {
-              '$first': '$payments'
-            }, 
-            'orders': {
-              '$push': '$orders'
-            }, 
-            'totalPayments': {
-              '$first': '$totalPayments'
-            }, 
-            'totalOrders': {
-              '$sum': {
-                '$multiply': [
-                  '$orders.products.unitPrice', '$orders.products.quantity'
-                ]
-              }
-            }
-          }
-        }
+        }),
+        Payments.find({
+          storeCode,
+          createdAt: period
+        })
       ])
+      const orders = data[0] ?? [];
+      const payments = data[1] ?? [];
+
+      return {
+        _id: storeCode,
+        orders: orders,
+        payments: payments,
+        totalPayments: payments.reduce((a, b) => a + (b.total), 0.0),
+        totalOrders: orders.reduce((a, b) => a + (b.subTotal), 0.0)
+      }
     }
 }

@@ -43,7 +43,7 @@ export default class ReportsController {
             .parse(req.query);
 
             const report = await new ReportHandler().getAnalyticData(storeCode, query)
-            ApiResponse.success(report[0]).send(res);
+            ApiResponse.success(report).send(res);
         } catch (e) {
             next(e);
         }
