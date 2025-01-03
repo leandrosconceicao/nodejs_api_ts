@@ -106,6 +106,12 @@ orderSchema.virtual("paymentDetail", {
   justOne: true
 })
 
+orderSchema.virtual("subTotal")
+  .get(function() {
+    const total = this.products.reduce((a, b) => a + (b.subTotal), 0.0)
+    return total - (total * this.discount);
+  })
+
 orderSchema.set('toObject', { virtuals: true });
 orderSchema.set('toJSON', { virtuals: true });
 
@@ -221,6 +227,7 @@ interface IOrder {
   accountDetail?: IAccount, 
   storeCodeDetail?: IEstablishments,
   paymentDetail?: IPayment
+  subTotal?: number
 }
 
 interface IFirebaseOrder {

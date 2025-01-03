@@ -40,7 +40,7 @@ export default class FrontDeskHandler implements IOrderHandler {
 
         const newOrder = await new Orders(this._order).save();
         
-        const subTotal = this._order.products.reduce((a, b) => a + (b.unitPrice * b.quantity), 0)
+        const subTotal = newOrder.subTotal;
 
         const payment = new Payments({
             storeCode: this._order.storeCode,
