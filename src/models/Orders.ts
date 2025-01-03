@@ -21,9 +21,9 @@ const orderSchema = new mongoose.Schema({
     default: 0.0,
     validate: {
       validator: function (data: number) {
-        return data >= 0;
+        return data === 0.0 || data === 1.0 || !Number.isInteger(data);
       },
-      message: "O valor do desconto deve ser maior ou igual a 0"
+      message: "O valor do desconto deve ser no formato de (0.00) limitado a 1.0 (100%)"
     }
   },
   updated_at: { type: Date },
@@ -143,8 +143,10 @@ const orderValidation = z.object({
   orderType: z.enum(['frontDesk', 'account', 'delivery', 'withdraw']).default("frontDesk"),
   accepted: z.boolean().optional(),
   status: z.enum(['pending', 'cancelled', 'finished', 'onTheWay']).default("pending"),
-  discount: z.number().nonnegative({
-    message: "O valor do desconto deve ser maior ou igual a 0"
+  discount: z.number().refine(value => {
+    return value === 0.0 || value === 1.0 || !Number.isInteger(value);
+  }, {
+    message: "O valor do desconto deve ser no formato de (0.00) limitado a 1.0 (100%)"
   }).default(0.0),
   products: z.array(orderProductValidation).nonempty(),
   client: z.object({
