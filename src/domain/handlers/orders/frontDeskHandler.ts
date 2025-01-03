@@ -43,11 +43,11 @@ export default class FrontDeskHandler implements IOrderHandler {
         const subTotal = newOrder.subTotal;
 
         const payment = new Payments({
-            storeCode: this._order.storeCode,
+            storeCode: newOrder.storeCode,
             cashRegisterId: openCash._id,
-            userCreate: this._order.createdBy,
+            userCreate: newOrder.createdBy,
             orderId: newOrder._id,
-            method: this._order.paymentMethod,
+            method: newOrder.paymentMethod,
             total: subTotal
         });
 
@@ -59,7 +59,7 @@ export default class FrontDeskHandler implements IOrderHandler {
             throw e;
         }
 
-        return newOrder as IOrder;
+        return newOrder;
     }
 }
 

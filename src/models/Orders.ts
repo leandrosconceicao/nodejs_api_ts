@@ -202,6 +202,7 @@ interface IOrderProduct {
   hasTipValue?: boolean,
   subTotal?: number,
   addOnes?: Array<{
+    _id?: any,
     addOneName: string,
     quantity: number,
     price: number,
@@ -254,6 +255,6 @@ interface IFirebaseOrder {
   storeCodeDetail?: Partial<IEstablishments>
 }
 
-const Orders = mongoose.model("orders", orderSchema);
+const Orders = mongoose.model<IOrder>("orders", orderSchema);
 
 export {Orders, orderSchema, orderValidation, orderProductValidation, IOrder, IFirebaseOrder, OrderType, OrderStatus, IOrderProduct};
