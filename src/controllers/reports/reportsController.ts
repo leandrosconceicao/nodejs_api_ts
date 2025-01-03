@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import {z} from "zod";
-import {IOrder, IOrderProduct, OrderType} from "../../models/Orders";
+import {IOrder, IOrderProduct, Orders, OrderType} from "../../models/Orders";
 import { IProduct, Products } from "../../models/products/Products";
 import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery";
 import { Request, Response, NextFunction } from "express";
@@ -24,7 +24,8 @@ interface ReportQuery {
 
 interface IPreparation {
     order?: string,
-    products?: IProduct[]
+    products?: IOrderProduct[],
+    discount?: number,
 };
 
 export default class ReportsController {
@@ -116,12 +117,14 @@ export default class ReportsController {
                 }
             })
             .parse(req.query);
-            const consult = await querySales(query);
+            const consult = await Orders.find(query);
             if (!consult) {
                 throw new NotFoundError("Busca não localizou dados");
             }
             return ApiResponse.success({
-                totalValue: consult.reduce((a, b) => a + b.total, 0),
+                totalValue: consult.reduce((a, b) => {
+                    return a + (b.subTotal)
+                }, 0),
                 orders: consult
             }).send(res);
         } catch (e) {
@@ -187,9 +190,9 @@ export default class ReportsController {
                     }
                 }
 
-                const orders2 = await querySales(search);
+                const orders = await Orders.find(search);
 
-                const data = prepareData(orders2, [prod._id.toString()]);
+                const data = prepareData(orders, [prod._id.toString()]);
 
                 value.total = getTotal(data);
 
@@ -206,84 +209,6 @@ export default class ReportsController {
             next(e);
         }
     }
-}
-
-async function querySales(query: Partial<ReportQuery>) {
-    return TotalSales.aggregate<ITotalSales>([
-        {
-            $match: query
-        },
-        {
-            $project: {
-                quantity: {
-                    $sum: {
-                        $map: {
-                        input: {
-                            $range: [
-                            0,
-                            {
-                                $size: "$products"
-                            }
-                            ]
-                        },
-                        as: "ix",
-                        in: {
-                            $let: {
-                            in: {
-                                $multiply: ["$$pre"]
-                            },
-                            vars: {
-                                pre: {
-                                $arrayElemAt: [
-                                    "$products.quantity",
-                                    "$$ix"
-                                ]
-                                }
-                            }
-                            }
-                        }
-                        }
-                    }
-                    },
-                total: {
-                    $sum: {
-                        $map: {
-                            input: {
-                                $range: [
-                                    0,
-                                    {
-                                        $size: "$products",
-                                    },
-                                ],
-                            },
-                            as: "ix",
-                            in: {
-                                $let: {
-                                    in: {
-                                        $multiply: ["$$pre", "$$cal"],
-                                    },
-                                    vars: {
-                                        pre: {
-                                            $arrayElemAt: ["$products.quantity", "$$ix"],
-                                        },
-                                        cal: {
-                                            $arrayElemAt: ["$products.unitPrice", "$$ix"],
-                                        },
-                                    },
-                                },
-                            },
-                        },
-                    },
-                },
-                createdAt: 1,
-                // storeCode: 1,
-                pedidosId: 1,
-                orderType: 1,
-                products: 1,
-                discount: 1
-            },
-        }
-    ]);
 }
 
 async function getProducts(categoryId?: string | Array<string>, productId?: string | Array<string>) : Promise<Array<IProduct>> {
@@ -308,25 +233,25 @@ async function getProducts(categoryId?: string | Array<string>, productId?: stri
     return Products.find({_id: productId}, {_id: 1, produto: 1});
 }
 
-function prepareData(orders: Array<ITotalSales>, products: Array<string>) : Array<IPreparation> {
+function prepareData(orders: Array<IOrder>, products: Array<string>) : Array<IPreparation> {
     
-    const data : IPreparation[] = [];
+    const dt = orders.map((el) => {
+        return <IPreparation>{
+            order: el._id.toString(),
+            discount: el.discount,
+            products: el.products.filter((prod: any) => products.includes(prod.productId.toString()))
+        };
+    })
 
-    orders.forEach((order) => {
-        const or: IPreparation = {};
-        or.order = order._id;
-        const filtred = order.products.filter((prod: any) => products.includes(prod.productId.toString()));
-        or.products = filtred;
-        data.push(or)
-    });
-    return data;
+    return dt;
 }
 
 function getTotal(data: Array<IPreparation>): number {
-    return data.reduce(
-      (total, value) =>
-        total +
-        value.products.reduce((tot: any, vl: any) => tot + vl.quantity * vl.unitPrice, 0),
+    return data.reduce((total, value) => {
+        const sub = value.products.reduce((a, b) => a + (b.subTotal), 0.0)
+        const tot = sub - (sub * value.discount)
+        return total + tot;
+    },  
       0
     );
   }
