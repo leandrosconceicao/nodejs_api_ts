@@ -18,7 +18,7 @@ const userValidaton = z.object({
     changePassword: z.boolean().default(false).optional(),
     username: z.string().min(1),
     isActive: z.boolean().default(true).optional(),
-    establishmentId: idValidation,
+    storeCode: idValidation,
     token: z.string().min(1).optional(),
 });
 
@@ -79,18 +79,18 @@ const userSchema = new mongoose.Schema({
     changePassword: {type: Boolean, default: false},
     username: {type: String},
     isActive: {type: Boolean, default: false},
-    establishmentId: {type: ObjectId, ref: "establishments"},
+    storeCode: {type: ObjectId, ref: "establishments"},
     token: {type: String, default: ""},
 }, {
     timestamps: true
 });
 
-userSchema.index({ email: 1, establishmentId: 1, deleted: 1 }, { unique: true, partialFilterExpression: { deleted: null } });
+userSchema.index({ email: 1, storeCode: 1, deleted: 1 }, { unique: true, partialFilterExpression: { deleted: null } });
 
 userSchema.virtual("establishmentDetail", {
     ref: "establishments",
     foreignField: "_id",
-    localField: "establishmentId",
+    localField: "storeCode",
     justOne: true
 })
 
