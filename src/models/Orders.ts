@@ -21,9 +21,9 @@ const orderSchema = new mongoose.Schema({
     default: 0.0,
     validate: {
       validator: function (data: number) {
-        return data === 0.0 || data === 1.0 || !Number.isInteger(data);
+        return data >= 0 && data <= 100;
       },
-      message: "O valor do desconto deve ser no formato de (0.00) limitado a 1.0 (100%)"
+      message: "O valor do desconto não pode ultrapassar 100%"
     }
   },
   updated_at: { type: Date },
@@ -71,6 +71,11 @@ const orderSchema = new mongoose.Schema({
   timestamps: true
 });
 
+orderSchema.pre("save", function(next) {
+  this.discount = this.discount / 100;
+  next();
+})
+
 orderSchema.virtual("userCreate", {
   ref: 'users',
   localField: 'createdBy',
@@ -109,7 +114,7 @@ orderSchema.virtual("paymentDetail", {
 orderSchema.virtual("subTotal")
   .get(function() {
     const total = this.products.reduce((a, b) => a + (b.subTotal), 0.0)
-    return total - (total * this.discount);
+    return total - (total * (this.discount / 100));
   })
 
 orderSchema.set('toObject', { virtuals: true });
@@ -143,11 +148,9 @@ const orderValidation = z.object({
   orderType: z.enum(['frontDesk', 'account', 'delivery', 'withdraw']).default("frontDesk"),
   accepted: z.boolean().optional(),
   status: z.enum(['pending', 'cancelled', 'finished', 'onTheWay']).default("pending"),
-  discount: z.number().refine(value => {
-    return value === 0.0 || value === 1.0 || !Number.isInteger(value);
-  }, {
-    message: "O valor do desconto deve ser no formato de (0.00) limitado a 1.0 (100%)"
-  }).default(0.0),
+  discount: z.number().nonnegative({
+    message: "Informe um valor entre 0 e 100"
+}).default(0.0),
   products: z.array(orderProductValidation).nonempty(),
   client: z.object({
       cgc: z.string().optional(),
