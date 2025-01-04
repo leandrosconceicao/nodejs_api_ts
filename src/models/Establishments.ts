@@ -136,6 +136,9 @@ const schema = new mongoose.Schema({
         type: Number,
         default: 0.0
     },
+    maxDiscountAllowed: {
+        type: Number
+    },
     deleted: { type: Boolean }
 }, {
     versionKey: false,
@@ -191,9 +194,10 @@ interface IEstablishments {
             },
         }
     },
-    tipValue: number
+    tipValue: number,
+    maxDiscountAllowed?: number
 }
 
-const Establishments = mongoose.model('establishments', schema);
+const Establishments = mongoose.model<IEstablishments>('establishments', schema);
 
 export {schema, Establishments, establishmentAttributes, IEstablishments }
