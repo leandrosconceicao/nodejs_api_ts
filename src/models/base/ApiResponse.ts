@@ -1,4 +1,5 @@
 import express from "express";
+import { z } from "zod";
 
 type ApiInfo<T> = {
     statusProcess: boolean;
@@ -41,10 +42,10 @@ export default class ApiResponse<T={}> extends Error {
         });
     }
 
-    static invalidParameter(parameter?: string) : ApiResponse {
+    static invalidParameter(parameter?: z.ZodIssue[]) : ApiResponse {
         return new ApiResponse({
             statusProcess: false,
-            message: `Parametro obrigatório é inválido ou não foi informado (${parameter})`,
+            message: parameter.map((err) => `Parametro (${err.path}) é inválido, ${err.message}`).join(", "),
             status: 406
         });
     }

@@ -1,9 +1,9 @@
 import { Validators } from "../../utils/validators";
 import AddOnes from "../../models/products/AddOnes";
 import ApiResponse from "../../models/base/ApiResponse";
-import mongoose from "mongoose";
 import { Request, Response, NextFunction } from "express";
 import InvalidParameter from "../../models/errors/InvalidParameters";
+import BadRequestError from "../../models/errors/BadRequest";
 
 // var ObjectId = mongoose.Types.ObjectId;
 const moves = ["push", "pull"];
@@ -57,7 +57,7 @@ export default class AddOneController {
         try {
             const {movement, id, item} = req.body;
             if (moves.includes(movement)) {
-                return ApiResponse.invalidParameter("movement").send(res);
+                throw new BadRequestError("movement")
             }
             const idVal = new Validators("id", id, "string").validate();
             if (!idVal.isValid) {

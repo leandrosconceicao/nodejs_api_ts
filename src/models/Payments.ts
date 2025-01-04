@@ -22,6 +22,7 @@ interface IPayment {
     userCreate: mongoose.Types.ObjectId,
     total: number,
     taxes: number,
+    refunded: boolean,
     methodData?: {
         _id: mongoose.Types.ObjectId,
         taxes: number,
@@ -143,6 +144,6 @@ interface IPaymentByMethod {
 }
 
 
-const Payments = mongoose.model("payments", paymentSchema);
+const Payments = mongoose.model<IPayment>("payments", paymentSchema);
 
 export { paymentSchema, Payments , paymentValidation, PAYMENT_SEARCH_VALIDATION, IPayment, IPaymentByMethod};

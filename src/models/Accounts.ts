@@ -7,7 +7,7 @@ import MongoId from "./custom_types/mongoose_types";
 var ObjectId = mongoose.Types.ObjectId;
 
 class Receipt implements IReceipt {
-    _id: typeof ObjectId;
+    _id: mongoose.Types.ObjectId | string;
     description: string;
     payments: Array<IReceiptPayments>;
     orders: Array<IReceiptOrders>
@@ -20,7 +20,7 @@ class Receipt implements IReceipt {
 }
 
 interface IReceipt {
-    _id: typeof ObjectId,
+    _id: mongoose.Types.ObjectId | string;
     storeCode: mongoose.Types.ObjectId,
     description: string,
     payments: Array<IReceiptPayments>,
@@ -40,6 +40,7 @@ interface IReceiptOrders {
 
 interface IReceiptOrdersProducts {
     quantity: number,
+    subTotal: number,
     productName: string,
     category: string,
     unitPrice: number,
@@ -52,7 +53,7 @@ interface IReceiptOrdersProductsAddOnes {
 }
 
 interface IReceiptPayments {
-    method: typeof ObjectId,
+    method: mongoose.Types.ObjectId,
     total: number,
     description?: string
 }
@@ -110,4 +111,4 @@ const Accounts = mongoose.model("accounts", new mongoose.Schema({
     payments: {}
 }))
 
-export {accountStatus, Accounts, accountValidation, Receipt, IAccount};
+export {accountStatus, Accounts, accountValidation, Receipt, IAccount, IReceiptOrders, IReceiptPayments};

@@ -4,13 +4,12 @@ import { booleanStringValidation, decimalValidation, idValidation } from "../../
 import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery";
 import { Request, Response, NextFunction } from "express";
 import { Validators } from "../../utils/validators";
-import { orderProductValidation, Orders, OrderStatus, OrderType, orderValidation } from "../../models/Orders";
+import { Orders, OrderStatus, OrderType, orderValidation } from "../../models/Orders";
 import ApiResponse from "../../models/base/ApiResponse";
 import {Users} from "../../models/Users";
 import Counters from "../../models/Counters";
 import NotFoundError from "../../models/errors/NotFound";
 import {Accounts} from "../../models/Accounts";
-import {Establishments} from "../../models/Establishments";
 import InvalidParameter from "../../models/errors/InvalidParameters";
 import LogsController from "../logs/logsController";
 import EstablishmentsController from "../establishments/establishmentController";
@@ -19,6 +18,7 @@ import MongoId from "../../models/custom_types/mongoose_types";
 import OrderHandler from "../../domain/handlers/orderHandler";
 import TokenGenerator from "../../utils/tokenGenerator";
 import UnauthorizedError from "../../models/errors/UnauthorizedError";
+import EstablishmentHandler from "../../domain/handlers/establishment/establishmentHandler";
 
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -290,11 +290,20 @@ export default class OrdersController {
     static async newOrder(req: Request, res: Response, next: NextFunction) {
         try {
             // const token = z.string().optional().parse(req.headers.firebasetoken);
-            const rawData = orderValidation.parse(req.body);
+            const rawData = orderValidation
+                .transform((values) => {
+                    if (values.discount > 0) {
+                        values.discount = values.discount / 100
+                    }
+                    return values;
+                })
+                .parse(req.body);
 
             await EstablishmentsController.checkOpening(rawData.storeCode, rawData.orderType)
 
             const handler = OrderHandler.getInstance(req.body)
+
+            await EstablishmentHandler.validateDiscount(rawData.storeCode, rawData.discount);
 
             const order = await handler.create();
             await updateId(order._id.toString(),  order.storeCode.toString());
@@ -353,7 +362,9 @@ export default class OrdersController {
             }).parse(TokenGenerator.verify(req.headers.authorization));
 
             const body = z.object({
-                discount: decimalValidation("O valor do desconto deve ser no formato de (0.00) limitado a 1.0 (100%)")
+                discount: z.number().nonnegative({
+                    message: "Informe um valor entre 0 e 100"
+                })
             }).parse(req.body);
 
             const updatedBy = await Users.findOne({
@@ -362,7 +373,8 @@ export default class OrdersController {
                 deleted: null,
             }, {
                 group_user: 1,
-                _id: 1
+                _id: 1,
+                storeCode: 1,
             });
 
             if (!updatedBy) 
@@ -370,6 +382,8 @@ export default class OrdersController {
 
             if (updatedBy.group_user === "2")
                 throw new UnauthorizedError("Usuário não possui permissão para aplicar desconto");
+
+            await EstablishmentHandler.validateDiscount(updatedBy.storeCode.toString(), body.discount);
 
             const updateOrder = await Orders.findOneAndUpdate({
                 _id: new ObjectId(orderId),
