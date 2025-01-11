@@ -2,7 +2,7 @@ import { Validators } from "../../utils/validators";
 import {z} from "zod";
 import { idValidation } from "../../utils/defaultValidations";
 import ApiResponse from "../../models/base/ApiResponse";
-import {Accounts, accountStatus, accountValidation, Receipt} from "../../models/Accounts";
+import {Accounts, accountStatus, accountValidation, IReceiptOrders, IReceiptPayments, Receipt} from "../../models/Accounts";
 import NotFoundError from "../../models/errors/NotFound";
 import InvalidParameter from "../../models/errors/InvalidParameters";
 import mongoose, { ObjectId } from "mongoose";
@@ -14,7 +14,7 @@ import PaymentController from "../payments/paymentController";
 import { clientsSchemaValidation } from "../../models/Clients";
 import { Establishments } from "../../models/Establishments";
 import {Orders} from "../../models/Orders";
-import { PaymentMethods } from "../../models/PaymentMethods";
+import { Payments } from "../../models/Payments";
 var ObjectId = mongoose.Types.ObjectId;
 
 const populateClient = "client";
@@ -192,70 +192,44 @@ export default class AccountsController extends ApiFilters {
     }
 
     static async getReceipt(accountId: string) {
-        const receipts = await Accounts.aggregate([
-            {
-              '$match': {
-                '_id': new ObjectId(accountId)
-              }
-            }, {
-              '$lookup': {
-                'from': 'orders', 
-                'localField': '_id', 
-                'foreignField': 'accountId', 
-                'as': 'orders', 
-                'pipeline': [
-                  {
-                    '$match': {
-                      'status': {
-                        '$ne': 'cancelled'
-                      }
-                    }
-                  }
-                ]
-              }
-            }, {
-              '$lookup': {
-                'from': 'payments', 
-                'localField': '_id', 
-                'foreignField': 'accountId', 
-                'as': 'payments'
-              }
-            }, {
-                $project: {
-                  description: 1,
-                  status: 1,
-                  storeCode: 1,
-                  client: 1,
-                  "orders._id": 1,
-                  "orders.products.quantity": 1,
-                  "orders.discount": 1,
-                  "orders.products.tipValue": 1,
-                  "orders.products.unitPrice": 1,
-                  "orders.products.productName": 1,
-                  "orders.products.category": 1,
-                  "orders.products.addOnes": 1,
-                  "payments._id": 1,
-                  "payments.total": 1,
-                  "payments.method": 1,
-                  "payments.cashRegisterId": 1
+
+        const data = await Promise.all([
+            Orders.find({
+                accountId: new ObjectId(accountId),
+                status: {
+                    $ne: "cancelled"
                 }
-              }
-          ]);
-        const dt = receipts[0] as Receipt;
-        dt.orders.forEach((e) => {
-            e.totalTip = e.products.reduce((prev, next) => prev + next.tipValue, 0.0);
-            e.totalProduct = e.products.reduce((prev, next) => prev + (next.quantity * next.unitPrice), 0.0);
-        })
-        dt.totalTip = dt.orders.reduce((prev, next) => prev + (next.totalTip * next.totalProduct), 0.0);
-        dt.totalPayment = dt.payments.reduce((prev, next) => prev + next.total, 0.0);
-        dt.totalOrder = dt.orders.reduce((prev, next) => prev + next.totalProduct, 0.0) + dt.totalTip;
-        for (let i = 0; i < dt.payments.length; i++) {
-            const pay = dt.payments[i];
-            const payDetail = await PaymentMethods.findById(pay.method, {description: 1, _id: 0, id: 1});
-            pay.description = payDetail.description;
-        }
-        dt.allProductsHasTipValue = dt.orders.every((order) => order.products.every((product) => product.tipValue > 0));
-        return dt;
+            }),
+            Payments.find({
+                accountId: new ObjectId(accountId)
+            }).populate("methodData")
+        ])
+
+        const ords = data[0] ?? [];
+        const pays = data[1] ?? [];
+
+        const rec = <Receipt>{
+            _id: accountId,
+            orders: ords.map((e) => <IReceiptOrders>{
+                _id: e.id,
+                discount: e.discount,
+                totalProduct: e.totalProduct,
+                subTotal: e.subTotal,
+                totalTip: e.products.reduce((a, b) => a + (b.tipValue * b.totalProduct), 0.0),
+                products: e.products,
+            }),
+            payments: pays.map((el) => <IReceiptPayments> {
+                total: el.total,
+                description: el.methodData?.description,
+                method: el._id
+            }),
+            allProductsHasTipValue: ords.every((order) => order.products.every((product) => product.tipValue > 0))
+        };
+        rec.totalTip = rec.orders.reduce((prev, next) => prev + next.totalTip, 0.0);
+        rec.totalOrder = rec.orders.reduce((a, b) => a + b.subTotal, 0.0);
+        rec.totalProducts = rec.orders.reduce((a, b) => a + b.totalProduct, 0.0);
+        rec.totalPayment = rec.payments.reduce((a, b) => a + b.total, 0.0);
+        rec.subTotal = rec.totalOrder - rec.totalPayment;return rec;
     }
 }
 
