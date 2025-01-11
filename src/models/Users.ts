@@ -79,7 +79,7 @@ const userSchema = new mongoose.Schema({
     changePassword: {type: Boolean, default: false},
     username: {type: String},
     isActive: {type: Boolean, default: false},
-    storeCode: {type: ObjectId, ref: "establishments"},
+    storeCode: {type: ObjectId, ref: "establishments", required: [true, "Código do estabelecimento é obrigatório"]},
     token: {type: String, default: ""},
 }, {
     timestamps: true
