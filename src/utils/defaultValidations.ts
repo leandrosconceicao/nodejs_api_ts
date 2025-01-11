@@ -2,7 +2,9 @@ import {z} from "zod";
 import mongoose from "mongoose";
 var ObjectId = mongoose.Types.ObjectId;
 
-const idValidation = z.string().refine(value => {
+const idValidation = z.string({
+    required_error: "Campo obrigatório"
+}).refine(value => {
     return ObjectId.isValid(value);
 }, {
     message: "ID inválido"
