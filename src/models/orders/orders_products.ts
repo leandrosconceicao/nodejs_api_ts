@@ -32,8 +32,14 @@ const orders_products_schema = new mongoose.Schema<IOrderProduct>({
 
 orders_products_schema.virtual("subTotal")
   .get(function() {
-    let subTotal = (this.quantity * this.unitPrice) + this.addOnes?.reduce((a, b) => a + (b.price * b.quantity), 0.0);
+    let subTotal = this.totalProduct;
     return subTotal + (this.tipValue * subTotal)
+  })
+
+orders_products_schema.virtual("totalProduct")
+  .get(function() {
+    let subTotal = (this.quantity * this.unitPrice) + this.addOnes?.reduce((a, b) => a + (b.price * b.quantity), 0.0);
+    return subTotal
   })
 
 orders_products_schema.set('toObject', { virtuals: true });

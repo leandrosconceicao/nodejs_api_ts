@@ -117,6 +117,12 @@ orderSchema.virtual("subTotal")
     return total - (total * (this.discount / 100));
   })
 
+orderSchema.virtual("totalProduct")
+  .get(function() {
+    const total = this.products.reduce((a, b) => a + (b.totalProduct), 0.0)
+    return total;
+  })
+
 orderSchema.set('toObject', { virtuals: true });
 orderSchema.set('toJSON', { virtuals: true });
 
@@ -204,6 +210,7 @@ interface IOrderProduct {
   tipValue?: number,
   hasTipValue?: boolean,
   subTotal?: number,
+  totalProduct?: number,
   addOnes?: Array<{
     _id?: any,
     addOneName: string,
@@ -233,7 +240,8 @@ interface IOrder {
   accountDetail?: IAccount, 
   storeCodeDetail?: IEstablishments,
   paymentDetail?: IPayment
-  subTotal?: number
+  subTotal?: number,
+  totalProduct?: number
 }
 
 interface IFirebaseOrder {

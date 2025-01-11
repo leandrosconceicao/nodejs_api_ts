@@ -12,11 +12,13 @@ class Receipt implements IReceipt {
     payments: Array<IReceiptPayments>;
     orders: Array<IReceiptOrders>
     totalOrder?: number;
+    totalProducts?: number;
     storeCode: mongoose.Types.ObjectId;
     totalPayment?: number;
     totalTip?: number;
     allProductsHasTipValue?: boolean;
     client?: IClient;
+    subTotal: number;
 }
 
 interface IReceipt {
@@ -26,9 +28,11 @@ interface IReceipt {
     payments: Array<IReceiptPayments>,
     orders: Array<IReceiptOrders>
     totalOrder?: number,
+    totalProducts?: number,
     totalPayment?: number,
     totalTip?: number,
     client?: IClient,
+    subTotal: number;
 }
 interface IReceiptOrders {
     _id: typeof ObjectId,
@@ -36,11 +40,13 @@ interface IReceiptOrders {
     totalTip?: number,
     discount?: number,
     totalProduct?: number
+    subTotal?: number,
 }
 
 interface IReceiptOrdersProducts {
     quantity: number,
     subTotal: number,
+    totalProduct: number,
     productName: string,
     category: string,
     unitPrice: number,
