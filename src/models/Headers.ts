@@ -32,7 +32,7 @@ export default class Headers {
         let page = parseInt(this.filters.offset as string);
         let config = (page - 1) * limit;
         return {
-            offset: config > 0 ? config : 0,
+            offset: config >= 0 ? page : 0,
             limit: limit > 0 ? limit : Infinity
         }
     }
