@@ -211,13 +211,15 @@ interface IOrderProduct {
   hasTipValue?: boolean,
   subTotal?: number,
   totalProduct?: number,
-  addOnes?: Array<{
-    _id?: any,
-    addOneName: string,
-    quantity: number,
-    price: number,
-    name: string,
-  }>      
+  addOnes?: Array<IAddOne>      
+}
+
+interface IAddOne {
+  _id?: any,
+  addOneName: string,
+  quantity: number,
+  price: number,
+  name: string,
 }
 
 interface IOrder {
@@ -264,8 +266,10 @@ interface IFirebaseOrder {
   userCreate?: Partial<IUsers>,
   accountDetail?: Partial<IAccount>, 
   storeCodeDetail?: Partial<IEstablishments>
+  subTotal?: number,
+  totalProduct?: number
 }
 
 const Orders = mongoose.model<IOrder>("orders", orderSchema);
 
-export {Orders, orderSchema, orderValidation, orderProductValidation, IOrder, IFirebaseOrder, OrderType, OrderStatus, IOrderProduct};
+export {Orders, orderSchema, orderValidation, orderProductValidation, IOrder, IFirebaseOrder, OrderType, OrderStatus, IOrderProduct, IAddOne};

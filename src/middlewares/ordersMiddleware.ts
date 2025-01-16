@@ -31,16 +31,10 @@ function handlerOrder(order: IOrder) {
         accountDetail: {
             description: order?.accountDetail?.description ?? ""
         },
+        subTotal: order?.subTotal ?? 0,
+        totalProduct: order?.totalProduct ?? 0,
         products: [
             ...order.products.map((e) => {
-                const addOnes = e.addOnes?.length ? [...e.addOnes.map((a) => {
-                    return {
-                        addOneName: a.addOneName,
-                        quantity: a.quantity,
-                        name: a.name,
-                        price: a.price
-                    }
-                })] : [];
                 return <IOrderProduct>{
                     quantity: e.quantity,
                     productName: e.productName,
@@ -51,7 +45,16 @@ function handlerOrder(order: IOrder) {
                     setupIsFinished: e.setupIsFinished,
                     category: e.category,
                     unitPrice: e.unitPrice,
-                    addOnes: addOnes
+                    subTotal: e.subTotal ?? 0.0,
+                    totalProduct: e.totalProduct ?? 0.0,
+                    addOnes: e.addOnes?.map((a) => {
+                        return {
+                            addOneName: a.addOneName,
+                            quantity: a.quantity,
+                            name: a.name,
+                            price: a.price,
+                        }
+                    }) ?? []
                 }
             })
         ]
