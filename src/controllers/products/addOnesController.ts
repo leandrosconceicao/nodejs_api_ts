@@ -1,33 +1,33 @@
 import { Validators } from "../../utils/validators";
-import AddOnes from "../../models/products/AddOnes";
+import { AddOnes, addOneValidation } from "../../models/products/AddOnes";
 import ApiResponse from "../../models/base/ApiResponse";
 import { Request, Response, NextFunction } from "express";
 import InvalidParameter from "../../models/errors/InvalidParameters";
-import BadRequestError from "../../models/errors/BadRequest";
+import { z } from "zod";
+import { idValidation } from "../../utils/defaultValidations";
+import mongoose from "mongoose";
 
-// var ObjectId = mongoose.Types.ObjectId;
-const moves = ["push", "pull"];
+var ObjectId = mongoose.Types.ObjectId;
 
 export default class AddOneController {
     static async findAll(req: Request, res: Response, next: NextFunction) {
         try {
-            const {storeCode} = req.query;
-            const storeVal = new Validators("storeCode", storeCode, "string").validate();
-            if (!storeVal.isValid) {
-                throw new InvalidParameter(storeVal);
-            }
+            const query = z.object({
+                storeCode: idValidation
+            }).parse(req.query);
+
             const process = await AddOnes.find({
-                storeCode: storeCode
+                storeCode: new ObjectId(query.storeCode)
             });
             return ApiResponse.success(process).send(res);
         } catch (e) {
             next(e);
         }
-    }   
+    }
 
     static async add(req: Request, res: Response, next: NextFunction) {
         try {
-            const newData = new AddOnes(req.body);
+            const newData = new AddOnes(addOneValidation.parse(req.body));
             const process = await newData.save();
             return ApiResponse.success(process).send(res);
         } catch (e) {
@@ -37,7 +37,7 @@ export default class AddOneController {
 
     static async update(req: Request, res: Response, next: NextFunction) {
         try {
-            const {id, data} = req.body;
+            const { id, data } = req.body;
             const idVal = new Validators("id", id, "string").validate();
             const dataVal = new Validators("data", data, "object").validate();
             if (!idVal.isValid) {
@@ -55,26 +55,23 @@ export default class AddOneController {
 
     static async patch(req: Request, res: Response, next: NextFunction) {
         try {
-            const {movement, id, item} = req.body;
-            if (moves.includes(movement)) {
-                throw new BadRequestError("movement")
-            }
-            const idVal = new Validators("id", id, "string").validate();
-            if (!idVal.isValid) {
-                throw new InvalidParameter(idVal);
-            }
-            const itemVal = new Validators("item", item, "object").validate();
-            if (!itemVal.isValid) {
-                throw new InvalidParameter(itemVal);
-            }
-            let update = movement === "push" ? {
-                $push: {items: item}
+            const obj = z.object({
+                movement: z.enum(["push", "pull"], {
+                    description: "Opção inválida",
+                    required_error: "Movimentação de entrada ou saída é obrigatória"
+                }),
+                id: z.string().min(1).uuid(),
+                item: addOneValidation
+            }).parse(req.body);
+
+            let update = obj.movement === "push" ? {
+                $push: { items: obj.item }
             } : {
-                $pull: {items: item}
+                $pull: { items: obj.item }
             }
-            const process = await AddOnes.findByIdAndUpdate(id, {
-                update
-            })
+
+            const process = await AddOnes.updateOne({ _id: obj.id }, update)
+
             return ApiResponse.success(process).send(res);
         } catch (e) {
             next(e);
@@ -83,7 +80,7 @@ export default class AddOneController {
 
     static async delete(req: Request, res: Response, next: NextFunction) {
         try {
-            const {id} = req.body;
+            const { id } = req.body;
             const idVal = new Validators("id", id, "string").validate();
             if (!idVal.isValid) {
                 throw new InvalidParameter(idVal);
