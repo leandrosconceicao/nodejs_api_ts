@@ -56,7 +56,7 @@ export default class AddOneController {
     static async patch(req: Request, res: Response, next: NextFunction) {
         try {
             const {movement, id, item} = req.body;
-            if (moves.includes(movement)) {
+            if (!moves.includes(movement)) {
                 return ApiResponse.invalidParameter("movement").send(res);
             }
             const idVal = new Validators("id", id, "string").validate();
