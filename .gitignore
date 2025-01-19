@@ -7,6 +7,7 @@ config/homolog.p12
 config/producao.p12
 .gcloudignore
 app.yaml
+homolog_app.yaml
 firebase_config.json
 .vs/ProjectSettings.json
 .vs/slnx.sqlite
