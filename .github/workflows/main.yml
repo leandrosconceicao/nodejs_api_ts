@@ -3,7 +3,7 @@ name: Deploy to Google App Engine (Test)
 on:
     push:
         branches:
-            - payment_methods
+            - main
 
 jobs:
     deploy:
