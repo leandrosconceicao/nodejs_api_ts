@@ -19,11 +19,17 @@ jobs:
             run: |
               echo "$FIREBASE_JSON" > firebase_config.json
 
-          - name: "Create Certificate"
+          - name: "Create Homolog Certificate"
             env:
               CERTIFICATE_P12: ${{secrets.HOMOLOG_CERTIFICATE}}
             run: |
               echo "$CERTIFICATE_P12" | base64 -d > config/homolog.p12
+
+          - name: "Create Prod Certificate"
+            env:
+              CERTIFICATE_P12: ${{secrets.PROD_CERTIFICATE}}
+            run: |
+              echo "$CERTIFICATE_P12" | base64 -d > config/producao.p12
 
           - name: Set up Cloud SDK
             uses: google-github-actions/setup-gcloud@v0.2.0
@@ -34,7 +40,7 @@ jobs:
 
           - name: Create app.yaml
             env:
-              APP_YAML_FILE: ${{secrets.APP_YAML_FILE}}
+              APP_YAML_FILE: ${{secrets.HOMOLOG_APP_YAML}}
             run: |
               echo "$APP_YAML_FILE" > app.yaml
 
