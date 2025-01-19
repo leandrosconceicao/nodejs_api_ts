@@ -72,9 +72,8 @@ export default class AddOneController {
             } : {
                 $pull: {items: item}
             }
-            const process = await AddOnes.findByIdAndUpdate(id, {
-                update
-            })
+            const process = await AddOnes.findByIdAndUpdate(id, update)
+            
             return ApiResponse.success(process).send(res);
         } catch (e) {
             next(e);
