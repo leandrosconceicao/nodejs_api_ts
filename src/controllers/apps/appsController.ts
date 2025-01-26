@@ -64,7 +64,7 @@ export default class AppsController {
             const body = appValidation.parse(req.body);
             const app = new Apps(body);
             await app.save();
-            return ApiResponse.success().send(res);
+            return ApiResponse.success(null, 204).send(res);
         } catch (e) {
             next(e);
         }
@@ -88,7 +88,7 @@ export default class AppsController {
             if (!process) {
                 return ApiResponse.badRequest().send(res);
             }
-            return ApiResponse.success(process).send(res);
+            return ApiResponse.success(process, 204).send(res);
         } catch (e) {   
             next(e);
         }
@@ -112,7 +112,7 @@ export default class AppsController {
             if (hasNewVersion) {
                 return ApiResponse.badRequest("Há uma nova versão do aplivativo disponível para atualização").send(res);
             }
-            return ApiResponse.success().send(res);
+            return ApiResponse.success(app).send(res);
         } catch (e) {
             next(e);
         }
