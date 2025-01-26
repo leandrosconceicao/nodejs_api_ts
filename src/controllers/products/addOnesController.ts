@@ -1,11 +1,11 @@
-import { Validators } from "../../utils/validators";
+
 import { AddOnes, addOneValidation } from "../../models/products/AddOnes";
 import ApiResponse from "../../models/base/ApiResponse";
 import { Request, Response, NextFunction } from "express";
-import InvalidParameter from "../../models/errors/InvalidParameters";
 import { z } from "zod";
 import { idValidation } from "../../utils/defaultValidations";
 import mongoose from "mongoose";
+import BadRequestError from "../../models/errors/BadRequest";
 
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -37,16 +37,46 @@ export default class AddOneController {
 
     static async update(req: Request, res: Response, next: NextFunction) {
         try {
-            const { id, data } = req.body;
-            const idVal = new Validators("id", id, "string").validate();
-            const dataVal = new Validators("data", data, "object").validate();
-            if (!idVal.isValid) {
-                throw new InvalidParameter(idVal);
+            const id = z.string().min(1).uuid().parse(req.params.id);
+
+            const data = z.object({
+                name: z.string().min(1).optional(),
+                price: z.number().optional(),
+                maxQtdAllowed: z.number().optional(),
+                items: z.array(z.object({
+                    name: z.string().min(1),
+                    price: z.number().default(0.0)
+                })).nonempty().optional()
+            })
+            .transform((values) => {
+                const addOne : {
+                    name?: string
+                    price?: number
+                    maxQtdAllowed?: number
+                    items?: Array<Partial<{
+                        name: string,
+                        price: number
+                    }>>
+                } = {};
+                
+                if (values.name) addOne.name = values.name;
+
+                if (values.price) addOne.price = values.price;
+
+                if (values.maxQtdAllowed) addOne.maxQtdAllowed = values.maxQtdAllowed;
+
+                if (values.items) addOne.items = values.items;
+
+                return addOne;
+            })
+            .parse(req.body);
+
+            if (!Object.values(data))  {
+                throw new BadRequestError("Nenhum dado de atualização informado");
             }
-            if (!dataVal.isValid) {
-                throw new InvalidParameter(dataVal);
-            }
+
             const process = await AddOnes.findByIdAndUpdate(id, data);
+
             return ApiResponse.success(process).send(res);
         } catch (e) {
             next(e);
@@ -55,13 +85,17 @@ export default class AddOneController {
 
     static async patch(req: Request, res: Response, next: NextFunction) {
         try {
+            const id = z.string().min(1).uuid().parse(req.params.id);
+
             const obj = z.object({
                 movement: z.enum(["push", "pull"], {
                     description: "Opção inválida",
                     required_error: "Movimentação de entrada ou saída é obrigatória"
                 }),
-                id: z.string().min(1).uuid(),
-                item: addOneValidation
+                item: z.object({
+                    name: z.string().min(1),
+                    price: z.number().default(0.0)
+                })
             }).parse(req.body);
 
             let update = obj.movement === "push" ? {
@@ -70,7 +104,7 @@ export default class AddOneController {
                 $pull: { items: obj.item }
             }
 
-            const process = await AddOnes.updateOne({ _id: obj.id }, update)
+            const process = await AddOnes.updateOne({ _id: id }, update)
 
             return ApiResponse.success(process).send(res);
         } catch (e) {
@@ -80,13 +114,10 @@ export default class AddOneController {
 
     static async delete(req: Request, res: Response, next: NextFunction) {
         try {
-            const { id } = req.body;
-            const idVal = new Validators("id", id, "string").validate();
-            if (!idVal.isValid) {
-                throw new InvalidParameter(idVal);
-            }
+            const id = z.string().min(1).uuid().parse(req.params.id);
+
             const process = await AddOnes.findByIdAndDelete(id);
-            if (!process.ok) {
+            if (!process) {
                 return ApiResponse.badRequest().send(res);
             }
             return ApiResponse.success(process).send(res);
