@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 import { idValidation } from "../../utils/defaultValidations";
 import {z} from "zod";
+import TokenGenerator from "../../utils/tokenGenerator";
 
 var ObjectId = mongoose.Schema.Types.ObjectId;
 
@@ -20,19 +21,27 @@ const PRODUCT_SCHEMA_VALIDATION = z.object({
   }).optional(),
   image: z.string().optional(),
   addOnes: z.array(z.object({
+      _id: z.string().default(TokenGenerator.generateId()),
       isRequired: z.boolean(),
-      productsAddOnes: z.object({
-          _id: z.string(),
+      name: z.string(),
+      maxQtdAllowed: z.number(),
+      items: z.array(z.object({
           name: z.string(),
-          // price: z.number(),
-          maxQtdAllowed: z.number(),
-          items: z.array(z.object({
-              name: z.string(),
-              price: z.number()
-          }))
-      })
+          price: z.number()
+      }))
   })).optional(),
 });
+
+interface IAddOne {
+  _id: string,
+  isRequired: boolean,
+  name: string,
+  maxQtdAllowed: number,
+  items: Array<{
+    name: string,
+    price: number
+  }>
+}
 
 interface IProduct {
   _id: mongoose.Types.ObjectId,
@@ -40,6 +49,7 @@ interface IProduct {
   category: mongoose.Types.ObjectId,
   produto: string,
   preco: number,
+  addOnes?: Array<IAddOne>
 }
 
 const productSchema = new mongoose.Schema({
@@ -65,23 +75,19 @@ const productSchema = new mongoose.Schema({
   addOnes: {
     type: [
       {
+        _id: String,
         isRequired: Boolean,
-        productsAddOnes: {
-          _id: String,
-          // storeCode: String,
-          name: String,
-          // price: Number,
-          maxQtdAllowed: Number,
-          items: {
-            type: [
-              {
-                name: String,
-                price: Number,
-              },
-            ],
-            default: undefined,
-          },
-        },
+        name: String,
+        maxQtdAllowed: Number,
+        items: {
+          type: [
+            {
+              name: String,
+              price: Number,
+            },
+          ],
+          default: undefined,
+        }
       },
     ],
     default: undefined,
