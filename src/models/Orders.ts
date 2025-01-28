@@ -114,7 +114,7 @@ orderSchema.virtual("paymentDetail", {
 orderSchema.virtual("subTotal")
   .get(function() {
     const total = this.products.reduce((a, b) => a + (b.subTotal), 0.0)
-    return total - (total * (this.discount / 100));
+    return total - (total * this.discount);
   })
 
 orderSchema.virtual("totalProduct")
