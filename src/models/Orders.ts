@@ -211,6 +211,7 @@ interface IOrderProduct {
   hasTipValue?: boolean,
   subTotal?: number,
   totalProduct?: number,
+  totalAddOnes?: number,
   addOnes?: Array<IAddOne>      
 }
 
