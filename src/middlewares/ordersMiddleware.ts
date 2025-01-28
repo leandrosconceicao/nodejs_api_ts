@@ -45,6 +45,7 @@ function handlerOrder(order: IOrder) {
                     setupIsFinished: e.setupIsFinished,
                     category: e.category,
                     unitPrice: e.unitPrice,
+                    totalAddOnes: e.totalAddOnes,
                     subTotal: e.subTotal ?? 0.0,
                     totalProduct: e.totalProduct ?? 0.0,
                     addOnes: e.addOnes?.map((a) => {
