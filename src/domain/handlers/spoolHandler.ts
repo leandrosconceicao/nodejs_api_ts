@@ -244,23 +244,20 @@ export default class SpoolHandler implements ISpoolHandler {
         encoder.newline();
         encoder.align("left");
         
-        encoder.text("      ")
-        encoder.text("Produto");
-        encoder.text("          ")
-        encoder.text("Valor");
-        encoder.text("  ")
+        encoder.text("Produtos").align("center");
     
         encoder.newline();
     
-        const subTotal = parsedOrder.products.reduce((ol, newV) => ol + (newV.quantity * newV.unitPrice), 0)
+        const subTotal = parsedOrder.subTotal;
     
         const totPay = parsedOrder.paymentDetail?.total ?? 0.0;
         
         parsedOrder.products.forEach((prod) => {
-            encoder.text(`${prod.quantity}x ${this.removerAcentos(prod.orderDescription)}   ${(prod.quantity * prod.unitPrice).toFixed(2)}`).align("center");
+            encoder.text(`${prod.quantity}x ${(prod.quantity * prod.unitPrice).toFixed(2)} ${this.removerAcentos(prod.orderDescription)}`).align("center");
             if (prod.addOnes?.length) {
                 prod.addOnes.forEach((add) => {
-                    encoder.text(`\n${this.removerAcentos(add.name)}`)
+                    let hasPrice = add.price > 0;
+                    encoder.text(`\n${hasPrice ? `${add.quantity}x ${add.price.toFixed(2)} ` : ""}${this.removerAcentos(add.name)}`)
                 })
                 encoder.emptyLine();
             } else {
@@ -273,7 +270,8 @@ export default class SpoolHandler implements ISpoolHandler {
         encoder.newline();
         encoder.newline().align("left");
     
-        this.genText(encoder, `Valor do pedido: ${subTotal.toFixed(2)}`)
+        this.genText(encoder, `Valor do pedido: ${parsedOrder.totalProduct.toFixed(2)}`)
+        this.genText(encoder, `Desconto aplicado: ${(parsedOrder.discount * 100).toFixed(1)}%`)
         this.genText(encoder, `Total pago: ${totPay.toFixed(2)}`)
         this.genText(encoder, `Restando: ${(subTotal - totPay).toFixed(2)}`)
     
