@@ -36,9 +36,15 @@ orders_products_schema.virtual("subTotal")
     return subTotal + (this.tipValue * subTotal)
   })
 
+  orders_products_schema.virtual("totalAddOnes")
+    .get(function() {
+      let sub = this.addOnes?.reduce((a, b) => a + (b.price * b.quantity), 0.0)
+      return sub;
+    })
+
 orders_products_schema.virtual("totalProduct")
   .get(function() {
-    let subTotal = (this.quantity * this.unitPrice) + this.addOnes?.reduce((a, b) => a + (b.price * b.quantity), 0.0);
+    let subTotal = (this.quantity * this.unitPrice) + this.totalAddOnes;
     return subTotal
   })
 
