@@ -1,5 +1,6 @@
-import IOrderHandler from "@/domain/interfaces/IOrderHandler";
+
 import { IOrder, Orders } from "../../../models/Orders";
+import IOrderHandler from "../../interfaces/IOrderHandler";
 
 
 export default class WithdrawHandler implements IOrderHandler {

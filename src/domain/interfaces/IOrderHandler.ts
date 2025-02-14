@@ -1,4 +1,5 @@
-import { IOrder } from "@/models/Orders";
+import { IOrder } from "../../models/Orders";
+
 
 export default interface IOrderHandler {
 

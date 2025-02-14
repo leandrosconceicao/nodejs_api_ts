@@ -40,8 +40,10 @@ enum GroupUser {
 }
 
 interface IUsers {
+    id?: any,
     email: string,
     pass: string,
+    deleted?: boolean,
     group_user: GroupUser | "1" | "2" | "99",
     // group_user: {
     //     type: String, default: '1',
@@ -97,7 +99,7 @@ userSchema.virtual("establishmentDetail", {
 userSchema.set('toObject', { virtuals: true });
 userSchema.set('toJSON', { virtuals: true });
 
-const Users = mongoose.model('users', userSchema);
+const Users = mongoose.model<IUsers>('users', userSchema);
 
 
 export {Users, userValidaton, userPatchValidation, IUsers};

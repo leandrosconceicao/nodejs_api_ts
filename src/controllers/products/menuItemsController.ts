@@ -3,9 +3,7 @@ import {z} from "zod";
 import { Request, Response, NextFunction } from "express";
 import ApiResponse from "../../models/base/ApiResponse";
 import MenuItems from "../../models/MenuItems";
-import { Validators } from "../../utils/validators";
-import InvalidParameter from "../../models/errors/InvalidParameters";
-import categories from "../../models/Categories";
+import {ICategory} from "../../models/Categories";
 
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -15,7 +13,7 @@ export default class MenuItemsController {
             const query = z.object({
                 storeCode: z.string().min(1).max(24)
             }).parse(req.query);
-            const data = await MenuItems.aggregate([
+            const data = await MenuItems.aggregate<ICategory>([
                 {
                     $match: {
                         storeCode: new ObjectId(query.storeCode)

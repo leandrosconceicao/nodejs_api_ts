@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { idValidation } from "../../utils/defaultValidations";
 import {z} from "zod";
 import TokenGenerator from "../../utils/tokenGenerator";
+import { AddOneType, IProductAddOne } from "./AddOnes";
 
 var ObjectId = mongoose.Schema.Types.ObjectId;
 
@@ -23,39 +24,40 @@ const PRODUCT_SCHEMA_VALIDATION = z.object({
   addOnes: z.array(z.object({
       _id: z.string().default(TokenGenerator.generateId()),
       isRequired: z.boolean(),
-      name: z.string(),
-      maxQtdAllowed: z.number(),
-      items: z.array(z.object({
-          name: z.string(),
-          price: z.number()
-      }))
+      // type: z.nativeEnum(AddOneType).default(AddOneType.checkbox),
+      // name: z.string(),
+      // maxQtdAllowed: z.number(),
+      // items: z.array(z.object({
+      //     name: z.string(),
+      //     price: z.number()
+      // }))
   })).optional(),
 });
 
-interface IAddOne {
-  _id: string,
-  isRequired: boolean,
-  name: string,
-  maxQtdAllowed: number,
-  items: Array<{
-    name: string,
-    price: number
-  }>
+interface IProduct {
+  _id?: mongoose.Types.ObjectId,
+  isActive: boolean,
+  storeCode: mongoose.Types.ObjectId,
+  category: mongoose.Types.ObjectId,
+  preco: number,
+  produto: string,
+  tipValue: Boolean,
+  addOnes?: Array<IProductAddOne>
 }
 
-interface IProduct {
-  _id: mongoose.Types.ObjectId,
-  isActive: boolean,
-  category: mongoose.Types.ObjectId,
-  produto: string,
-  preco: number,
-  addOnes?: Array<IAddOne>
-}
+const addSchema = new mongoose.Schema({
+  _id: {
+    type: String,
+    ref: "addOnes",
+  },
+  isRequired: Boolean,
+});
 
 const productSchema = new mongoose.Schema({
   // _id: { type: Number },
-  isActive: { type: Boolean, 
-    required: [true, "Parametro (isActive) é obrigatório"] 
+  isActive: {
+    type: Boolean, 
+    default: true,    
   },
   category: {
     type: ObjectId, ref: "categories", required: true
@@ -68,33 +70,28 @@ const productSchema = new mongoose.Schema({
   produto: { type: String, 
     required: [true, "Parametro (produto) é obrigatório"],
   },
-  createDate: {type: Date, default: () => { return new Date() }},
   descricao: { type: String },
-  preparacao: Boolean,
+  preparacao: {Boolean},
   storeCode: {type: ObjectId, ref: "establishments", required: [true, "Parametro (storeCode) é obrigatório"] },
   addOnes: {
     type: [
-      {
-        _id: String,
-        isRequired: Boolean,
-        name: String,
-        maxQtdAllowed: Number,
-        items: {
-          type: [
-            {
-              name: String,
-              price: Number,
-            },
-          ],
-          default: undefined,
-        }
-      },
+      addSchema
     ],
     default: undefined,
   },
   image: {type: String, default: ""}
+}, {
+  timestamps: true
 });
 
-const Products = mongoose.model("products", productSchema);
+addSchema.virtual("name");
+addSchema.virtual("maxQtdAllowed");
+addSchema.virtual("items")
+addSchema.virtual("type")
 
-export {productSchema, PRODUCT_SCHEMA_VALIDATION, Products, IProduct};
+addSchema.set("toJSON", {virtuals: true});
+addSchema.set("toObject", {virtuals: true});
+
+const Products = mongoose.model<IProduct>("products", productSchema);
+
+export {productSchema, PRODUCT_SCHEMA_VALIDATION, Products, IProduct, IProductAddOne};

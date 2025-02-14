@@ -385,6 +385,10 @@ export default class OrdersController {
 
             await EstablishmentHandler.validateDiscount(updatedBy.storeCode.toString(), body.discount);
 
+            if (body.discount > 0) {
+                body.discount = body.discount / 100
+            }
+
             const updateOrder = await Orders.findOneAndUpdate({
                 _id: new ObjectId(orderId),
                 status: "pending"

@@ -66,7 +66,6 @@ const schema = new mongoose.Schema({
         },
         coordinates: [{type: Number, required: true}]
     },
-    // isOpen: {type: Boolean, default: false},
     ownerId: {type: String, required: [true, "Parametro (ownerId) é obrigatório"]},
     logo: {type: String, default: ""},
     pixKey: {type: String, default: ""},

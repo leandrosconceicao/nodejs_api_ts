@@ -229,7 +229,8 @@ export default class AccountsController extends ApiFilters {
         rec.totalOrder = rec.orders.reduce((a, b) => a + b.subTotal, 0.0);
         rec.totalProducts = rec.orders.reduce((a, b) => a + b.totalProduct, 0.0);
         rec.totalPayment = rec.payments.reduce((a, b) => a + b.total, 0.0);
-        rec.subTotal = rec.totalOrder - rec.totalPayment;return rec;
+        rec.subTotal = rec.totalOrder - rec.totalPayment;
+        return rec;
     }
 }
 

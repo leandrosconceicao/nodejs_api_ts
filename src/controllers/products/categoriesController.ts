@@ -1,11 +1,10 @@
 import mongoose from "mongoose";
 import { Validators } from "../../utils/validators";
-import Category from "../../models/Categories";
+import {Category} from "../../models/Categories";
 import ApiResponse from "../../models/base/ApiResponse";
 import ProductController from "./productController";
 import { Request, Response, NextFunction } from "express";
 import { RegexBuilder } from "../../utils/regexBuilder";
-import Categories from "../../models/Categories";
 import InvalidParameter from "../../models/errors/InvalidParameters";
 import NotFoundError from "../../models/errors/NotFound";
 var ObjectId = mongoose.Types.ObjectId;
@@ -44,7 +43,7 @@ class CategoryController {
       if (!validation.isValid) {
         throw new InvalidParameter(validation);
       }
-      const category = await Categories.findById(id);
+      const category = await Category.findById(id);
       if (!category) {
         throw new NotFoundError();
       }
@@ -71,15 +70,7 @@ class CategoryController {
     }
   }
 
-  static async getLastCategory(storeCode: {
-    prototype?: mongoose.Types.ObjectId;
-    cacheHexString?: unknown;
-    generate?: {};
-    createFromTime?: {};
-    createFromHexString?: {};
-    createFromBase64?: {};
-    isValid?: {};
-  }): Promise<mongoose.Document> {
+  static async getLastCategory(storeCode: mongoose.Types.ObjectId): Promise<mongoose.Document> {
     try {
       const categories = await Category.find({ storeCode: storeCode });
       const data = categories.splice(-1)[0];

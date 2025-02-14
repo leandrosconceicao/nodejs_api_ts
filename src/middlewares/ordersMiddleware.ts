@@ -33,6 +33,7 @@ function handlerOrder(order: IOrder) {
         },
         subTotal: order?.subTotal ?? 0,
         totalProduct: order?.totalProduct ?? 0,
+        totalTip: order?.totalTip ?? 0.0,
         products: [
             ...order.products.map((e) => {
                 return <IOrderProduct>{

@@ -1,4 +1,4 @@
-import { IOrder } from "@/models/Orders";
+import { IOrder } from "../models/Orders";
 import { Payments } from "../models/Payments";
 import {Request, Response, NextFunction} from "express";
 

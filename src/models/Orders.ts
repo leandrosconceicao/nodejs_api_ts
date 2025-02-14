@@ -111,10 +111,16 @@ orderSchema.virtual("paymentDetail", {
   justOne: true
 })
 
+orderSchema.virtual("totalTip").get(function() {
+  const tot = this.products.reduce((a, b) => a + (b.tipValue * b.totalProduct), 0.0);
+  return parseFloat(tot.toFixed(2));
+});
+
 orderSchema.virtual("subTotal")
   .get(function() {
     const total = this.products.reduce((a, b) => a + (b.subTotal), 0.0)
-    return total - (total * this.discount);
+    const totMinusDiscount = total - (total * this.discount);
+    return parseFloat(totMinusDiscount.toFixed(2));
   })
 
 orderSchema.virtual("totalProduct")
@@ -244,7 +250,8 @@ interface IOrder {
   storeCodeDetail?: IEstablishments,
   paymentDetail?: IPayment
   subTotal?: number,
-  totalProduct?: number
+  totalProduct?: number,
+  totalTip?: number
 }
 
 interface IFirebaseOrder {
@@ -268,7 +275,8 @@ interface IFirebaseOrder {
   accountDetail?: Partial<IAccount>, 
   storeCodeDetail?: Partial<IEstablishments>
   subTotal?: number,
-  totalProduct?: number
+  totalProduct?: number,
+  totalTip?: number
 }
 
 const Orders = mongoose.model<IOrder>("orders", orderSchema);

@@ -1,5 +1,5 @@
 
-import { AddOnes, addOneValidation } from "../../models/products/AddOnes";
+import { AddOnes, AddOneType, addOneValidation } from "../../models/products/AddOnes";
 import ApiResponse from "../../models/base/ApiResponse";
 import { Request, Response, NextFunction } from "express";
 import { z } from "zod";
@@ -41,7 +41,7 @@ export default class AddOneController {
 
             const data = z.object({
                 name: z.string().min(1).optional(),
-                price: z.number().optional(),
+                type: z.nativeEnum(AddOneType).optional(),
                 maxQtdAllowed: z.number().optional(),
                 items: z.array(z.object({
                     name: z.string().min(1),
@@ -51,7 +51,7 @@ export default class AddOneController {
             .transform((values) => {
                 const addOne : {
                     name?: string
-                    price?: number
+                    type?: AddOneType
                     maxQtdAllowed?: number
                     items?: Array<Partial<{
                         name: string,
@@ -61,9 +61,9 @@ export default class AddOneController {
                 
                 if (values.name) addOne.name = values.name;
 
-                if (values.price) addOne.price = values.price;
+                if (values.type) addOne.type = values.type;
 
-                if (values.maxQtdAllowed) addOne.maxQtdAllowed = values.maxQtdAllowed;
+                addOne.maxQtdAllowed = values.maxQtdAllowed ?? null;
 
                 if (values.items) addOne.items = values.items;
 
