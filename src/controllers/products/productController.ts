@@ -3,13 +3,18 @@ import { z } from "zod";
 import ApiResponse from "../../models/base/ApiResponse";
 import { booleanStringValidation, idValidation } from "../../utils/defaultValidations";
 import NotFoundError from "../../models/errors/NotFound";
-import { PRODUCT_SCHEMA_VALIDATION, Products } from "../../models/products/Products";
+import { PRODUCT_SCHEMA_VALIDATION, Products, IProductAddOne, IProduct } from "../../models/products/Products";
 import { Request, Response, NextFunction } from "express";
 import InvalidParameter from "../../models/errors/InvalidParameters";
 import mongoose, { ObjectId } from "mongoose";
 import { RegexBuilder } from "../../utils/regexBuilder";
 import FirebaseStorage from "../../utils/firebase/storage";
+import ProductHandler from "../../domain/handlers/products/productCreationHandler";
+import { AddOnes } from "../../models/products/AddOnes";
+
 var ObjectId = mongoose.Types.ObjectId;
+
+const handler = new ProductHandler();
 
 interface ProductFilters {
     _id?: mongoose.Types.ObjectId,
@@ -57,9 +62,22 @@ export default class ProductController {
     static async findOne(req: Request, res: Response, next: NextFunction) {
         try {
             const id = idValidation.parse(req.params.id);
-            const product = await Products.findById(id).populate("category");
+            const product = await Products.findById<IProduct>(id)
+                .populate("category");
             if (!product) {
                 throw new NotFoundError("Produto não localizado");
+            }
+            if (product.addOnes) {
+                for (let i = 0; i < product.addOnes.length; i++) {
+                    let item = product.addOnes[i];
+                    const addOne = await AddOnes.findById<IProductAddOne>(item._id)
+                    if (addOne) {
+                        item.name = addOne.name;
+                        item.type = addOne.type;
+                        item.maxQtdAllowed = addOne.maxQtdAllowed;
+                        item.items = addOne.items;
+                    }    
+                }
             }
             return ApiResponse.success(product).send(res);
         } catch (e) {
@@ -70,6 +88,9 @@ export default class ProductController {
     static async addProduct(req: Request, res: Response, next: NextFunction) {
         try {
             const data = PRODUCT_SCHEMA_VALIDATION.parse(req.body);
+            
+            handler.validateCategory(data.category)
+
             const newProduct = new Products(data);
             const newProductAdd = await newProduct.save();
             return ApiResponse.success(newProductAdd).send(res);
@@ -102,12 +123,10 @@ export default class ProductController {
 
     static async deleteProduct(req: Request, res: Response, next: NextFunction) {
         try {
-            let { id } = req.body;
-            const idValidation = new Validators("id", id, "string").validate()
-            if (!idValidation.isValid) {
-                throw new InvalidParameter(idValidation);
-            }
+            const id = idValidation.parse(req.params.id);
+
             await Products.findByIdAndDelete(id);
+
             return ApiResponse.success().send(res);
         } catch (e) {
             next(e);
