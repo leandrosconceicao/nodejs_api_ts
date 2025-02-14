@@ -11,6 +11,7 @@ import { booleanStringValidation, idValidation } from "../../utils/defaultValida
 import { DELETED_SEARCH } from "../../models/base/MongoDBFilters";
 import { RegexBuilder } from "../../utils/regexBuilder";
 import UnauthorizedError from "../../models/errors/UnauthorizedError";
+import ForbiddenAcessError from "../../domain/exceptions/ForbiddenAcessError";
 // import admin from "../../../config/firebaseConfig.js"
 
 // const FIREBASEAUTH = admin.auth();
@@ -174,13 +175,13 @@ class UserController {
       }).populate("establishmentDetail");
 
       if (!users || users.deleted === true)
-        throw new NotFoundError("Dados incorretos ou inválidos.")
+        throw new UnauthorizedError("Dados incorretos ou inválidos.")
       
 
       if (!users.isActive) 
-        throw new UnauthorizedError("Usuário não está ativo")
+        throw new ForbiddenAcessError("Usuário não está ativo")
 
-      const authToken = TokenGenerator.generate(users.id);
+      const authToken = TokenGenerator.generate(users);
       res.set("Authorization", authToken);
       res.set("Access-Control-Expose-Headers", "*");
       if (body.firebaseToken && users.token != body.firebaseToken) {
