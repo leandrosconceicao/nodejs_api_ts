@@ -10,6 +10,13 @@ import { IEstablishments } from "./Establishments";
 import { IPayment } from "./Payments";
 var ObjectId = mongoose.Types.ObjectId;
 
+enum OrderType {
+  frontdesk = 'frontDesk', 
+  account = 'account',
+  delivery = 'delivery',
+  withdraw = 'withdraw'
+}
+
 const orderSchema = new mongoose.Schema({
   pedidosId: { type: Number },
   firebaseToken: {type: String},
@@ -157,7 +164,7 @@ const orderValidation = z.object({
   firebaseToken: z.string().optional(),
   accountId: idValidation.optional(),
   updated_by: idValidation.optional(),
-  orderType: z.enum(['frontDesk', 'account', 'delivery', 'withdraw']).default("frontDesk"),
+  orderType: z.nativeEnum(OrderType).default(OrderType.frontdesk),
   accepted: z.boolean().optional(),
   status: z.enum(['pending', 'cancelled', 'finished', 'onTheWay']).default("pending"),
   discount: z.number().nonnegative({
@@ -194,13 +201,6 @@ enum OrderStatus {
   cancelled = 'cancelled', 
   finished = 'finished', 
   onTheWay = 'onTheWay'
-}
-
-enum OrderType {
-  frontdesk = 'frontDesk', 
-  account = 'account',
-  delivery = 'delivery',
-  withdraw = 'withdraw'
 }
 
 interface IOrderProduct {

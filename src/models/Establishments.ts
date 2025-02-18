@@ -48,12 +48,13 @@ const establishmentAttributes = z.object({
         type: z.string().default("Point"),
         coordinates: z.array(z.number()),
     }).optional(),
-    tipValue: z.number().default(0.0)
+    tipValue: z.number().default(0.0),
+    maxDiscountAllowed: z.number().optional()
 });
 
 const schema = new mongoose.Schema({
     name: {type: String, required: [true, "Parametro (name) é obrigatório"] },
-    createDate: {type: Date, default: () => { return new Date() }},
+    // createDate: {type: Date, default: () => { return new Date() }},
     location: {type: String, default: ""},   
     geoLocation: {
         type: {
@@ -151,15 +152,20 @@ enum GeolocationType {
 }
 
 interface IEstablishments {
+    _id?: string,
     name: string,
-    createDate: Date,
+    // createDate: Date,
     location: string,   
     geoLocation: {
         type: GeolocationType,
-        coordinates: [{type: Number, required: true}]
+        coordinates: Array<number>
     },
     ownerId: string,
     logo: string,
+    dataImage?: {
+        path: string,
+        data: string
+    },
     pixKey: string,
     telegramChatId: string,
     url: string,
@@ -186,7 +192,7 @@ interface IEstablishments {
             },
         },
         withdraw: {
-            enabled: {type: Boolean, default: false},
+            enabled: boolean,
             opening_hours: {
                 start: string,
                 end: string
