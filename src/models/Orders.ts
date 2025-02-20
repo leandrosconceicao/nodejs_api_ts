@@ -8,6 +8,7 @@ import { IUsers } from "./Users";
 import { IAccount } from "./Accounts";
 import { IEstablishments } from "./Establishments";
 import { IPayment } from "./Payments";
+import { DateQuery } from "../utils/PeriodQuery";
 var ObjectId = mongoose.Types.ObjectId;
 
 enum OrderType {
@@ -79,7 +80,9 @@ const orderSchema = new mongoose.Schema({
 });
 
 orderSchema.pre("save", function(next) {
-  this.discount = this.discount / 100;
+  if (this.discount) {
+    this.discount = this.discount / 100;
+  }
   next();
 })
 
@@ -125,14 +128,14 @@ orderSchema.virtual("totalTip").get(function() {
 
 orderSchema.virtual("subTotal")
   .get(function() {
-    const total = this.products.reduce((a, b) => a + (b.subTotal), 0.0)
+    const total = this.products.reduce((a, b) => a + (b.subTotal ?? 0.0), 0.0)
     const totMinusDiscount = total - (total * this.discount);
     return parseFloat(totMinusDiscount.toFixed(2));
   })
 
 orderSchema.virtual("totalProduct")
   .get(function() {
-    const total = this.products.reduce((a, b) => a + (b.totalProduct), 0.0)
+    const total = this.products.reduce((a, b) => a + (b.totalProduct ?? 0.0), 0.0)
     return total;
   })
 
@@ -203,6 +206,19 @@ enum OrderStatus {
   onTheWay = 'onTheWay'
 }
 
+interface IOrderSearchQuery {
+  isPreparation?: boolean,
+  orderType?: Array<string> | object,
+  createdAt: DateQuery,
+  accountId?: any,
+  status?: Array<String> | object,
+  createdBy?: any,
+  accepted?: boolean,
+  storeCode: any,
+  products?: any,
+  _id?: any
+}
+
 interface IOrderProduct {
   quantity: number,
   productName?: string,
@@ -230,7 +246,7 @@ interface IAddOne {
 }
 
 interface IOrder {
-  _id: string | MongoId,
+  _id?: string | MongoId,
   pedidosId?: number,
   firebaseToken?: string,
   accountId: string | MongoId,
@@ -281,4 +297,4 @@ interface IFirebaseOrder {
 
 const Orders = mongoose.model<IOrder>("orders", orderSchema);
 
-export {Orders, orderSchema, orderValidation, orderProductValidation, IOrder, IFirebaseOrder, OrderType, OrderStatus, IOrderProduct, IAddOne};
+export {Orders, orderSchema, orderValidation, orderProductValidation, IOrder, IFirebaseOrder, OrderType, OrderStatus, IOrderProduct, IAddOne, IOrderSearchQuery};
