@@ -14,4 +14,6 @@ export default interface IEstablishmentRepository {
     update(id: string, data: Partial<IEstablishments>): Promise<IEstablishments>
 
     checkOpening(id: string, orderType: OrderType) : Promise<void>
+
+    validateDiscount(id: string, discount?: number) : Promise<void>
 }

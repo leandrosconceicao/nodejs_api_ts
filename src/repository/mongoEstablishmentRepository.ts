@@ -20,6 +20,18 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
         @inject("ICloudService") private readonly service: ICloudService
     ) {}
 
+    async validateDiscount(id: string, discount?: number): Promise<void> {
+        
+        if (!discount) return;
+        
+        const store = await this.findOne(id);
+        
+        if (!store?.maxDiscountAllowed) return;
+
+        if ( discount > store.maxDiscountAllowed)
+            throw new BadRequestError(`Desconto solicitado é maior que o permitido.`)
+    }
+
     async checkOpening(id: string, orderType: OrderType): Promise<void> {
 
         const establishment = await this.findOne(id);
