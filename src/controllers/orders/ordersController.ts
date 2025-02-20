@@ -1,30 +1,22 @@
 import mongoose from "mongoose";
 import {z} from "zod";
-import { booleanStringValidation, decimalValidation, idValidation } from "../../utils/defaultValidations";
-import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery";
+import { booleanStringValidation, idValidation } from "../../utils/defaultValidations";
+import { PeriodQuery } from "../../utils/PeriodQuery";
 import { Request, Response, NextFunction } from "express";
 import { Validators } from "../../utils/validators";
-import { Orders, OrderStatus, OrderType, orderValidation } from "../../models/Orders";
+import { IOrder, IOrderSearchQuery, Orders, OrderStatus, OrderType, orderValidation } from "../../models/Orders";
 import ApiResponse from "../../models/base/ApiResponse";
-import {Users} from "../../models/Users";
-import Counters from "../../models/Counters";
-import NotFoundError from "../../models/errors/NotFound";
 import {Accounts} from "../../models/Accounts";
 import InvalidParameter from "../../models/errors/InvalidParameters";
 import LogsController from "../logs/logsController";
-import EstablishmentsController from "../establishments/establishmentController";
-import FirebaseMessaging from "../../utils/firebase/messaging";
-import MongoId from "../../models/custom_types/mongoose_types";
-import OrderHandler from "../../domain/handlers/orderHandler";
-import TokenGenerator from "../../utils/tokenGenerator";
-import UnauthorizedError from "../../models/errors/UnauthorizedError";
-import EstablishmentHandler from "../../domain/handlers/establishment/establishmentHandler";
+import { autoInjectable, inject } from "tsyringe";
+import IEstablishmentRepository from "../../domain/interfaces/IEstablishmentRepository";
+import IOrderRepository from "../../domain/interfaces/IOrderRepository";
+import ICloudService from "../../domain/interfaces/ICloudService";
 
-var ObjectId = mongoose.Types.ObjectId;
+export var ObjectId = mongoose.Types.ObjectId;
 
 const logControl = new LogsController();
-
-const FBMESSAGING = new FirebaseMessaging();
 
 const populateClient = "client";
 const popuAccId = "accountDetail";
@@ -34,44 +26,29 @@ const popuUser = "userCreate";
 const popuEstablish = "-establishments";
 const popuPass = "-pass";
 
-interface IOrderSearchQuery {
-    isPreparation?: boolean,
-    orderType?: Array<string> | object,
-    createdAt: DateQuery,
-    // clientId?: any,
-    // payment?: any,
-    accountId?: any,
-    status?: Array<String> | object,
-    createdBy?: any,
-    accepted?: boolean,
-    storeCode: any,
-    products?: any,
-    _id?: any
-}
+@autoInjectable()
 export default class OrdersController {
 
+    constructor(
+        @inject("IEstablishmentRepository") private readonly establishmentRepository: IEstablishmentRepository,
+        @inject("IOrderRepository") private readonly orderRepository: IOrderRepository,
+        @inject("ICloudService") private readonly cloudService: ICloudService
+    ) {}
 
-    static async findOne(req: Request, res: Response, next: NextFunction) {
+
+    findOne = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const id = idValidation.parse(req.params.id);
 
-            const order = await Orders.findById(id)
-                .populate("storeCodeDetail", ["-ownerId"])
-                .populate("paymentMethodDetail")
-                .populate("paymentDetail")
-                .populate(popuAccId, [popuPayment, popuOrders])
-                .populate(popuUser, [popuEstablish, popuPass]);
+            const order = await this.orderRepository.findOne(id);
 
-            if (!order) {
-                throw new NotFoundError("Pedido não localizado");
-            }
             return ApiResponse.success(order).send(res);
         } catch (e) {
             next(e);
         }
     }
 
-    static async findAll(req: Request, res: Response, next: NextFunction) {
+    findAll = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const today = new Date();
             const optionalTo = `${new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999).toISOString()}`;
@@ -132,29 +109,18 @@ export default class OrdersController {
 
             }).parse(req.query);
             
-            req.result = Orders.find(query)
+            req.result = this.orderRepository.findAll(query);
             next();
         } catch (e) {
             next(e);
         }
     }
 
-    static async cancelOrder(req: Request, res: Response, next: NextFunction) {
+    cancelOrder = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const id = idValidation.parse(req.params.id);
-            const authUserData = z.object({
-                id: idValidation
-            }).parse(TokenGenerator.verify(req.headers.authorization));
 
-            const process = await Orders.findByIdAndUpdate(id, {
-                status: "cancelled",
-                isPayed: false,
-                updated_at: new Date(),
-                updated_by: new ObjectId(authUserData.id)
-            }, {
-                returnDocument: "after"
-            });
-
+            const process = await this.orderRepository.delete(id, req.autenticatedUser.id);
             
             req.result = process;
             
@@ -225,56 +191,34 @@ export default class OrdersController {
         }
     }
 
-    static async changeSeller(req: Request, res: Response, next: NextFunction) {
+    changeSeller = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const {userTo, userCode} : {userTo: string, userCode: string} = req.body;
-            const id = req.params.id;
-            const idVal = new Validators("id", id, "string").validate();
-            const userToVal = new Validators("userTo", userTo, "string").validate();
-            const updatedVal = new Validators("userCode", userCode, "string").validate();
-            if (!idVal.isValid) {
-                throw new InvalidParameter(idVal);
-            }
-            if (!idVal.isValid) {
-                throw new InvalidParameter(userToVal);
-            }
-            if (!updatedVal.isValid) {
-                throw new InvalidParameter(updatedVal);
-            }
-            const process = await Orders.findByIdAndUpdate(id, {
-                userCreate: userTo,
-                updated_at: new Date(),
-                updated_by: new ObjectId(userCode)
-            }, {
-                new: true
-            })
+            const id = idValidation.parse(req.params.id);
+            
+            const body = z.object({
+                userTo: idValidation
+            }).parse(req.body);
+
+            const process = await this.orderRepository.changeSeller(id, body.userTo, req.autenticatedUser.id);
+
             return ApiResponse.success(process).send(res);
         } catch (e) {
             next(e);
         }
     }
         
-    static async setPreparation(req: Request, res: Response, next: NextFunction) {
+    setPreparation = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const id = idValidation.parse(req.params.id);
             const body = z.object({
                 isReady: z.boolean(),
                 userCode: idValidation,
             }).parse(req.body)
-            const process = await Orders.findByIdAndUpdate(id, {
-                status: body.isReady ? "finished": "pending",
-                "products.$[].setupIsFinished": body.isReady,
-                updated_at: new Date(),
-                updated_by: new ObjectId(body.userCode)
-            }, {
-                new: true
-            })
-            .populate(populateClient)
-            .populate(popuAccId, [popuPayment, popuOrders])
-            .populate(popuUser, [popuEstablish, popuPass]).lean();
+
+            const process = await this.orderRepository.setPreparation(id, body.userCode, body.isReady);
             
             if (process?.createdBy) {
-                notififyUser(process.createdBy, "Preparação de pedido", body.isReady ? `Atenção, pedido: ${process.pedidosId} está pronto` : "Alerta de pedido");
+                this.cloudService.notifyUsers(process.createdBy.toString(), "Preparação de pedido", body.isReady ? `Atenção, pedido: ${process.pedidosId} está pronto` : "Alerta de pedido");
             }
 
             req.result = {
@@ -287,31 +231,22 @@ export default class OrdersController {
         }
     }
 
-    static async newOrder(req: Request, res: Response, next: NextFunction) {
+    newOrder = async (req: Request, res: Response, next: NextFunction)  => {
         try {
-            // const token = z.string().optional().parse(req.headers.firebasetoken);
-            const rawData = orderValidation
-                .transform((values) => {
-                    if (values.discount > 0) {
-                        values.discount = values.discount / 100
-                    }
-                    return values;
-                })
-                .parse(req.body);
+            const rawData = orderValidation.parse(req.body);
 
-            await EstablishmentsController.checkOpening(rawData.storeCode, rawData.orderType)
+            await this.establishmentRepository.checkOpening(rawData.storeCode, rawData.orderType)        
 
-            const handler = OrderHandler.getInstance(req.body)
+            await this.establishmentRepository.validateDiscount(rawData.storeCode.toString(), rawData.discount);            
 
-            await EstablishmentHandler.validateDiscount(rawData.storeCode, rawData.discount);
+            const order = await this.orderRepository.createOrder(rawData as IOrder);
 
-            const order = await handler.create();
-            await updateId(order._id.toString(),  order.storeCode.toString());
-            const updatedOrder = await Orders.findById(order._id)
-                // .populate(populateClient)
-                .populate(popuAccId, [popuPayment, popuOrders])
-                .populate(popuUser, [popuEstablish, popuPass]);
+            await this.orderRepository.updateId(order._id.toString(),  order.storeCode.toString());
+
+            const updatedOrder = await this.orderRepository.findOne(`${order._id}`)
+
             req.result = updatedOrder;
+
             next();
         } catch (e) {
             next(e);
@@ -353,13 +288,9 @@ export default class OrdersController {
         }
     }
 
-    static async applyOrderDiscount(req: Request, res: Response, next: NextFunction) {
+    applyOrderDiscount = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const orderId = idValidation.parse(req.params.id)
-            
-            const data = z.object({
-                id: idValidation
-            }).parse(TokenGenerator.verify(req.headers.authorization));
 
             const body = z.object({
                 discount: z.number().nonnegative({
@@ -367,85 +298,12 @@ export default class OrdersController {
                 })
             }).parse(req.body);
 
-            const updatedBy = await Users.findOne({
-                _id: new ObjectId(data.id),
-                isActive: true,
-                deleted: null,
-            }, {
-                group_user: 1,
-                _id: 1,
-                storeCode: 1,
-            });
-
-            if (!updatedBy) 
-                throw new NotFoundError("Usuário é inválido ou não foi localizado");
-
-            if (updatedBy.group_user === "2")
-                throw new UnauthorizedError("Usuário não possui permissão para aplicar desconto");
-
-            await EstablishmentHandler.validateDiscount(updatedBy.storeCode.toString(), body.discount);
-
-            if (body.discount > 0) {
-                body.discount = body.discount / 100
-            }
-
-            const updateOrder = await Orders.findOneAndUpdate({
-                _id: new ObjectId(orderId),
-                status: "pending"
-            }, {
-                discount: body.discount,
-                updatedBy: updatedBy._id,
-            }, {
-                new: true
-            });
-
-            if (!updateOrder)
-                throw new NotFoundError("Pedido não localizado")
+            const updateOrder = await this.orderRepository.applyDiscount(orderId, body.discount, req.autenticatedUser.id);            
 
             ApiResponse.success(updateOrder).send(res);
 
         } catch (e) {
             next(e);
         }
-    }
-}
-
-async function updateId(id: string, storeCode: string) {
-    let count = 0;
-    let counter = await Counters.findOne({
-        storeCode: new ObjectId(storeCode)
-    });
-    if (!counter) {
-        count += 1;
-    } else {
-        const value = counter;
-        const now = new Date();
-        if (value.createDate.toLocaleDateString() !== now.toLocaleDateString()) {
-            count += 1;
-        } else {
-            count = value.seq_value + 1;
-        }
-    }
-    await Promise.all([
-        Orders.findByIdAndUpdate(id, {
-            pedidosId: count
-        }),
-        Counters.updateMany({
-            storeCode: new ObjectId(storeCode)
-        }, {
-            seq_value: count, createDate: new Date()
-        }, {
-            upsert: true
-        })
-    ]);
-}
-
-async function notififyUser(userData: string | MongoId, title: string, body: string) {
-    const user = await Users.findById(userData);
-    if (user?.token) {
-        FBMESSAGING.sendToUser(user.token, {
-            title,
-            body
-        });
     }
 }
