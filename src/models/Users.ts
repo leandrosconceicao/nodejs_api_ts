@@ -39,6 +39,15 @@ enum GroupUser {
     super = "99"
 }
 
+interface IUserSearchQuery {
+    storeCode?: mongoose.Types.ObjectId,
+    group_user?: string,
+    username?: any,
+    deleted?: any,
+    email?: string,
+    isActive?: boolean
+}
+
 interface IUsers {
     id?: any,
     email: string,
@@ -102,4 +111,4 @@ userSchema.set('toJSON', { virtuals: true });
 const Users = mongoose.model<IUsers>('users', userSchema);
 
 
-export {Users, userValidaton, userPatchValidation, IUsers};
+export {Users, userValidaton, userPatchValidation, IUsers, IUserSearchQuery};
