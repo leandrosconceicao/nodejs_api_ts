@@ -13,6 +13,7 @@ import { autoInjectable, inject } from "tsyringe";
 import IEstablishmentRepository from "../../domain/interfaces/IEstablishmentRepository";
 import IOrderRepository from "../../domain/interfaces/IOrderRepository";
 import ICloudService from "../../domain/interfaces/ICloudService";
+import IUserRepository from "../../domain/interfaces/IUserRepository";
 
 export var ObjectId = mongoose.Types.ObjectId;
 
@@ -32,7 +33,8 @@ export default class OrdersController {
     constructor(
         @inject("IEstablishmentRepository") private readonly establishmentRepository: IEstablishmentRepository,
         @inject("IOrderRepository") private readonly orderRepository: IOrderRepository,
-        @inject("ICloudService") private readonly cloudService: ICloudService
+        @inject("ICloudService") private readonly cloudService: ICloudService,
+        @inject("IUserRepository") private readonly userRepository: IUserRepository
     ) {}
 
 
@@ -218,7 +220,10 @@ export default class OrdersController {
             const process = await this.orderRepository.setPreparation(id, body.userCode, body.isReady);
             
             if (process?.createdBy) {
-                this.cloudService.notifyUsers(process.createdBy.toString(), "Preparação de pedido", body.isReady ? `Atenção, pedido: ${process.pedidosId} está pronto` : "Alerta de pedido");
+                const user = await this.userRepository.findOne(process.createdBy.toString());
+                if (user?.token) {
+                    this.cloudService.notifyUsers(user?.token?.toString(), "Preparação de pedido", body.isReady ? `Atenção, pedido: ${process.pedidosId} está pronto` : "Alerta de pedido");
+                }
             }
 
             req.result = {
