@@ -1,4 +1,4 @@
-import {userPatchValidation, Users, userValidaton} from "../../models/Users";
+import {IUsers, IUserSearchQuery, userPatchValidation, Users, userValidaton} from "../../models/Users";
 import { z } from "zod";
 import mongoose from "mongoose";
 var ObjectId = mongoose.Types.ObjectId;
@@ -12,115 +12,87 @@ import { DELETED_SEARCH } from "../../models/base/MongoDBFilters";
 import { RegexBuilder } from "../../utils/regexBuilder";
 import UnauthorizedError from "../../models/errors/UnauthorizedError";
 import ForbiddenAcessError from "../../domain/exceptions/ForbiddenAcessError";
+import { autoInjectable, inject } from "tsyringe";
+import IUserRepository from "../../domain/interfaces/IUserRepository";
 // import admin from "../../../config/firebaseConfig.js"
 
 // const FIREBASEAUTH = admin.auth();
 
+@autoInjectable()
 class UserController {
-  static async add(req: Request, res: Response, next: Function) {
+
+  constructor(
+    @inject("IUserRepository") private readonly userRepository : IUserRepository
+  ) {}
+
+  add = async (req: Request, res: Response, next: Function) => {
     try {
+
       const data = userValidaton.parse(req.body);
-      const user = new Users(data);
-      const users = await user.save();
+
+      const users = await this.userRepository.addUser(data as IUsers);
+
       return ApiResponse.success(users, 201).send(res);
     } catch (e) {
       next(e);
     }
   }
 
-  static async delete(req: Request, res: Response, next: Function) {
+  delete = async (req: Request, res: Response, next: Function) => {
     try {
-      const id = z.string().min(1).parse(req.params.id);
-      const authUserData = z.object({
-        id: idValidation
-      }).parse(TokenGenerator.verify(req.headers.authorization));
+      const id = idValidation.parse(req.params.id);
+      
+      const process = await this.userRepository.delete(id, req.autenticatedUser.id)
 
-      const updatedBy = await Users.findById(authUserData.id);
-
-      if (!updatedBy) {
-        throw new NotFoundError("Usuário é inválido ou não foi localizado");
-      }
-
-      const process = await Users.findOneAndUpdate({
-        _id: new ObjectId(id)
-      }, {
-        $set: {
-          deleted: true,
-          updatedBy: updatedBy._id,
-        }
-      }, {
-        new: true
-      });
       return ApiResponse.success(process).send(res);
+
     } catch (e) {
       next(e);
     }
   }
 
-  static async patch(req: Request, res: Response, next: Function) {
+  patch = async (req: Request, res: Response, next: Function) => {
     try {
       const id = idValidation.parse(req.params.id);
-      const user = userPatchValidation.parse(req.body);
-      if (user.pass) {
-        user.pass = new PassGenerator(user.pass).build();
-      }
-      if (user.changePassword) {
-        user.pass = new PassGenerator("12345678").build();
-      }
-      const updatedUser = await Users.findByIdAndUpdate(id, user, { new: true });
+      const user = userPatchValidation
+      .transform((values) => {
+        if (values.pass) {
+          values.pass = new PassGenerator(values.pass).build();
+        }
+        if (values.changePassword) {
+          values.pass = new PassGenerator("12345678").build();
+        }
+        return values;
+      })  
+      .parse(req.body);
+      
+      const updatedUser = await this.userRepository.updateUser(id, user as IUsers);
+
       return ApiResponse.success(updatedUser).send(res);
     } catch (e) {
       next(e);
     }
   }
 
-  static async updatePass(req: Request, res: Response, next: Function) {
+  findOne = async (req: Request, res: Response, next: NextFunction) => {
     try {
+      
       const id = idValidation.parse(req.params.id);
-      const data = z.object({
-        activePassword: z.string().min(1),
-        newPassword: z.string().min(1)
-      }).parse(req.body);
-      const updateProcess = await Users.updateOne({
-        _id: id,
-        pass: new PassGenerator(data.activePassword).build()
-      }, {
-        pass: new PassGenerator(data.newPassword).build()
-      });
-      if (updateProcess.modifiedCount== 0) {
-        throw ApiResponse.unauthorized("Usuário inválido ou credenciais inválidas");
-      }
-      return ApiResponse.success().send(res);
-    } catch (e) {
-      next(e);
-    }
-  }
 
-  static async findOne(req: Request, res: Response, next: NextFunction) {
-    try {
-      const id = idValidation.parse(req.params.id);
-      const user = await Users.findById(id)
-        .populate("establishmentDetail");
-      if (!user) {
-        throw new NotFoundError("Usuário não localizado");
-      }
+      const user = await this.userRepository.findOne(id);
+      
       return ApiResponse.success(user).send(res);
+
     } catch (e) {
       next(e);
     }
   }
 
-  static async findAll(req: Request, res: Response, next: NextFunction) {
-    interface searchQuery {
-      storeCode?: mongoose.Types.ObjectId,
-      group_user?: string,
-      username?: any,
-      deleted?: any,
-      email?: string,
-      isActive?: boolean
-    }
+  findAll = async (req: Request, res: Response, next: NextFunction) => {
+    
     try {
-      const query: searchQuery = {};
+
+      const query: IUserSearchQuery = {};
       
       z.object({
         storeCode: idValidation.optional(),
@@ -149,16 +121,15 @@ class UserController {
         }
       }).parse(req.query);
       
-      req.result = Users.find(query).select({
-        pass: 0
-      })
+      req.result = this.userRepository.findAll(query);
+
       next();
     } catch (e) {
       next(e);
     }
   }
 
-  static async authenticate(req: Request, res: Response, next: NextFunction) {
+  authenticate = async (req: Request, res: Response, next: NextFunction) => {
     
     try {
       const body = z.object({
@@ -166,41 +137,37 @@ class UserController {
         password: z.string().min(1),
         firebaseToken: z.string().optional(),
       }).parse(req.body);
-      const hashPass = new PassGenerator(body.password).build();
-      const users = await Users.findOne({
-        email: body.email,
-        pass: hashPass,
-      }).select({
-        pass: 0
-      }).populate("establishmentDetail");
 
-      if (!users || users.deleted === true)
-        throw new UnauthorizedError("Dados incorretos ou inválidos.")
-      
-
-      if (!users.isActive) 
-        throw new ForbiddenAcessError("Usuário não está ativo")
+      const users = await this.userRepository.autenticateUser(body.email, new PassGenerator(body.password).build());
 
       const authToken = TokenGenerator.generate(users);
+
       res.set("Authorization", authToken);
       res.set("Access-Control-Expose-Headers", "*");
+
       if (body.firebaseToken && users.token != body.firebaseToken) {
-        updateUserToken(users.id, body.firebaseToken);
+        this.userRepository.updateUserToken(users.id, body.firebaseToken);
       }
       return ApiResponse.success(users).send(res);
     } catch (e) {
       next(e);
     }
   }
-}
 
-async function updateUserToken(id: string, token: string) {
-  try {
-    await Users.findByIdAndUpdate(id, {
-      "token": token
-    });
-  } catch (_) {
-
+  updatePass = async (req: Request, res: Response, next: Function) => {
+    try {
+      const id = idValidation.parse(req.params.id);
+      const data = z.object({
+        activePassword: z.string().min(1),
+        newPassword: z.string().min(1)
+      }).parse(req.body);
+      
+      await this.userRepository.updateUserPassword(id, data.activePassword, data.newPassword);
+      
+      return ApiResponse.success().send(res);
+    } catch (e) {
+      next(e);
+    }
   }
 }
 
@@ -212,4 +179,4 @@ async function checkIfUserExists(id: string) {
   }
 }
 
-export {UserController, updateUserToken, checkIfUserExists}
+export {UserController, checkIfUserExists}
