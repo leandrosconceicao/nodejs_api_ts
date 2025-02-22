@@ -21,4 +21,6 @@ export default interface IOrderRepository {
     createOrder(data: IOrder): Promise<IOrder>
 
     updateId(id: string, storeCode: string) : Promise<void>;
+
+    manageTipValue(storeCode: string, accountId: string, enabledTip: boolean) : Promise<void>;
 }

@@ -11,6 +11,7 @@ import FrontDeskHandler from "../domain/handlers/orders/frontDeskHandler";
 import WithdrawHandler from "../domain/handlers/orders/withdrawHandler";
 import IOrderHandler from "../domain/interfaces/IOrderHandler";
 import Counters from "../models/Counters";
+import BadRequestError from "../models/errors/BadRequest";
 
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -34,6 +35,24 @@ export default class MongoOrderRepository implements IOrderRepository {
     constructor(
         @inject('IEstablishmentRepository') private readonly establishmentRepository: IEstablishmentRepository
     ) {}
+
+    async manageTipValue(storeCode: string, accountId: string, enabledTip: boolean): Promise<void> {
+
+        const store = await this.establishmentRepository.findOne(storeCode);
+
+        const updateResult = await Orders.updateMany({
+            accountId: accountId,
+            storeCode: storeCode
+        }, {
+            $set: {
+                "products.$[].tipValue": enabledTip ? store.tipValue : 0
+            }
+        });
+
+        if (!updateResult.modifiedCount) {
+            throw new BadRequestError('Nenhum dado atualizado, verifique os filtros informados')
+        }
+    }
 
     async createOrder(data: IOrder): Promise<IOrder> {
 
