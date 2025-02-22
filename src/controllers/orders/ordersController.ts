@@ -183,7 +183,7 @@ export default class OrdersController {
                 {
                   orderId: new ObjectId(originAcc._id),
                   description: `Transferência de pedidos da conta (${originAcc.description}) para a conta (${destiAcc.description})`,
-                  storeCode: new ObjectId(originAcc.storeCode),
+                  storeCode: new ObjectId(originAcc.storeCode.toString()),
                   userCreate: new ObjectId(userCode)
                 }
               );

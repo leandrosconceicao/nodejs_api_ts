@@ -35,7 +35,7 @@ interface IReceipt {
     subTotal: number;
 }
 interface IReceiptOrders {
-    _id: typeof ObjectId,
+    _id: string | mongoose.Types.ObjectId,
     products: Array<IReceiptOrdersProducts>
     totalTip?: number,
     discount?: number,
@@ -76,28 +76,31 @@ const accountValidation = z.object({
 });
 
 enum AccountStatus {
-    open,
-    closed,
-    checkSolicitation
+    open = 'open',
+    closed = 'closed',
+    checkSolicitation = 'checkSolicitation'
 }
 
 interface IAccount {
-    deleted_id?: string,
+    _id?: string | mongoose.Types.ObjectId,
+    deleted_id?: object,
     description: string,
     storeCode: string | MongoId,
-    createDate: Date,
+    createdAt?: Date,
     updatedAt?: Date,
-    status: AccountStatus,
+    status: AccountStatus | string,
     client?: IClient,
-    created_by: string | MongoId
+    created_by: string | MongoId,
 }
 
-const Accounts = mongoose.model("accounts", new mongoose.Schema({
-    deleted_id: {type: mongoose.Types.ObjectId, default: undefined},
+const accountSchema = new mongoose.Schema({
+    deleted_id: {type: ObjectId, default: undefined},
     description: { type: String, required: [true, "Parametro (description) é obrigatório"] },
-    storeCode: { type: String, required: [true, "Parametro (storeCode) é obrigatório"] },
-    createDate: { type: Date, default: () => {return new Date();}},
-    updatedAt: {type: Date},
+    storeCode: { 
+        type: ObjectId, 
+        ref: 'establishments',
+        required: [true, "Parametro (storeCode) é obrigatório"] 
+    },
     status: {
         type: String,
         required: true,
@@ -113,8 +116,14 @@ const Accounts = mongoose.model("accounts", new mongoose.Schema({
     created_by: {
         type: ObjectId, ref: 'users', required: [true, "Parametro (created_by) é obrigatório"]
     },
-    orders: {},
-    payments: {}
-}))
+}, {
+    timestamps: true
+});
 
-export {accountStatus, Accounts, accountValidation, Receipt, IAccount, IReceiptOrders, IReceiptPayments};
+accountSchema.virtual('orders');
+accountSchema.virtual('payments');
+
+const Accounts = mongoose.model<IAccount>("accounts", accountSchema)
+
+
+export {accountStatus, Accounts, accountValidation, Receipt, IAccount, IReceiptOrders, IReceiptPayments, AccountStatus};
