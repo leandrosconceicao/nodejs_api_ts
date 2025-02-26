@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
+import { IApp } from "../domain/types/IApp";
 
-export default mongoose.model("apps", new mongoose.Schema({
+export default mongoose.model<IApp>("apps", new mongoose.Schema({
     appsName: {
         type: String,
         unique: true,
