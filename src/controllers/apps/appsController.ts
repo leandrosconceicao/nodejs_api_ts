@@ -5,22 +5,18 @@ import ApiResponse from "../../models/base/ApiResponse";
 import NotFoundError from "../../models/errors/NotFound";
 import { idValidation } from "../../utils/defaultValidations";
 import { RegexBuilder } from "../../utils/regexBuilder";
+import { appValidation, IApp, QuerySearch } from "../../domain/types/IApp";
+import { autoInjectable, inject } from "tsyringe";
+import IAppRepository from "../../domain/interfaces/IAppRepository";
 
-interface QuerySearch {
-    _id?: string,
-    appsName?: string | RegExp,
-    version?: string,
-}
-
-const appValidation = z.object({
-    appsName: z.string().min(1),
-    version: z.string().min(1),
-    releaseDate: z.string().datetime({offset: true})
-});
-
+@autoInjectable()
 export default class AppsController {
+
+    constructor(
+        @inject('IAppRepository') private readonly appRepository: IAppRepository
+    ) {}
     
-    static async findAll(req: Request, res: Response, next: NextFunction) {
+    findAll = async (req: Request, _: Response, next: NextFunction) => {
         try {
             const query = z.object({
                 id: idValidation.optional(),
@@ -39,79 +35,76 @@ export default class AppsController {
                 }
                 return query;
             }).parse(req.query);
-            req.result = Apps.find(query);
+            req.result = this.appRepository.findAll(query);
             next();
         } catch (e) {
             next(e);
         }
     }
 
-    static async findOne(req: Request, res: Response, next: NextFunction) {
+    findOne = async (req: Request, res: Response, next: NextFunction) => {
         try {
             let id = req.params.id;
-            const data = await Apps.findById(id);
-            if (!data) {
-                throw new NotFoundError("App não localizado");
-            }
+            
+            const data = await this.appRepository.findOne(id);
+            
             return ApiResponse.success(data).send(res);
         } catch (e) {
             next(e);
         }
     }
 
-    static async add(req: Request, res: Response, next: NextFunction) {
+    add = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const body = appValidation.parse(req.body);
-            const app = new Apps(body);
-            await app.save();
-            return ApiResponse.success(null, 204).send(res);
+            
+            const app = await this.appRepository.add(body as IApp);
+
+            return ApiResponse.success(app, 201).send(res);
         } catch (e) {
             next(e);
         }
     }
 
-    static async update(req: Request, res: Response, next: NextFunction) {
+    update = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const id = idValidation.parse(req.params.id);
+            
             const data = appValidation.parse(req.body);
-            const dt = await Apps.findByIdAndUpdate(id, {$set: data});
+            
+            const dt = await this.appRepository.update(id, data);
+
             return ApiResponse.success(dt).send(res);
         } catch (e) {
             next(e);
         }
     }
 
-    static async delete(req: Request, res: Response, next: NextFunction) {
+    delete = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const id = idValidation.parse(req.params.id)
-            const process = await Apps.findByIdAndDelete(id);
-            if (!process) {
-                return ApiResponse.badRequest().send(res);
-            }
+            
+            const process = await this.appRepository.delete(id);
+
             return ApiResponse.success(process, 204).send(res);
+
         } catch (e) {   
             next(e);
         }
     }
 
-    static async validateVersion(req: Request, res: Response, next: NextFunction) {
+    validateVersion = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const searchApp = z.object({
                 name: z.string().min(1),
                 version: z.string().min(1)
             }).parse(req.query);
-            const app = await Apps.findOne({
-                appsName: searchApp.name,
-            });
-            if (!app) {
-                throw new NotFoundError("App não localizado");
-            }
-            const versionCheck = parseInt(searchApp.version.replaceAll(".", ""));
-            const serverVersion = parseInt(app.version.replaceAll(".", ""));
-            const hasNewVersion =  serverVersion > versionCheck;
-            if (hasNewVersion) {
-                return ApiResponse.badRequest("Há uma nova versão do aplivativo disponível para atualização").send(res);
-            }
+
+            const app = await this.appRepository.validateVersion(
+                searchApp.name, 
+                parseInt(searchApp.version.replaceAll(".", ""))
+            )
+
             return ApiResponse.success(app).send(res);
         } catch (e) {
             next(e);
