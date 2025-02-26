@@ -222,7 +222,14 @@ export default class OrdersController {
             if (process?.createdBy) {
                 const user = await this.userRepository.findOne(process.createdBy.toString());
                 if (user?.token) {
-                    this.cloudService.notifyUsers(user?.token?.toString(), "Preparação de pedido", body.isReady ? `Atenção, pedido: ${process.pedidosId} está pronto` : "Alerta de pedido");
+                    let info;
+                    if (process.orderType == OrderType.account) {
+                        info = `conta: ${process?.accountDetail?.description}`;
+                    } else {
+                        info = process?.client?.name ? `cliente: ${process?.client?.name}` : 'cliente não informado'
+                    }
+                    info += `${body.isReady ? '' : ', status de preparação foi revertido, verique com o balcão o status do pedido'}`;
+                    this.cloudService.notifyUsers(user?.token?.toString(), "Preparação de pedido", `Atenção, pedido: ${process.pedidosId} ${body.isReady ? 'está pronto' : 'não está pronto'}, ${info}`);
                 }
             }
 
