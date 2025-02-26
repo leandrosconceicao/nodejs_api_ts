@@ -1,21 +1,20 @@
 import { NextFunction, Request, Response } from "express";
 import { idValidation } from "../../utils/defaultValidations";
-import {PrinterSpool, IPrinterSpool, PRINTER_SPOOL_VALIDATION} from "../../models/PrinterSpool";
+import {PrinterSpool, PRINTER_SPOOL_VALIDATION} from "../../models/PrinterSpool";
 import mongoose from "mongoose";
-import ApiResponse from "../../models/base/ApiResponse";
-import ISpoolHandler from "../../domain/interfaces/ISpoolHandler";
+import { autoInjectable, inject } from "tsyringe";
+import ICloudService from "../../domain/interfaces/ICloudService";
 
 var ObjectId = mongoose.Types.ObjectId;
 
+@autoInjectable()
 export default class PrintSpoolController {
 
-    private handler : ISpoolHandler
+    constructor(
+        @inject('ICloudService') private readonly cloudService : ICloudService
+    ) {}
 
-    constructor(spoolHandler: ISpoolHandler) {
-        this.handler = spoolHandler;
-    }
-
-    async add(req: Request, res: Response, next: NextFunction) {
+    add = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const body = PRINTER_SPOOL_VALIDATION
             .transform((data) => {
@@ -40,10 +39,11 @@ export default class PrintSpoolController {
         }
     }    
 
-    async delete(req: Request, res: Response, next: NextFunction) {
+    delete = async (req: Request, res: Response, next: NextFunction) => {
         try {
+            const store = idValidation.parse(req.params.storeCode);
             const id = idValidation.parse(req.params.id);
-            await PrinterSpool.findByIdAndDelete(id);
+            await this.cloudService.removeSpoolData(store, id);
             res.sendStatus(204);
         } catch (e) {
             next(e);

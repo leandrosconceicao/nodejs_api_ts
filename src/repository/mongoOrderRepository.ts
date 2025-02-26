@@ -12,6 +12,7 @@ import WithdrawHandler from "../domain/handlers/orders/withdrawHandler";
 import IOrderHandler from "../domain/interfaces/IOrderHandler";
 import Counters from "../models/Counters";
 import BadRequestError from "../models/errors/BadRequest";
+import IAccountRepository from "../domain/interfaces/IAccountRepository";
 
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -33,6 +34,7 @@ const popuPass = "-pass";
 export default class MongoOrderRepository implements IOrderRepository {
 
     constructor(
+        @inject("IAccountRepository") private readonly accountRepository : IAccountRepository,
         @inject('IEstablishmentRepository') private readonly establishmentRepository: IEstablishmentRepository
     ) {}
 
@@ -169,7 +171,7 @@ export default class MongoOrderRepository implements IOrderRepository {
             case OrderType.frontdesk: 
                 return new FrontDeskHandler(data);
             case OrderType.account:
-                return new AccountHandler(data);
+                return new AccountHandler(data, this.accountRepository, this.establishmentRepository);
             case OrderType.withdraw:
                 return new WithdrawHandler(data);
             default:

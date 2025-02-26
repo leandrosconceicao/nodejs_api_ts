@@ -1,11 +1,12 @@
 import { IPrinterSpool, SpoolType } from "../../models/PrinterSpool";
 import { IOrder, Orders } from "../../models/Orders";
 import ReceiptEnconder, { PrinterWidthEnum } from "@mexicocss/esc-pos-encoder-ts";
-import AccountsController from "../../controllers/accounts/accountsController";
 import ISpoolHandler from "../interfaces/ISpoolHandler";
 import { CashRegister, ICashRegister } from "../../models/CashRegister";
 import NotFoundError from "../../models/errors/NotFound";
 import PaymentController from "../../controllers/payments/paymentController";
+import { delay, inject, injectable, registry } from "tsyringe";
+import IAccountRepository from "../interfaces/IAccountRepository";
 
 const popuAccId = "accountDetail";
 const popuPayment = "-payments";
@@ -14,7 +15,18 @@ const popuUser = "userCreate";
 const popuEstablish = "-establishments";
 const popuPass = "-pass";
 
+@injectable()
+@registry([
+    {
+        token: `ISpoolHandler`,
+        useToken: delay(() => SpoolHandler)
+    }
+])
 export default class SpoolHandler implements ISpoolHandler {
+
+    constructor(
+        @inject('IAccountRepository') private readonly accountRepository : IAccountRepository
+    ) {}
 
     prepareCashRegisterData = async (data: IPrinterSpool) => {
         const cash = await CashRegister.findById<ICashRegister>(data.cashRegisterId)
@@ -147,7 +159,7 @@ export default class SpoolHandler implements ISpoolHandler {
     }
     
     prepareReceiptData = async (spool: IPrinterSpool) => {
-        const data = await AccountsController.getReceipt(`${spool.accountId}`)
+        const data = await this.accountRepository.findOne(`${spool.accountId}`)
         const encoder = new ReceiptEnconder();
         
         encoder.setPinterType(PrinterWidthEnum._58);

@@ -2,11 +2,15 @@ import express from "express";
 import PrintSpoolController from "../controllers/print_spool/printSpoolController";
 import Endpoints from "../models/Endpoints";
 import SpoolHandler from "../domain/handlers/spoolHandler";
-import { fetchSpool, spoolManagement } from "../middlewares/printerSpoolMiddleware";
+import { container } from "tsyringe";
+import ISpoolHandler from "../domain/interfaces/ISpoolHandler";
+import { PrinterSpoolMiddleware } from "../middlewares/printerSpoolMiddleware";
 
-const spoolController = new PrintSpoolController(new SpoolHandler())
+container.resolve<ISpoolHandler>(SpoolHandler);
+const spoolController = container.resolve(PrintSpoolController);
+const spoolMiddleware = container.resolve(PrinterSpoolMiddleware);
 
 export default express.Router()
-    .get(`${Endpoints.printerSpool}/:storeCode`, spoolController.get, fetchSpool)
-    .post(`${Endpoints.printerSpool}`, spoolController.add, spoolManagement)
-    .delete(`${Endpoints.printerSpool}/:id`, spoolController.delete);
+    .get(`${Endpoints.printerSpool}/:storeCode`, spoolController.get, spoolMiddleware.fetchSpool)
+    .post(`${Endpoints.printerSpool}`, spoolController.add, spoolMiddleware.spoolManagement)
+    .delete(`${Endpoints.printerSpool}/:storeCode/:id`, spoolController.delete);
