@@ -1,6 +1,6 @@
 import { injectable, registry, delay, inject } from "tsyringe";
 import IAccountRepository from "../domain/interfaces/IAccountRepository";
-import { Accounts, IAccount, IReceiptOrders, IReceiptPayments, Receipt } from "../models/Accounts";
+import { Accounts, IAccount, IAccountSearch, IReceiptOrders, IReceiptPayments, Receipt } from "../models/Accounts";
 import IOrderRepository from "../domain/interfaces/IOrderRepository";
 import { ObjectId } from "../controllers/orders/ordersController";
 import { Orders } from "../models/Orders";
@@ -39,7 +39,13 @@ export default class MongoAccountRepository implements IAccountRepository {
     }
 
 
-    findAll(query: object): Promise<IAccount[]> {
+    findAll(query: IAccountSearch): Promise<IAccount[]> {
+        query.deleted_id = null;
+        if (typeof(query.status) === "object") {
+            query.status = {
+                $in: query.status
+            }
+        }
         return Accounts.find(query).populate(populateCreated, populateEstablish);
     }
     
