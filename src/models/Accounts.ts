@@ -93,6 +93,16 @@ interface IAccount {
     created_by: string | MongoId,
 }
 
+interface IAccountSearch {
+    deleted_id?: object,
+    _id?: string | mongoose.Types.ObjectId
+    description?: object,
+    storeCode?: string | mongoose.Types.ObjectId
+    createdAt?: object,
+    status?: string | string[] | object,
+    createdBy?: string | mongoose.Types.ObjectId
+}
+
 const accountSchema = new mongoose.Schema({
     deleted_id: {type: ObjectId, default: undefined},
     description: { type: String, required: [true, "Parametro (description) é obrigatório"] },
@@ -126,4 +136,4 @@ accountSchema.virtual('payments');
 const Accounts = mongoose.model<IAccount>("accounts", accountSchema)
 
 
-export {accountStatus, Accounts, accountValidation, Receipt, IAccount, IReceiptOrders, IReceiptPayments, AccountStatus};
+export {accountStatus, Accounts, accountValidation, Receipt, IAccount, IReceiptOrders, IReceiptPayments, AccountStatus, IAccountSearch};
