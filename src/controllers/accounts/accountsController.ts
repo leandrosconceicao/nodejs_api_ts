@@ -1,13 +1,11 @@
 import {z} from "zod";
 import { idValidation } from "../../utils/defaultValidations";
 import ApiResponse from "../../models/base/ApiResponse";
-import {Accounts, AccountStatus, accountValidation, IAccount, IReceiptOrders, IReceiptPayments, Receipt} from "../../models/Accounts";
-import mongoose, { ObjectId } from "mongoose";
+import {AccountStatus, accountValidation, IAccount} from "../../models/Accounts";
+import mongoose from "mongoose";
 import { PeriodQuery } from "../../utils/PeriodQuery";
 import { Request, Response, NextFunction } from "express";
 import { clientsSchemaValidation } from "../../models/Clients";
-import {Orders} from "../../models/Orders";
-import { Payments } from "../../models/Payments";
 import { autoInjectable, inject } from "tsyringe";
 import IAccountRepository from "../../domain/interfaces/IAccountRepository";
 import IOrderRepository from "../../domain/interfaces/IOrderRepository";
@@ -30,18 +28,25 @@ export default class AccountsController {
                 created_by: idValidation.optional(),
                 to: z.string().datetime({offset: true}),
                 createdAt: z.any().optional(),
-                status: z.enum(['open', 'closed', 'checkSolicitation']).optional(),
+                status: z.enum(['open', 'closed', 'checkSolicitation'])
+                    .or(z.array(z.enum(['open', 'closed', 'checkSolicitation'])))
+                    .optional(),
                 deleted_id: z.null().optional(),
-            }).parse(req.query);
-            searchQuery.deleted_id = null;
-            if (searchQuery.from && searchQuery.to) {
-                searchQuery.createdAt = new PeriodQuery(
-                    searchQuery.from,
-                    searchQuery.to
-                ).build();
-                delete searchQuery.from;
-                delete searchQuery.to;
-            }
+            })
+            .transform((values) => {
+                if (values.from && values.to) {
+                    values.createdAt = new PeriodQuery(
+                        values.from,
+                        values.to
+                    ).build();
+                }
+                delete values.from;
+                delete values.to;
+
+                return values;
+            })
+            .parse(req.query);
+
             req.result = this.accountRepository.findAll(searchQuery);
             next();
         } catch (e) {
@@ -147,53 +152,6 @@ export default class AccountsController {
         } catch (e) {
             next(e);
         }
-    }
-    
-    static async canReceiveNewOrder(accountId: string) {
-        const account = await Accounts.findById(accountId, {status: -1});
-        return account.status === "open";
-    }
-
-    static async getReceipt(accountId: string) {
-
-        const data = await Promise.all([
-            Orders.find({
-                accountId: new ObjectId(accountId),
-                status: {
-                    $ne: "cancelled"
-                }
-            }),
-            Payments.find({
-                accountId: new ObjectId(accountId)
-            }).populate("methodData")
-        ])
-
-        const ords = data[0] ?? [];
-        const pays = data[1] ?? [];
-
-        const rec = <Receipt>{
-            _id: accountId,
-            orders: ords.map((e) => <IReceiptOrders>{
-                _id: e.id,
-                discount: e.discount,
-                totalProduct: e.totalProduct,
-                subTotal: e.subTotal,
-                totalTip: e.products.reduce((a, b) => a + (b.tipValue * b.totalProduct), 0.0),
-                products: e.products,
-            }),
-            payments: pays.map((el) => <IReceiptPayments> {
-                total: el.total,
-                description: el.methodData?.description,
-                method: el._id
-            }),
-            allProductsHasTipValue: ords.every((order) => order.products.every((product) => product.tipValue > 0))
-        };
-        rec.totalTip = rec.orders.reduce((prev, next) => prev + next.totalTip, 0.0);
-        rec.totalOrder = rec.orders.reduce((a, b) => a + b.subTotal, 0.0);
-        rec.totalProducts = rec.orders.reduce((a, b) => a + b.totalProduct, 0.0);
-        rec.totalPayment = rec.payments.reduce((a, b) => a + b.total, 0.0);
-        rec.subTotal = rec.totalOrder - rec.totalPayment;
-        return rec;
     }
 
     accountCanBeClosed = async (accountId: string) => {
