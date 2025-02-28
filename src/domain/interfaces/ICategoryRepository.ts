@@ -20,4 +20,6 @@ export default interface ICategoryRepository {
         id?: string,
         ordenacao?: number
     }>) : Promise<void>
+
+    getMenuItems(storeCode: string) : Promise<ICategory[]>;
 }

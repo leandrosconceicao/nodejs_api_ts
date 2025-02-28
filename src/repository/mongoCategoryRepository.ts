@@ -7,6 +7,8 @@ import BadRequestError from "../models/errors/BadRequest";
 import NotFoundError from "../models/errors/NotFound";
 import ICloudService from "../domain/interfaces/ICloudService";
 import { delay, inject, injectable, registry } from "tsyringe";
+import { query } from "express";
+import MenuItems from "../models/MenuItems";
 
 
 var ObjectId = mongoose.Types.ObjectId;
@@ -21,6 +23,58 @@ var ObjectId = mongoose.Types.ObjectId;
 export default class MongoCategoryRepository implements ICategoryRepository {
 
     constructor(@inject("ICloudService") private readonly cloudService: ICloudService) {}
+
+    async getMenuItems(storeCode: string): Promise<ICategory[]> {
+        const data = await MenuItems.aggregate<ICategory>([
+            {
+                $match: {
+                    storeCode: new ObjectId(storeCode)
+                }
+            },
+            {
+                $lookup: {
+                    from: "products",
+                    localField: "_id",
+                    foreignField: "category",
+                    as: "products",
+                    pipeline: [{ $match: { 'isActive': true } }],
+                },
+            },
+            {
+                $project: {
+                    _id: 0,
+                    storeCode: 0,
+                    // "products.preparacao": 0,
+                    "products.categoria": 0,
+                    "products.storeCode": 0,
+                    // "products.status": 0,
+                    "products.dataInsercao": 0,
+                    "products.categoryId": 0,
+                    "products.category": 0,
+                    "products.createDate": 0,
+                    "products.isActive": 0,
+                },
+            },
+            {
+                $sort: {
+                    ordenacao: 1,
+                },
+            },
+        ]);
+        data.forEach((category) => {
+            category.products.forEach((products: any) => {
+                products.category = {
+                    nome: category.nome,
+                    storeCode: category.storeCode,
+                    ordenacao: category.ordenacao,
+                    createDate: category.createDate,
+                    image: category.image,
+                }
+            })
+        })
+
+        return data;
+    }
 
     updateOrdenation(storeCode: string, data: Array<{ id: string; ordenacao: number; }>): Promise<any> {
         
