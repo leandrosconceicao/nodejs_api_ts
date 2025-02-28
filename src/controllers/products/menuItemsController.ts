@@ -1,65 +1,23 @@
-import mongoose from "mongoose";
 import {z} from "zod";
 import { Request, Response, NextFunction } from "express";
 import ApiResponse from "../../models/base/ApiResponse";
-import MenuItems from "../../models/MenuItems";
-import {ICategory} from "../../models/Categories";
-
-var ObjectId = mongoose.Types.ObjectId;
-
+import { autoInjectable, inject } from "tsyringe";
+import ICategoryRepository from "../../domain/interfaces/ICategoryRepository";
+@autoInjectable()
 export default class MenuItemsController {
-    static async get(req: Request, res: Response, next: NextFunction) {
+
+    constructor(
+        @inject("ICategoryRepository") private readonly categoryRepository : ICategoryRepository
+    ) {}
+
+    get = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const query = z.object({
                 storeCode: z.string().min(1).max(24)
             }).parse(req.query);
-            const data = await MenuItems.aggregate<ICategory>([
-                {
-                    $match: {
-                        storeCode: new ObjectId(query.storeCode)
-                    }
-                },
-                {
-                    $lookup: {
-                        from: "products",
-                        localField: "_id",
-                        foreignField: "category",
-                        as: "products",
-                        pipeline: [{ $match: { 'isActive': true } }],
-                    },
-                },
-                {
-                    $project: {
-                        _id: 0,
-                        storeCode: 0,
-                        // "products.preparacao": 0,
-                        "products.categoria": 0,
-                        "products.storeCode": 0,
-                        // "products.status": 0,
-                        "products.dataInsercao": 0,
-                        "products.categoryId": 0,
-                        "products.category": 0,
-                        "products.createDate": 0,
-                        "products.isActive": 0,
-                    },
-                },
-                {
-                    $sort: {
-                        ordenacao: 1,
-                    },
-                },
-            ]);
-            data.forEach((category) => {
-                category.products.forEach((products: any) => {
-                    products.category = {
-                        nome: category.nome,
-                        storeCode: category.storeCode,
-                        ordenacao: category.ordenacao,
-                        createDate: category.createDate,
-                        image: category.image,
-                    }
-                })
-            })
+
+            const data = await this.categoryRepository.getMenuItems(query.storeCode);
+
             return ApiResponse.success(data).send(res);
         } catch (e) {
             next(e);

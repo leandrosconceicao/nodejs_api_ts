@@ -29,10 +29,11 @@ container.resolve<ISpoolHandler>(SpoolHandler);
 container.resolve<ICloudService>(CloudService);
 container.resolve<ICategoryRepository>(MongoCategoryRepository);
 container.resolve<IProductRepository>(MongoProductRepository);
+const menuController = container.resolve(MenuItemsController);
 const productController = container.resolve(ProductController);
 
 export default express.Router()
-    .get(Endpoints.menu_items, MenuItemsController.get)
+    .get(Endpoints.menu_items, menuController.get)
     .get(Endpoints.add_ones, validateToken, AddOneController.findAll)
     .post(Endpoints.add_ones, validateToken, AddOneController.add)
     .put(`${Endpoints.add_ones}/:id`, validateToken, AddOneController.update)
