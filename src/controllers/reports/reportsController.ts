@@ -1,14 +1,14 @@
 import mongoose from "mongoose";
 import {z} from "zod";
 import {IOrder, IOrderProduct, Orders, OrderType} from "../../models/Orders";
-import { IProduct, Products } from "../../models/products/Products";
+import { Products } from "../../models/products/Products";
 import { PeriodQuery, DateQuery } from "../../utils/PeriodQuery";
 import { Request, Response, NextFunction } from "express";
 import ApiResponse from "../../models/base/ApiResponse";
 import NotFoundError from "../../models/errors/NotFound";
-import {TotalSales, ITotalSales} from "../../models/reports/Sales";
 import { idValidation } from "../../utils/defaultValidations";
 import ReportHandler from "../../domain/handlers/reports/reportsHandler";
+import { IProduct } from "../../domain/types/IProduct";
 
 var ObjectId = mongoose.Types.ObjectId;
 

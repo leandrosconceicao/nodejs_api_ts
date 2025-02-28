@@ -1,11 +1,11 @@
-
-import { AddOnes, AddOneType, addOneValidation } from "../../models/products/AddOnes";
+import { AddOnes } from "../../models/products/AddOnes";
 import ApiResponse from "../../models/base/ApiResponse";
 import { Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { idValidation } from "../../utils/defaultValidations";
 import mongoose from "mongoose";
 import BadRequestError from "../../models/errors/BadRequest";
+import {AddOneType, addOneValidation } from "../../domain/types/IProduct";
 
 var ObjectId = mongoose.Types.ObjectId;
 

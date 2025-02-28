@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
-import { IProduct } from './products/Products';
 import { z } from 'zod';
 import { idValidation } from '../utils/defaultValidations';
+import { IProduct } from '../domain/types/IProduct';
 
 interface ICategory {
     _id?: mongoose.Types.ObjectId,
