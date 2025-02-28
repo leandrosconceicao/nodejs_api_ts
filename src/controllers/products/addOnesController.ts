@@ -1,41 +1,47 @@
-import { AddOnes } from "../../models/products/AddOnes";
 import ApiResponse from "../../models/base/ApiResponse";
 import { Request, Response, NextFunction } from "express";
 import { z } from "zod";
 import { idValidation } from "../../utils/defaultValidations";
 import mongoose from "mongoose";
-import BadRequestError from "../../models/errors/BadRequest";
-import {AddOneType, addOneValidation } from "../../domain/types/IProduct";
+import {AddOneType, addOneValidation, IProductAddOne } from "../../domain/types/IProduct";
+import { autoInjectable, inject } from "tsyringe";
+import { IAddonesRepository } from "../../domain/interfaces/IAddonesRepository";
 
 var ObjectId = mongoose.Types.ObjectId;
 
+
+@autoInjectable()
 export default class AddOneController {
-    static async findAll(req: Request, res: Response, next: NextFunction) {
+
+    constructor(
+        @inject('IAddonesRepository') private readonly addoneRepository : IAddonesRepository
+    ) {}
+
+    findAll = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const query = z.object({
                 storeCode: idValidation
             }).parse(req.query);
 
-            const process = await AddOnes.find({
-                storeCode: new ObjectId(query.storeCode)
-            });
+            const process = await this.addoneRepository.findAll(query.storeCode);
+            
             return ApiResponse.success(process).send(res);
         } catch (e) {
             next(e);
         }
     }
 
-    static async add(req: Request, res: Response, next: NextFunction) {
+    add = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const newData = new AddOnes(addOneValidation.parse(req.body));
-            const process = await newData.save();
+            const body = addOneValidation.parse(req.body);
+            const process = await this.addoneRepository.add(body as IProductAddOne);
             return ApiResponse.success(process).send(res);
         } catch (e) {
             next(e);
         }
     }
 
-    static async update(req: Request, res: Response, next: NextFunction) {
+    update = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const id = z.string().min(1).uuid().parse(req.params.id);
 
@@ -71,11 +77,7 @@ export default class AddOneController {
             })
             .parse(req.body);
 
-            if (!Object.values(data))  {
-                throw new BadRequestError("Nenhum dado de atualização informado");
-            }
-
-            const process = await AddOnes.findByIdAndUpdate(id, data);
+            const process = await this.addoneRepository.update(id, data);
 
             return ApiResponse.success(process).send(res);
         } catch (e) {
@@ -83,7 +85,7 @@ export default class AddOneController {
         }
     }
 
-    static async patch(req: Request, res: Response, next: NextFunction) {
+    patch = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const id = z.string().min(1).uuid().parse(req.params.id);
 
@@ -98,13 +100,7 @@ export default class AddOneController {
                 })
             }).parse(req.body);
 
-            let update = obj.movement === "push" ? {
-                $push: { items: obj.item }
-            } : {
-                $pull: { items: obj.item }
-            }
-
-            const process = await AddOnes.updateOne({ _id: id }, update)
+            const process = await this.addoneRepository.patch(id, obj.movement, obj.item)
 
             return ApiResponse.success(process).send(res);
         } catch (e) {
@@ -112,15 +108,14 @@ export default class AddOneController {
         }
     }
 
-    static async delete(req: Request, res: Response, next: NextFunction) {
+    delete = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const id = z.string().min(1).uuid().parse(req.params.id);
 
-            const process = await AddOnes.findByIdAndDelete(id);
-            if (!process) {
-                return ApiResponse.badRequest().send(res);
-            }
-            return ApiResponse.success(process).send(res);
+            await this.addoneRepository.delete(id);
+
+            return ApiResponse.success(null, 204).send(res);
+
         } catch (e) {
             next(e);
         }

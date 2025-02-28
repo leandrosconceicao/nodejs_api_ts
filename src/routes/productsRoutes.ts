@@ -21,24 +21,28 @@ import IOrderRepository from "../domain/interfaces/IOrderRepository";
 import MongoOrderRepository from "../repository/mongoOrderRepository";
 import IEstablishmentRepository from '../domain/interfaces/IEstablishmentRepository';
 import MongoEstablishmentRespository from '../repository/mongoEstablishmentRepository';
+import { IAddonesRepository } from '../domain/interfaces/IAddonesRepository';
+import { MongoAddonesRepository } from '../repository/mongoAddoneRepository';
 
 container.resolve<IEstablishmentRepository>(MongoEstablishmentRespository);
 container.resolve<IOrderRepository>(MongoOrderRepository);
 container.resolve<IAccountRepository>(MongoAccountRepository);
 container.resolve<ISpoolHandler>(SpoolHandler);
 container.resolve<ICloudService>(CloudService);
+container.resolve<IAddonesRepository>(MongoAddonesRepository);
 container.resolve<ICategoryRepository>(MongoCategoryRepository);
 container.resolve<IProductRepository>(MongoProductRepository);
 const menuController = container.resolve(MenuItemsController);
+const addoneController = container.resolve(AddOneController);
 const productController = container.resolve(ProductController);
 
 export default express.Router()
     .get(Endpoints.menu_items, menuController.get)
-    .get(Endpoints.add_ones, validateToken, AddOneController.findAll)
-    .post(Endpoints.add_ones, validateToken, AddOneController.add)
-    .put(`${Endpoints.add_ones}/:id`, validateToken, AddOneController.update)
-    .patch(`${Endpoints.add_ones}/:id`, validateToken, AddOneController.patch)
-    .delete(`${Endpoints.add_ones}/:id`, validateToken, AddOneController.delete)
+    .get(Endpoints.add_ones, validateToken, addoneController.findAll)
+    .post(Endpoints.add_ones, validateToken, addoneController.add)
+    .put(`${Endpoints.add_ones}/:id`, validateToken, addoneController.update)
+    .patch(`${Endpoints.add_ones}/:id`, validateToken, addoneController.patch)
+    .delete(`${Endpoints.add_ones}/:id`, validateToken, addoneController.delete)
     .get(Endpoints.products, productController.findAll, paginationAndFilters)
     .get(`${Endpoints.products}/:id`, productController.findOne)
     .post(Endpoints.products, validateToken, productController.addProduct)
