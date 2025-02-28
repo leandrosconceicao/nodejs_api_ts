@@ -62,7 +62,7 @@ export interface ProductFilters {
 
 export interface IProductAddOne {
     _id: string,
-    isRequired: boolean,
+    isRequired?: boolean,
     name: string,
     type: AddOneType,
     maxQtdAllowed: number,
