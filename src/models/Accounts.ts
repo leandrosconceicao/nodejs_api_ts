@@ -3,6 +3,7 @@ import { clientsSchema, clientsSchemaValidation, IClient } from "./Clients";
 import {z} from "zod";
 import { idValidation } from "../utils/defaultValidations";
 import MongoId from "./custom_types/mongoose_types";
+import { IOrder } from "./Orders";
 
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -10,7 +11,7 @@ class Receipt implements IReceipt {
     _id: mongoose.Types.ObjectId | string;
     description: string;
     payments: Array<IReceiptPayments>;
-    orders: Array<IReceiptOrders>
+    orders: Array<IOrder>
     totalOrder?: number;
     totalProducts?: number;
     storeCode: mongoose.Types.ObjectId;
@@ -26,7 +27,7 @@ interface IReceipt {
     storeCode: mongoose.Types.ObjectId,
     description: string,
     payments: Array<IReceiptPayments>,
-    orders: Array<IReceiptOrders>
+    orders: Array<IOrder>
     totalOrder?: number,
     totalProducts?: number,
     totalPayment?: number,
@@ -56,6 +57,8 @@ interface IReceiptOrdersProducts {
 
 interface IReceiptOrdersProductsAddOnes {
     name: string
+    quantity?: number,
+    price?: number
 }
 
 interface IReceiptPayments {

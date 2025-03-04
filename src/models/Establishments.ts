@@ -154,6 +154,7 @@ enum GeolocationType {
 interface IEstablishments {
     _id?: string,
     name: string,
+    deleted?: boolean,
     // createDate: Date,
     location: string,   
     geoLocation: {

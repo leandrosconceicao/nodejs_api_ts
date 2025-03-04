@@ -27,7 +27,7 @@ export class MongoAddonesRepository implements IAddonesRepository {
             $pull: { items: item }
         }
 
-        AddOnes.updateOne({ _id: addone._id }, update)
+        await AddOnes.updateOne({ _id: addone._id }, update)
     }
 
     findAll(storeCode: string): Promise<IProductAddOne[]> {

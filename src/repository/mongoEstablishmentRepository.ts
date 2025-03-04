@@ -85,7 +85,18 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
     }
 
     findAll(storeCode?: string): Promise<Array<IEstablishments>> {
-        return Establishments.find(storeCode ? { _id: storeCode } : undefined).select({ ownerId: 0 });
+        const filter = <{
+            deleted: object,
+            storeCode?: mongoose.Types.ObjectId
+        }>{
+            deleted: {
+                $eq: null
+            }
+        };
+        if (storeCode) {
+            filter.storeCode = new mongoose.Types.ObjectId(storeCode)
+        }
+        return Establishments.find(filter).select({ ownerId: 0 });
     }
 
     async findOne(id: string): Promise<IEstablishments> {

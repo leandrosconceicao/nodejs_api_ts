@@ -95,7 +95,7 @@ export default class MongoCategoryRepository implements ICategoryRepository {
         if (data.image) {
             data.image = await this.cloudService.uploadFile({
                 data: data.image,
-                path: `assets/${category.storeCode}/logo_${category._id}`
+                path: `assets/${category.storeCode}/${category._id}.png`
             })
         }
 

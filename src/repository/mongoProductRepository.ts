@@ -27,7 +27,7 @@ export class MongoProductRepository implements IProductRepository {
 
         if (data.dataImage) {
             const link = await this.cloudService.uploadFile({
-                path: `assets/${prod.storeCode}/${data.dataImage.path}`,
+                path: `assets/${prod.storeCode}/${data.dataImage.path}.png`,
                 data: data.dataImage.data
             })
 
@@ -80,7 +80,7 @@ export class MongoProductRepository implements IProductRepository {
     }
 
     getById(id: string) : Promise<IProduct> {
-        return Products.findById(id);
+        return Products.findById(id).populate('category');
     }
 
 }

@@ -87,6 +87,9 @@ export default class MongoAccountRepository implements IAccountRepository {
 
         const rec = <Receipt>{
             _id: accountId,
+            storeCode: account.storeCode,
+            description: account.description,
+            client: account.client,
             orders: ords.map((e) => <IReceiptOrders>{
                 _id: e._id,
                 discount: e.discount,

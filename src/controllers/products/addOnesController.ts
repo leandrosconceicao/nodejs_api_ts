@@ -100,9 +100,9 @@ export default class AddOneController {
                 })
             }).parse(req.body);
 
-            const process = await this.addoneRepository.patch(id, obj.movement, obj.item)
+            await this.addoneRepository.patch(id, obj.movement, obj.item)
 
-            return ApiResponse.success(process).send(res);
+            return ApiResponse.success().send(res);
         } catch (e) {
             next(e);
         }
