@@ -1,5 +1,5 @@
 import { IPrinterSpool, SpoolType } from "../../models/PrinterSpool";
-import { IOrder, Orders } from "../../models/Orders";
+import { IOrder, IOrderProduct, Orders } from "../../models/Orders";
 import ReceiptEnconder, { PrinterWidthEnum } from "@mexicocss/esc-pos-encoder-ts";
 import ISpoolHandler from "../interfaces/ISpoolHandler";
 import { CashRegister, ICashRegister } from "../../models/CashRegister";
@@ -173,11 +173,7 @@ export default class SpoolHandler implements ISpoolHandler {
         encoder.newline();
         encoder.newline();
         
-        encoder.text("      ")
-        encoder.text("Produto");
-        encoder.text("          ")
-        encoder.text("Valor");
-        encoder.text("  ")
+        encoder.text("Produtos").align("center");
     
         encoder.newline();
         
@@ -186,16 +182,8 @@ export default class SpoolHandler implements ISpoolHandler {
         const totPay = data.totalPayment;
         
         data.orders.forEach((orders) => {
-            orders.products.forEach((prod) => {
-                encoder.text(`${prod.quantity}x ${this.removerAcentos(prod.productName)}   ${(prod.quantity * prod.unitPrice).toFixed(2)}`);
-                encoder.emptyLine()
-                // if (prod.addOnes.length) {
-                    //     prod.addOnes.forEach((add) => {
-                        //         encoder.text(`\n${add.name}`)
-                        //     })
-                        // }
-                    })
-                });
+            this.parseProducts(encoder, orders.products);
+        });
                 
         encoder.newline();
 
@@ -264,21 +252,8 @@ export default class SpoolHandler implements ISpoolHandler {
     
         const totPay = parsedOrder.paymentDetail?.total ?? 0.0;
         
-        parsedOrder.products.forEach((prod) => {
-            encoder.text(`${prod.quantity}x ${(prod.quantity * prod.unitPrice).toFixed(2)} ${this.removerAcentos(prod.orderDescription)}`).align("center");
-            if (prod.addOnes?.length) {
-                prod.addOnes.forEach((add) => {
-                    let hasPrice = add.price > 0;
-                    encoder.text(`\n${hasPrice ? `${add.quantity}x ${add.price.toFixed(2)} ` : ""}${this.removerAcentos(add.name)}`)
-                })
-                encoder.emptyLine();
-            } else {
-                encoder.emptyLine();
-            }
-            encoder.text(`Obs: ${this.removerAcentos(prod.observations)}`).align("center");
-            encoder.emptyLine();
-            encoder.emptyLine();
-        });
+        this.parseProducts(encoder, parsedOrder.products);
+
         encoder.newline();
         encoder.newline().align("left");
     
@@ -351,5 +326,26 @@ export default class SpoolHandler implements ISpoolHandler {
             second: '2-digit',
             timeZone: 'America/Sao_Paulo'
         });
+    }
+
+    parseProducts = (encoder: ReceiptEnconder, products: IOrderProduct[]) => {
+        products.forEach((prod) => {
+            encoder.text(`${prod.quantity}x ${(prod.subTotal).toFixed(2)} ${this.removerAcentos(prod.orderDescription)}`).align("left");
+            if (prod.addOnes?.length) {
+                encoder.emptyLine();
+                encoder.text('Complementos').align("center")
+                prod.addOnes.forEach((add) => {
+                    let hasPrice = add.price > 0;
+                    encoder.emptyLine();
+                    encoder.text(`${add.addOneName} - ${hasPrice ? `${add.quantity}x ${add.price.toFixed(2)} ` : ""}${this.removerAcentos(add.name)}`).align("left")
+                })
+                encoder.emptyLine();
+            } else {
+                encoder.emptyLine();
+            }
+            encoder.text(`Obs: ${this.removerAcentos(prod.observations)}`);
+            encoder.emptyLine();
+            encoder.emptyLine();
+        })
     }
 }
