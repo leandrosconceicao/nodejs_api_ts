@@ -1,149 +1,101 @@
 import {Request, Response, NextFunction} from "express";
-import { IOrder, IFirebaseOrder, OrderType, IOrderProduct} from "../models/Orders";
-import {getDatabase} from "firebase-admin/database";
-import ApiResponse from "../models/base/ApiResponse";
-import FirebaseMessaging from "../utils/firebase/messaging";
+import { IOrder} from "../models/Orders";
 import ErrorAlerts from "../utils/errorAlerts";
+import { autoInjectable, inject } from "tsyringe";
+import ICloudService from "../domain/interfaces/ICloudService";
+import ApiResponse from "../models/base/ApiResponse";
 
-const FBMESSAGING = new FirebaseMessaging();
+@autoInjectable()
+export class OrdersMiddleware {
 
-const PREPARATION_PATH = "preparation";
-const WITHDRAW_PATH = "withdraw";
-
-function handlerOrder(order: IOrder) {
-    const parsedOrder : Partial<IFirebaseOrder> = {
-        pedidosId: order.pedidosId,
-        _id: `${order._id}`,
-        firebaseToken: `${order.firebaseToken ?? ""}`,
-        orderType: order.orderType,
-        storeCode: `${order.storeCode}`,
-        status: order.status,
-        createdAt: order.createdAt?.toISOString() ?? new Date().toISOString(),
-        client: {
-            name: order?.client?.name ?? "",
-            phoneNumber: order?.client?.phoneNumber ?? "",
-            email: order?.client?.email ?? "",
-            cgc: order?.client?.cgc ?? "",
-        },
-        userCreate: {
-            username: order?.userCreate?.username ?? "Sistema"
-        },
-        accountDetail: {
-            description: order?.accountDetail?.description ?? ""
-        },
-        subTotal: order?.subTotal ?? 0,
-        totalProduct: order?.totalProduct ?? 0,
-        totalTip: order?.totalTip ?? 0.0,
-        products: [
-            ...order.products.map((e) => {
-                return <IOrderProduct>{
-                    quantity: e.quantity,
-                    productName: e.productName,
-                    productId: e.productId,
-                    observations: e.observations,
-                    orderDescription: e.orderDescription,
-                    needsPreparation: e.needsPreparation,
-                    setupIsFinished: e.setupIsFinished,
-                    category: e.category,
-                    unitPrice: e.unitPrice,
-                    totalAddOnes: e.totalAddOnes ?? 0.0,
-                    subTotal: e.subTotal ?? 0.0,
-                    totalProduct: e.totalProduct ?? 0.0,
-                    addOnes: e.addOnes?.map((a) => {
-                        return {
-                            addOneName: a.addOneName,
-                            quantity: a.quantity,
-                            name: a.name,
-                            price: a.price,
-                        }
-                    }) ?? []
-                }
-            })
-        ]
+    constructor(
+        @inject("ICloudService") private readonly cloudService : ICloudService
+    ) {}
+    
+    updateWithDrawMonitorBatch = (req: Request, _: Response, next: NextFunction) => {
+        try {
+            const data : Array<{
+                isReady: boolean,
+                order: IOrder
+            }> = req.result;
+            
+            Promise.all(data.map((e) => this.cloudService.addWithdrawOrder(e.order)))
+    
+        } catch (e) {
+            ErrorAlerts.sendAlert(e, req);
+        }
+        next();
     }
-    return parsedOrder;
-}
 
-function addPreparationOrder(req: Request, res: Response, next: NextFunction) {
-    try {
-        const order : IOrder = req.result;
-        const parsedOrder = handlerOrder(order);
-        const db = getDatabase();
-        db.ref(`${order.storeCode}`).child(PREPARATION_PATH).child(`${order._id}`).set(parsedOrder)
-    } catch (e) {
-        ErrorAlerts.sendAlert(e, req);
+    updateWithDrawMonitor = (req: Request, _: Response, next: NextFunction) => {
+        try {
+            const data : {
+                isReady: boolean,
+                order: IOrder
+            } = req.result
+    
+            this.cloudService.updateWithdrawOrder(data.order);
+            
+        } catch (e) {
+            ErrorAlerts.sendAlert(e, req);
+        }
+        next();
     }
-    next();
-}
 
-function manageWithDrawMonitor(req: Request, res: Response, next: NextFunction) {
-    try {
-        const order : IOrder = req.result;
-        if (order.orderType === OrderType.withdraw) {
-            const parsedOrder = handlerOrder(order);
-            const db = getDatabase();
-            db.ref(`${order.storeCode}`).child(WITHDRAW_PATH).child(`${order._id}`).set(parsedOrder)
-        }        
-    } catch (e) {
-        ErrorAlerts.sendAlert(e, req);
+    removePreparation = (req: Request, _: Response, next: NextFunction) => {
+        const order = req.result as IOrder;
+        try {
+
+            this.cloudService.removePreparationOrder(order);
+
+        } catch (e) {
+            ErrorAlerts.sendAlert(e, req);
+        }
+        next();
     }
-    next();
-}
 
-function updateWithDrawMonitor(req: Request, res: Response, next: NextFunction) {
-    try {
+    manageWithDrawMonitor = (req: Request, _: Response, next: NextFunction) => {
+        try {
+            const order : IOrder = req.result;
+            
+            this.cloudService.addWithdrawOrder(order);
+
+        } catch (e) {
+            ErrorAlerts.sendAlert(e, req);
+        }
+        next();
+    }
+
+    addPreparationOrder = (req: Request, _: Response, next: NextFunction) => {
+        try {
+            const order : IOrder = req.result;
+
+            this.cloudService.addPreparationOrder(order);
+
+        } catch (e) {
+            ErrorAlerts.sendAlert(e, req);
+        }
+        next();
+    }
+
+    setOrderOnPreparation = (req: Request, res: Response, _: NextFunction) => {
         const data : {
             isReady: boolean,
             order: IOrder
         } = req.result
+        try {
+            if (data.isReady) {
 
-        if (data.order.orderType === OrderType.withdraw) {
-            const parsedOrder = handlerOrder(data.order);
-            const db = getDatabase();
-            db.ref(`${data.order.storeCode}`).child(WITHDRAW_PATH).child(`${data.order._id}`).update(parsedOrder)
-        }        
-    } catch (e) {
-        ErrorAlerts.sendAlert(e, req);
-    }
-    next();
-}
+                this.cloudService.removePreparationOrder(data.order);
 
-
-function setOrderOnPreparation(req: Request, res: Response, next: NextFunction) {
-    const data : {
-        isReady: boolean,
-        order: IOrder
-    } = req.result
-    try {
-        const db = getDatabase();
-        const ref = db.ref(`${data.order.storeCode}`).child(PREPARATION_PATH);
-        if (data.isReady) {
-            ref.child(`${data.order._id}`).remove();
-            notifyClient("Alerta de pedido", "Pedido está pronto", data.order.firebaseToken)
-        } else {
-            ref.child(`${data.order._id}`).set(handlerOrder(data.order))
+                this.cloudService.notifyUsers(data.order.firebaseToken, "Alerta de pedido", "pedido está pronto")
+                
+            } else {
+                this.cloudService.addPreparationOrder(data.order)
+            }
+        } catch (e) {
+            ErrorAlerts.sendAlert(e, req);
         }
-    } catch (e) {
-        ErrorAlerts.sendAlert(e, req);
-    }
-    ApiResponse.success(data.order).send(res);
-}
-
-function notifyClient(title: string, body: string, token?: string) {
-    if  (token) {
-        FBMESSAGING.sendToUser(token, {title, body});
+        ApiResponse.success(data.order).send(res);
     }
 }
-
-async function removePreparation(req: Request, res: Response, next: NextFunction) {
-    const order = req.result as IOrder;
-    try {
-        const db = getDatabase();
-        db.ref(`${order.storeCode}`).child(PREPARATION_PATH).child(`${order._id}`).remove()
-    } catch (e) {
-        ErrorAlerts.sendAlert(e, req);
-    }
-    next();
-}
-
-export {addPreparationOrder, setOrderOnPreparation, manageWithDrawMonitor, updateWithDrawMonitor, removePreparation};
