@@ -10,6 +10,8 @@ export default interface IOrderRepository {
 
     setPreparation(id: string, updateById: string, isReady: boolean) : Promise<IOrder>;
 
+    setPreparationBatch(updateById: string, orders: {id: string, isReady: boolean}[]) : Promise<{order: IOrder, isReady: boolean}[]>
+
     changeSeller(orderId: string, userIdTo: string, updatedById: string) : Promise<IOrder>;
 
     applyDiscount(orderId: string, discount: number, updatedById: string) : Promise<IOrder>;

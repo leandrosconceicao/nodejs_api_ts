@@ -38,6 +38,28 @@ export default class MongoOrderRepository implements IOrderRepository {
         @inject('IEstablishmentRepository') private readonly establishmentRepository: IEstablishmentRepository
     ) {}
 
+    async setPreparationBatch(updateById: string, orders: { id: string; isReady: boolean; }[]): Promise<{order: IOrder, isReady: boolean}[]> {
+        const updatedOrders = await Promise.all(
+            orders.map((e) => Orders.findByIdAndUpdate(e.id, {
+                status: e.isReady ? "finished": "pending",
+                "products.$[].setupIsFinished": e.isReady,
+                updated_by: new ObjectId(updateById)
+            }, {
+                new: true
+            })
+            .populate(populateClient)
+            .populate(popuAccId, [popuPayment, popuOrders])
+            .populate(popuUser, [popuEstablish, popuPass]))
+        )
+
+        return updatedOrders.map((order) => {
+            return {
+                order: order,
+                isReady: orders.find((e) => e.id === order._id.toString()).isReady
+            }
+        });
+    }
+
     async manageTipValue(storeCode: string, accountId: string, enabledTip: boolean): Promise<void> {
 
         const store = await this.establishmentRepository.findOne(storeCode);
