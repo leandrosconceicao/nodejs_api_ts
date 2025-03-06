@@ -85,8 +85,8 @@ export default class MongoOrderRepository implements IOrderRepository {
         return handler.create();
     }
 
-    setPreparation(id: string, updateById: string, isReady: boolean): Promise<IOrder> {
-        return Orders.findByIdAndUpdate(id, {
+    async setPreparation(id: string, updateById: string, isReady: boolean): Promise<IOrder> {
+        await Orders.findByIdAndUpdate(id, {
             status: isReady ? "finished": "pending",
             "products.$[].setupIsFinished": isReady,
             updated_by: new ObjectId(updateById)
@@ -96,6 +96,8 @@ export default class MongoOrderRepository implements IOrderRepository {
         .populate(populateClient)
         .populate(popuAccId, [popuPayment, popuOrders])
         .populate(popuUser, [popuEstablish, popuPass]).lean();
+
+        return this.findOne(id)
     }
 
     delete(id: string, updatedById: string): Promise<IOrder> {
