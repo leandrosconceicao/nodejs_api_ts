@@ -31,7 +31,28 @@ const SOCICAL_VALIDATION = z.object({
 
 const establishmentAttributes = z.object({
     name: z.string().min(1),
-    createDate: z.string().datetime().optional(),
+    location: z.string().optional(),
+    ownerId: z.string().min(11).max(14),
+    logo: z.string().optional(),
+    dataImage: z.object({
+        path: z.string().min(1),
+        data: z.string().min(1)
+    }).optional(),
+    pixKey: z.string().optional(),
+    telegramChatId: z.string().optional(),
+    url: z.string().optional(),
+    social: SOCICAL_VALIDATION.optional(),
+    services: SERVICES_VALIDATION.optional(),
+    geoLocation: z.object({
+        type: z.string().default("Point"),
+        coordinates: z.array(z.number()),
+    }).optional(),
+    tipValue: z.number().default(0.0),
+    maxDiscountAllowed: z.number().optional()
+});
+
+const establishmentUpdateValidation = z.object({
+    name: z.string().min(1).optional(),
     location: z.string().optional(),
     ownerId: z.string().min(11).max(14).optional(),
     logo: z.string().optional(),
@@ -139,7 +160,7 @@ const schema = new mongoose.Schema({
     maxDiscountAllowed: {
         type: Number
     },
-    deleted: { type: Boolean }
+    deleted: { type: Boolean, default: undefined }
 }, {
     versionKey: false,
     timestamps: true
@@ -206,4 +227,4 @@ interface IEstablishments {
 
 const Establishments = mongoose.model<IEstablishments>('establishments', schema);
 
-export {schema, Establishments, establishmentAttributes, IEstablishments }
+export {schema, Establishments, establishmentAttributes, IEstablishments, establishmentUpdateValidation }

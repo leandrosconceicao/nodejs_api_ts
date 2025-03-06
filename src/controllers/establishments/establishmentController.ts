@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import {IEstablishments, establishmentAttributes } from "../../models/Establishments";
+import {IEstablishments, establishmentAttributes, establishmentUpdateValidation } from "../../models/Establishments";
 import {z} from "zod";
 import ApiResponse from "../../models/base/ApiResponse";
 import { idValidation } from "../../utils/defaultValidations";
@@ -67,7 +67,7 @@ export default class EstablishmentsController {
         try {
             const id = idValidation.parse(req.params.id);
 
-            const establishments = establishmentAttributes.parse(req.body);
+            const establishments = establishmentUpdateValidation.parse(req.body);
 
             const process = await this.repository.update(id, establishments as Partial<IEstablishments>)
             
