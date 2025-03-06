@@ -220,17 +220,7 @@ export default class OrdersController {
             const process = await this.orderRepository.setPreparation(id, body.userCode, body.isReady);
             
             if (process?.createdBy) {
-                const user = await this.userRepository.findOne(process.createdBy.toString());
-                if (user?.token) {
-                    let info;
-                    if (process.orderType == OrderType.account) {
-                        info = `conta: ${process?.accountDetail?.description}`;
-                    } else {
-                        info = process?.client?.name ? `cliente: ${process?.client?.name}` : 'cliente não informado'
-                    }
-                    info += `${body.isReady ? '' : ', status de preparação foi revertido, verique com o balcão o status do pedido'}`;
-                    this.cloudService.notifyUsers(user?.token?.toString(), "Preparação de pedido", `Atenção, pedido: ${process.pedidosId} ${body.isReady ? 'está pronto' : 'não está pronto'}, ${info}`);
-                }
+                await this.notifyUsers(process, body.isReady)
             }
 
             req.result = {
@@ -316,6 +306,49 @@ export default class OrdersController {
 
         } catch (e) {
             next(e);
+        }
+    }
+
+    setPreparationBatch = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const body = z.array(z.object({
+                isReady: z.boolean(),
+                id: idValidation
+            }))
+            .transform((value) => {
+                return value.map((e) => <{isReady: boolean, id: string}>{
+                    id: e.id,
+                    isReady: e.isReady
+                })
+            })
+            .parse(req.body)
+
+            const orders = await this.orderRepository.setPreparationBatch(req.autenticatedUser.id, body)
+
+            await Promise.all(
+                orders.map((e) => this.notifyUsers(e.order, e.isReady))
+            )
+
+            req.result = orders;
+
+            next();
+
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    private async notifyUsers(process: IOrder, isReady: boolean) : Promise<void> {
+        const user = await this.userRepository.findOne(process.createdBy.toString());
+        if (user?.token) {
+            let info;
+            if (process.orderType == OrderType.account) {
+                info = `conta: ${process?.accountDetail?.description}`;
+            } else {
+                info = process?.client?.name ? `cliente: ${process?.client?.name}` : 'cliente não informado'
+            }
+            info += `${isReady ? '' : ', status de preparação foi revertido, verique com o balcão o status do pedido'}`;
+            this.cloudService.notifyUsers(user?.token?.toString(), "Preparação de pedido", `Atenção, pedido: ${process.pedidosId} ${isReady ? 'está pronto' : 'não está pronto'}, ${info}`);
         }
     }
 }
