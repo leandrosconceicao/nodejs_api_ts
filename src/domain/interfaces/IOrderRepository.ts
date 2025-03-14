@@ -1,4 +1,5 @@
 import { IOrder, IOrderSearchQuery } from "../../models/Orders";
+import { IDeliveryOrder, ISearchDeliveryOrder } from "../types/IDeliveryOrder";
 
 export default interface IOrderRepository {
 
@@ -25,4 +26,12 @@ export default interface IOrderRepository {
     updateId(id: string, storeCode: string) : Promise<void>;
 
     manageTipValue(storeCode: string, accountId: string, enabledTip: boolean) : Promise<void>;
+
+    requestDeliveryOrder(order: IDeliveryOrder) : Promise<IDeliveryOrder>;
+
+    getDeliveryOrderById(id: string) : Promise<IDeliveryOrder>;
+
+    getDeliveryOrders(query: Partial<ISearchDeliveryOrder>) : Promise<IDeliveryOrder[]>;
+
+    updateDeliveryOrder(id: string, data: Partial<IDeliveryOrder>) : Promise<IDeliveryOrder>;
 }

@@ -22,6 +22,7 @@ const tokenController = container.resolve(TokenController);
 const orderMiddleware = container.resolve(OrdersMiddleware);
 
 export default express.Router()
+    .get(`${Endpoints.orders}/delivery_orders`, tokenController.userValidation, orderController.findAllDeliveryOrders)
     .get(Endpoints.orders, orderController.findAll, paginationAndFilters)
     .get(`${Endpoints.orders}/:id`, orderController.findOne)
     .post(Endpoints.orders, orderController.newOrder, orderMiddleware.addPreparationOrder, orderMiddleware.manageWithDrawMonitor, spoolMiddleware.printerSpoolMiddleware)
@@ -31,3 +32,6 @@ export default express.Router()
     .patch(`${Endpoints.orders}/transfer`, adminTokenValidation, OrdersController.transfer)
     .patch(`${Endpoints.orders}/change_seller/:id`, adminTokenValidation, orderController.changeSeller)
     .patch(`${Endpoints.orders}/discount_apply/:id`, adminTokenValidation, orderController.applyOrderDiscount)
+    .get(`${Endpoints.orders}/delivery_orders/:id`, tokenController.userValidation, orderController.findDeliveryOrderById)
+    .post(`${Endpoints.orders}/delivery_orders/:storeCode`, orderController.requestDeliveryOrders)
+    .patch(`${Endpoints.orders}/delivery_orders/:id`, orderController.updateDeliveryOrder, orderMiddleware.manageDeliveryOrder)

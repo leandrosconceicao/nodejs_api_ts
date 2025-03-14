@@ -1,6 +1,6 @@
 import { delay, inject, injectable, registry } from "tsyringe";
 import IOrderRepository from "../domain/interfaces/IOrderRepository";
-import { IOrder, IOrderSearchQuery, Orders, OrderType } from "../models/Orders";
+import { IOrder, IOrderSearchQuery, Orders, OrderStatus, OrderType } from "../models/Orders";
 import NotFoundError from "../models/errors/NotFound";
 import mongoose from "mongoose";
 import { Users } from "../models/Users";
@@ -13,6 +13,13 @@ import IOrderHandler from "../domain/interfaces/IOrderHandler";
 import Counters from "../models/Counters";
 import BadRequestError from "../models/errors/BadRequest";
 import IAccountRepository from "../domain/interfaces/IAccountRepository";
+import { IDeliveryOrder, ISearchDeliveryOrder } from "../domain/types/IDeliveryOrder";
+import { DeliveryOrders } from "../models/orders/delivery_orders";
+import { PaymentMethods } from "../models/PaymentMethods";
+import { IProductRepository } from "../domain/interfaces/IProductRepository";
+import { IClientBasicInfo } from "../models/Clients";
+import { DeliveryHandler } from "../domain/handlers/orders/deliveryHandler";
+import { PeriodQuery } from "../utils/PeriodQuery";
 
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -35,8 +42,93 @@ export default class MongoOrderRepository implements IOrderRepository {
 
     constructor(
         @inject("IAccountRepository") private readonly accountRepository : IAccountRepository,
-        @inject('IEstablishmentRepository') private readonly establishmentRepository: IEstablishmentRepository
+        @inject('IEstablishmentRepository') private readonly establishmentRepository: IEstablishmentRepository,
+        @inject("IProductRepository") private readonly productRepository : IProductRepository,
     ) {}
+
+    async updateDeliveryOrder(id: string, data: Partial<IDeliveryOrder>): Promise<IDeliveryOrder> {
+        
+        const deliveryOrder = await this.getDeliveryOrderById(id);
+
+        if (deliveryOrder.status === OrderStatus.cancelled || deliveryOrder.status === OrderStatus.finished)
+            throw new BadRequestError(`Status do pedido não permite alterações`)
+
+        if (deliveryOrder.orderId && deliveryOrder.status === OrderStatus.accepted)
+            throw new BadRequestError("Pedido já está em produção")
+
+        const update = <Partial<{
+            orderId: object,
+            status: OrderStatus,
+            client: IClientBasicInfo
+        }>>{};
+
+        if (data.client) update.client = data.client;
+
+        if (data.orderId) update.orderId = new ObjectId(data.orderId.toString());
+
+        if (data.status) update.status = data.status;
+
+        const updatedOrder = await DeliveryOrders.findOneAndUpdate({_id: deliveryOrder._id,}, update, {new: true})
+
+        return updatedOrder;
+
+    }
+
+    async requestDeliveryOrder(order: IDeliveryOrder): Promise<IDeliveryOrder> {
+        
+        const store = await this.establishmentRepository.findOne(order.storeCode.toString());
+
+        const method = await PaymentMethods.findById(order.paymentMethod);
+        if (!method)
+            throw new NotFoundError("Metodo de pagamento não foi localizadao")
+
+        await this.productRepository.validateProducts(store._id, order.products);
+        
+        return DeliveryOrders.create(order);
+    }
+
+    async getDeliveryOrderById(id: string): Promise<IDeliveryOrder> {
+        const data = await DeliveryOrders.findById(id)
+            .populate('establishmentDetail')
+            .populate('paymentMethodDetail')
+
+        if (!data)
+            throw new NotFoundError("Pedido não localizado")
+
+        return data;
+    }
+
+    getDeliveryOrders(query: Partial<ISearchDeliveryOrder>): Promise<IDeliveryOrder[]> {
+        const search = <{
+            storeCode?: object,
+            createdAt?: object,
+            orderId?: object,
+            status?: string,
+            paymentMethod?: object
+        }>{};
+        if (query.storeCode) {
+
+            search.storeCode = new ObjectId(query.storeCode);
+        }
+
+        if (query.status) {
+            search.status = query.status;
+        }
+        
+        if (query.from && query.to) {
+            search.createdAt = new PeriodQuery(query.from, query.to).build();
+        }
+
+        if (query.orderId) {
+            search.orderId = new ObjectId(query.orderId);
+        }
+
+        if (query.paymentMethod) {
+            search.paymentMethod = new ObjectId(query.paymentMethod)
+        }
+
+        return DeliveryOrders.find(search)
+    }
 
     async setPreparationBatch(updateById: string, orders: { id: string; isReady: boolean; }[]): Promise<{order: IOrder, isReady: boolean}[]> {
         const updatedOrders = await Promise.all(
@@ -78,7 +170,9 @@ export default class MongoOrderRepository implements IOrderRepository {
         }
     }
 
-    async createOrder(data: IOrder): Promise<IOrder> {
+    createOrder = async (data: IOrder): Promise<IOrder> => {
+
+        await this.productRepository.validateProducts(data.storeCode.toString(), data.products);
 
         let handler = this.getInstance(data);
 
@@ -198,6 +292,8 @@ export default class MongoOrderRepository implements IOrderRepository {
                 return new AccountHandler(data, this.accountRepository, this.establishmentRepository);
             case OrderType.withdraw:
                 return new WithdrawHandler(data);
+            case OrderType.delivery:
+                return new DeliveryHandler(data);
             default:
                 throw new Error("Not Implemented")
         }
