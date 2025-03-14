@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import {z} from "zod";
 import orders_products_schema from "./orders/orders_products";
-import { clientsSchema, IClient } from "./Clients";
+import { clientBasicInfoSchema, clientsBasicInfoValidation, IClient, IClientBasicInfo } from "./Clients";
 import { idValidation } from "../utils/defaultValidations";
 import MongoId from "./custom_types/mongoose_types";
 import { IUsers } from "./Users";
@@ -65,7 +65,7 @@ const orderSchema = new mongoose.Schema({
     }
   },
   client: {
-    type: clientsSchema
+    type: clientBasicInfoSchema
   },
   createdBy: {
     type: ObjectId, ref: "users",
@@ -174,21 +174,7 @@ const orderValidation = z.object({
     message: "Informe um valor entre 0 e 100"
 }).default(0.0),
   products: z.array(orderProductValidation).nonempty(),
-  client: z.object({
-      cgc: z.string().optional(),
-      name: z.string().optional(),
-      email: z.string().optional(),
-      phoneNumber: z.string().optional(),
-      address: z.array(z.object({
-          address: z.string().optional(),
-          city: z.string().optional(),
-          complement: z.string().optional(),
-          district: z.string().optional(),
-          number: z.string().optional(),
-          state: z.string().optional(),
-          zipCode: z.string().optional()
-      })).nonempty().optional(),
-  }).default({
+  client: clientsBasicInfoValidation.default({
     cgc: "",
     name: "",
     email: "",
@@ -255,7 +241,7 @@ interface IOrder {
   discount?: number,
   status?: OrderStatus,
   products: Array<IOrderProduct>,
-  client?: IClient,
+  client?: IClientBasicInfo,
   createdBy?: string | MongoId,
   updatedBy?: string | MongoId,
   storeCode: string | MongoId,
