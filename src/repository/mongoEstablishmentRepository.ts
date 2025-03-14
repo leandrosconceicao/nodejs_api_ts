@@ -6,6 +6,10 @@ import mongoose from "mongoose";
 import ICloudService from "../domain/interfaces/ICloudService";
 import { OrderType } from "../models/Orders";
 import BadRequestError from "../models/errors/BadRequest";
+import { IDeliveryDistrict, IDeliveryDistrictValues } from "../domain/types/IDeliveryDistrict";
+import { DeliveryDistrict } from "../models/DeliveryDistricts";
+
+var ObjectId = mongoose.Types.ObjectId;
 
 @injectable()
 @registry([
@@ -19,6 +23,58 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
     constructor(
         @inject("ICloudService") private readonly service: ICloudService
     ) {}
+
+    addDeliveryDistrict(data: IDeliveryDistrict): Promise<IDeliveryDistrict> {
+        return DeliveryDistrict.create(data);
+    }
+
+    async getDeliveryDistrict(storeCode: string): Promise<IDeliveryDistrict> {
+        const data = await DeliveryDistrict.findOne({
+            storeCode: new ObjectId(storeCode),
+            deleted: undefined
+        })
+
+        if (!data)
+            throw new NotFoundError("Dados não localizados");
+
+        return data;
+    }
+
+    private findDeliveryDistrictById = async (id: string) : Promise<IDeliveryDistrict> => {
+        const data = await DeliveryDistrict.findById(id);
+
+        if (!data) 
+            throw new NotFoundError("Registro não localizado");
+        
+        return data;
+    }
+
+    async deleteDeliveryDistrict(id: string): Promise<IDeliveryDistrict> {
+        
+        const data = await this.findDeliveryDistrictById(id);
+
+        return DeliveryDistrict.findByIdAndUpdate(data._id, {
+            deleted: true
+        }, {
+            new: true
+        });
+    }
+
+    updateDeliveryDistrict = async (id: string, movement: "push" | "pull", data: IDeliveryDistrictValues): Promise<IDeliveryDistrict> => {
+        const item = await this.findDeliveryDistrictById(id);
+        if (item.districts.length === 1 && movement === "pull")
+            throw new BadRequestError("Deve haver ao menos um bairro no registro");
+
+        const update = movement === "push" ? {
+            $push: { districts: data }
+        } : {
+            $pull: { districts: data }
+        }
+
+        return DeliveryDistrict.findOneAndUpdate({
+            _id: new ObjectId(id)
+        }, update, {new: true})
+    }
 
     async validateDiscount(id: string, discount?: number): Promise<void> {
         

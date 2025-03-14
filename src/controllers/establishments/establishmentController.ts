@@ -5,6 +5,7 @@ import ApiResponse from "../../models/base/ApiResponse";
 import { idValidation } from "../../utils/defaultValidations";
 import { autoInjectable, inject } from "tsyringe";
 import IEstablishmentRepository from "../../domain/interfaces/IEstablishmentRepository";
+import { IDeliveryDistrict, IDeliveryDistrictValues } from "../../domain/types/IDeliveryDistrict";
 
 @autoInjectable()
 export default class EstablishmentsController {
@@ -72,6 +73,77 @@ export default class EstablishmentsController {
             const process = await this.repository.update(id, establishments as Partial<IEstablishments>)
             
             return ApiResponse.success(process).send(res);
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    getDeliveryDistricts = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const storeCode = idValidation.parse(req.params.storeCode);
+
+            const data = await this.repository.getDeliveryDistrict(storeCode);
+
+            ApiResponse.success(data).send(res);
+
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    deleteDeliveryDistrict = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const id = idValidation.parse(req.params.id);
+
+            await this.repository.deleteDeliveryDistrict(id);
+
+            res.sendStatus(204);
+
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    updateDeliveryDistrict = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            
+            const id = idValidation.parse(req.params.id);
+
+            const update = z.object({
+                movement: z.enum(["pull", "push"]),
+                data: z.object({
+                    description: z.string(),
+                    value: z.number()
+                })
+            }).parse(req.body);
+
+            const updatedData = await this.repository.updateDeliveryDistrict(id, update.movement, update.data as IDeliveryDistrictValues)
+
+
+            ApiResponse.success(updatedData).send(res);
+
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    addDeliveryDistrict = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            
+            const data = z.object({
+                storeCode: idValidation,
+                districts: z.array(
+                    z.object({
+                        description: z.string(),
+                        value: z.number()
+                    })
+                ).nonempty()
+            }).parse(req.body);
+
+            const newData = await this.repository.addDeliveryDistrict(data as IDeliveryDistrict)
+
+            ApiResponse.success(newData).send(res);
+
         } catch (e) {
             next(e);
         }
