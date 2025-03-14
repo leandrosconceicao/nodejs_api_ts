@@ -37,7 +37,6 @@ const orderSchema = new mongoose.Schema({
       message: "O valor do desconto não pode ultrapassar 100%"
     }
   },
-  updated_at: { type: Date },
   updated_by: { type: ObjectId, ref: "users"},
   orderType: {
     type: String,
@@ -47,7 +46,6 @@ const orderSchema = new mongoose.Schema({
       message: "O tipo {VALUE} não é um valor permitido"
     }
   },
-  accepted: { type: Boolean, default: null },
   status: {
     type: String,
     default: "pending",
@@ -171,7 +169,6 @@ const orderValidation = z.object({
   accountId: idValidation.optional(),
   updated_by: idValidation.optional(),
   orderType: z.nativeEnum(OrderType).default(OrderType.frontdesk),
-  accepted: z.boolean().optional(),
   status: z.enum(['pending', 'cancelled', 'finished', 'onTheWay']).default("pending"),
   discount: z.number().nonnegative({
     message: "Informe um valor entre 0 e 100"
@@ -189,6 +186,7 @@ const orderValidation = z.object({
 });
 
 enum OrderStatus {
+  accepted = "accepted",
   pending = 'pending', 
   cancelled = 'cancelled', 
   finished = 'finished', 
