@@ -1,3 +1,4 @@
+import { IOrderProduct } from "../../models/Orders";
 import { IProduct, ProductFilters } from "../types/IProduct";
 
 export interface IProductRepository {
@@ -11,5 +12,7 @@ export interface IProductRepository {
     delete(id: string) : Promise<void>;
 
     update(id: string, data: Partial<IProduct>) : Promise<IProduct>;
+
+    validateProducts(storeCode: string, products: IOrderProduct[]) : Promise<void>;
 
 }

@@ -6,6 +6,11 @@ import { AddOnes } from "../models/products/AddOnes";
 import { Products } from "../models/products/Products";
 import ICloudService from "../domain/interfaces/ICloudService";
 import ICategoryRepository from "../domain/interfaces/ICategoryRepository";
+import BadRequestError from "../models/errors/BadRequest";
+import { IOrderProduct } from "../models/Orders";
+import mongoose from "mongoose";
+
+var ObjectId = mongoose.Types.ObjectId;
 
 @injectable()
 @registry([
@@ -82,5 +87,18 @@ export class MongoProductRepository implements IProductRepository {
     getById(id: string) : Promise<IProduct> {
         return Products.findById(id).populate('category');
     }
+    
+    async validateProducts(storeCode: string, products: IOrderProduct[]): Promise<void> {
+        for (let i = 0; i < products.length; i++) {
+            const prod = products[i];
 
+            const fetchProduct = await Products.findOne({
+                storeCode: new ObjectId(storeCode),
+                _id: new ObjectId(prod.productId.toString())
+            });
+
+            if (!fetchProduct || !fetchProduct.isActive) 
+                throw new BadRequestError(`Produto (${prod.productName}) não está disponível`)
+        }
+    }
 }
