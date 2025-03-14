@@ -24,6 +24,9 @@ const orderSchema = new mongoose.Schema({
   accountId: {
     type: ObjectId, ref: "accounts",
   },
+  deliveryTax: {
+    type: Number,
+  },
   discount: { 
     type: Number,
     default: 0.0,
