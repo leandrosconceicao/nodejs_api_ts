@@ -14,6 +14,7 @@ import IEstablishmentRepository from "../../domain/interfaces/IEstablishmentRepo
 import IOrderRepository from "../../domain/interfaces/IOrderRepository";
 import ICloudService from "../../domain/interfaces/ICloudService";
 import IUserRepository from "../../domain/interfaces/IUserRepository";
+import { deliveryOrdersSearchValidation, deliveryOrdersUpdateValidation, deliveryOrdersValidation, IDeliveryOrder, ISearchDeliveryOrder } from "../../domain/types/IDeliveryOrder";
 
 export var ObjectId = mongoose.Types.ObjectId;
 
@@ -332,6 +333,80 @@ export default class OrdersController {
             req.result = orders;
 
             next();
+
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    requestDeliveryOrders = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const body = {
+                storeCode: req.params.storeCode,
+                ...req.body
+            }
+            const data = deliveryOrdersValidation.parse(body);
+
+            const orderRequest = await this.orderRepository.requestDeliveryOrder(data as IDeliveryOrder);
+
+            ApiResponse.success(orderRequest, 201).send(res);
+
+        } catch (e) {
+            next(e);
+        }
+    }
+    
+    findAllDeliveryOrders = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+
+            const data = deliveryOrdersSearchValidation.parse(req.query);
+    
+            const orderRequest = await this.orderRepository.getDeliveryOrders(data);
+    
+            ApiResponse.success(orderRequest).send(res);
+    
+        } catch (e) {
+            next(e);
+        }
+    }
+    
+    findDeliveryOrderById = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+
+            const id = idValidation.parse(req.params.id);
+    
+            const orderRequest = await this.orderRepository.getDeliveryOrderById(id)
+    
+            ApiResponse.success(orderRequest).send(res);
+    
+        } catch (e) {
+            next(e);
+        }
+        
+    }
+
+    updateDeliveryOrder = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            
+            const id = idValidation.parse(req.params.id);
+
+            const body = deliveryOrdersUpdateValidation.parse(req.body);
+
+            const updatedOrder = await this.orderRepository.updateDeliveryOrder(id, body);
+
+            req.result = updatedOrder;
+
+            next();
+
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    cancelDeliveryOrder = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const id = req.params.id;
+            
 
         } catch (e) {
             next(e);

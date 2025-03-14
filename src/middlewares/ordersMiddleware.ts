@@ -1,15 +1,18 @@
 import {Request, Response, NextFunction} from "express";
-import { IOrder} from "../models/Orders";
+import { IOrder, OrderStatus, OrderType} from "../models/Orders";
 import ErrorAlerts from "../utils/errorAlerts";
 import { autoInjectable, inject } from "tsyringe";
 import ICloudService from "../domain/interfaces/ICloudService";
 import ApiResponse from "../models/base/ApiResponse";
+import { IDeliveryOrder } from "../domain/types/IDeliveryOrder";
+import IOrderRepository from "../domain/interfaces/IOrderRepository";
 
 @autoInjectable()
 export class OrdersMiddleware {
 
     constructor(
-        @inject("ICloudService") private readonly cloudService : ICloudService
+        @inject("ICloudService") private readonly cloudService : ICloudService,
+        @inject("IOrderRepository") private readonly orderRepository: IOrderRepository,
     ) {}
     
     updateWithDrawMonitorBatch = (req: Request, _: Response, next: NextFunction) => {
@@ -97,5 +100,33 @@ export class OrdersMiddleware {
             ErrorAlerts.sendAlert(e, req);
         }
         ApiResponse.success(data.order).send(res);
+    }
+
+    manageDeliveryOrder = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            
+            let deliveryOrder : IDeliveryOrder = req.result;
+
+            if (deliveryOrder.status === OrderStatus.accepted) {
+                
+                let order: Partial<IOrder> = {
+                    client: deliveryOrder.client,
+                    orderType: OrderType.delivery,
+                    paymentMethod: deliveryOrder.paymentMethod,
+                    products: deliveryOrder.products,
+                    storeCode: deliveryOrder.storeCode,
+                }
+
+                order = await this.orderRepository.createOrder(order as IOrder)
+
+                deliveryOrder = await this.orderRepository.updateDeliveryOrder(deliveryOrder._id.toString(), {
+                    orderId: order._id,
+                })
+            }
+
+            ApiResponse.success(deliveryOrder).send(res);
+        } catch (e) {
+            next(e);
+        }
     }
 }
