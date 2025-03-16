@@ -17,6 +17,7 @@ const deliveryOrdersSchema = new mongoose.Schema({
     },
     client: clientBasicInfoSchema,
     deliveryAddress: deliveryAddressSchema,
+    deliveryTax: Number,
     status: {
         type: String,
         default: 'pending',
@@ -45,8 +46,6 @@ const deliveryOrdersSchema = new mongoose.Schema({
     timestamps: true
 })
 
-deliveryAddressSchema.virtual('deliveryTax');
-
 deliveryOrdersSchema.virtual('paymentMethodDetail', {
   justOne: true,
   ref: "paymentMethods",
@@ -60,6 +59,12 @@ deliveryOrdersSchema.virtual('establishmentDetail', {
   localField: 'storeCode',
   foreignField: "_id"
 });
+
+deliveryOrdersSchema.virtual('subTotal')
+  .get(function () {
+    const total = this.products.reduce((a, b) => a + (b.subTotal ?? 0.0), 0.0) + (this.deliveryTax ?? 0.0);
+    return total;
+  })
 
 deliveryOrdersSchema.set('toObject', { virtuals: true });
 deliveryOrdersSchema.set('toJSON', { virtuals: true });

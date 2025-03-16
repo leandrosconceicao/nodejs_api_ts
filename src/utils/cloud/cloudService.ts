@@ -160,6 +160,7 @@ export default class CloudService implements ICloudService {
             },
             subTotal: order?.subTotal ?? 0,
             totalProduct: order?.totalProduct ?? 0,
+            deliveryTax: order?.deliveryTax ?? 0.0,
             totalTip: order?.totalTip ?? 0.0,
             products: [
                 ...order.products.map((e) => {

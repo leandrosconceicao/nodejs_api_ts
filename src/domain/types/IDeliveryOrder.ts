@@ -8,6 +8,7 @@ import { IEstablishments } from "../../models/Establishments"
 export const deliveryOrdersValidation = z.object({
     storeCode: idValidation,
     client: clientsBasicInfoValidation,
+    deliveryTax: z.number(),
     status: z.nativeEnum(OrderStatus).default(OrderStatus.pending),
     paymentMethod: idValidation,
     products: z.array(orderProductValidation).nonempty()
@@ -45,6 +46,7 @@ export interface ISearchDeliveryOrder {
 export interface IDeliveryOrder {
     _id?: string | MongoId,
     deliveryTax?: number,
+    subTotal?: number,
     orderId?: string | MongoId,
     storeCode: string | MongoId,
     createdAt?: Date | string,
