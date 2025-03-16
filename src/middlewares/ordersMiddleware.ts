@@ -129,4 +129,21 @@ export class OrdersMiddleware {
             next(e);
         }
     }
+
+    cancelDeliveryOrder = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const order : IOrder = req.result;
+            if (order.orderType === OrderType.delivery) {
+                const deliveryOrder = await this.orderRepository.getDeliveryOrderByOrderId(order._id.toString());
+                if (deliveryOrder && deliveryOrder.status !== OrderStatus.cancelled) {
+                    await this.orderRepository.updateDeliveryOrder(deliveryOrder._id.toString(), {
+                        status: OrderStatus.cancelled
+                    })
+                }
+            }
+        } catch (e) {
+            ErrorAlerts.sendAlert(e, req);
+        }
+        next();
+    }
 }
