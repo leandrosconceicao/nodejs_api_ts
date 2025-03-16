@@ -46,6 +46,12 @@ export default class MongoOrderRepository implements IOrderRepository {
         @inject("IProductRepository") private readonly productRepository : IProductRepository,
     ) {}
 
+    getDeliveryOrderByOrderId(orderId: string): Promise<IDeliveryOrder> {
+        return DeliveryOrders.findOne({
+            orderId: new ObjectId(orderId)
+        })
+    }
+
     async updateDeliveryOrder(id: string, data: Partial<IDeliveryOrder>): Promise<IDeliveryOrder> {
         
         const deliveryOrder = await this.getDeliveryOrderById(id);
