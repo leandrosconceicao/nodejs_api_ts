@@ -79,7 +79,7 @@ export default class CloudService implements ICloudService {
         const snap = await ref.get();
         const values = snap.val();
         const value = Object.entries(values).find((data) => (data[1] as IPrinterSpool).orderId === id)
-        if (value[0]) {
+        if (value?.length) {
             ref.child(value[0]).remove();
         }
     }
