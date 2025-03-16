@@ -129,7 +129,7 @@ orderSchema.virtual("totalTip").get(function() {
 
 orderSchema.virtual("subTotal")
   .get(function() {
-    const total = this.products.reduce((a, b) => a + (b.subTotal ?? 0.0), 0.0)
+    const total = this.products.reduce((a, b) => a + (b.subTotal ?? 0.0), 0.0) + (this.deliveryTax ?? 0.0)
     const totMinusDiscount = total - (total * this.discount);
     return parseFloat(totMinusDiscount.toFixed(2));
   })
@@ -190,7 +190,8 @@ enum OrderStatus {
   pending = 'pending', 
   cancelled = 'cancelled', 
   finished = 'finished', 
-  onTheWay = 'onTheWay'
+  onTheWay = 'onTheWay',
+  preparation = "preparation"
 }
 
 interface IOrderSearchQuery {
