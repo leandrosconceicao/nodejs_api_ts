@@ -115,6 +115,7 @@ export class OrdersMiddleware {
                     paymentMethod: deliveryOrder.paymentMethod,
                     products: deliveryOrder.products,
                     storeCode: deliveryOrder.storeCode,
+                    deliveryTax: deliveryOrder.deliveryTax,
                 }
 
                 order = await this.orderRepository.createOrder(order as IOrder)
