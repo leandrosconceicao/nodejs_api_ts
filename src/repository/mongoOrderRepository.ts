@@ -59,7 +59,7 @@ export default class MongoOrderRepository implements IOrderRepository {
         if (deliveryOrder.status === OrderStatus.cancelled || deliveryOrder.status === OrderStatus.finished)
             throw new BadRequestError(`Status do pedido não permite alterações`)
 
-        if (deliveryOrder.orderId && deliveryOrder.status === OrderStatus.accepted)
+        if (deliveryOrder.status === OrderStatus.preparation && data.status === OrderStatus.preparation)
             throw new BadRequestError("Pedido já está em produção")
 
         const update = <Partial<{
