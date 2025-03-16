@@ -7,18 +7,9 @@ const OPENING_VALIDATION = z.object({
 });
 
 const SERVICES_VALIDATION = z.object({
-    customer_service: z.object({
-        enabled: z.boolean().optional(),
-        opening_hours: OPENING_VALIDATION.optional()
-    }).optional(),
-    delivery: z.object({
-        enabled: z.boolean().optional(),
-        opening_hours: OPENING_VALIDATION.optional()   
-    }).optional(),
-    withdraw: z.object({
-        enabled: z.boolean().optional(),
-        opening_hours: OPENING_VALIDATION.optional()
-    }).optional(),
+    customer_service: z.boolean().optional(),
+    delivery: z.boolean().optional(),
+    withdraw: z.boolean().optional(),
 });
 
 const SOCICAL_VALIDATION = z.object({
@@ -38,6 +29,7 @@ const establishmentAttributes = z.object({
         path: z.string().min(1),
         data: z.string().min(1)
     }).optional(),
+    opening_hours: OPENING_VALIDATION.optional(),
     pixKey: z.string().optional(),
     telegramChatId: z.string().optional(),
     url: z.string().optional(),
@@ -64,6 +56,7 @@ const establishmentUpdateValidation = z.object({
     telegramChatId: z.string().optional(),
     url: z.string().optional(),
     social: SOCICAL_VALIDATION.optional(),
+    opening_hours: OPENING_VALIDATION.optional(),
     services: SERVICES_VALIDATION.optional(),
     geoLocation: z.object({
         type: z.string().default("Point"),
@@ -100,58 +93,24 @@ const schema = new mongoose.Schema({
         email: {type: String, default: ""},
         phone: {type: String, default: ""},
     },
+    opening_hours: {
+        start: {type: String, validate: {
+            validator: (value: string) => {
+                return RegExp("^([0-1][0-9]|2[0-3]):[0-5][0-9]$").test(value);
+            },
+            message: (props: any) => `${props.value} é invalido`
+        }},
+        end: {type: String, validate: {
+            validator: (value: string) => {
+                return RegExp("^([0-1][0-9]|2[0-3]):[0-5][0-9]$").test(value);
+            },
+            message: (props: any) => `${props.value} é invalido`
+        }}
+    },
     services: {
-        customer_service: {
-            enabled: {type: Boolean, default: false},
-            opening_hours: {
-                start: {type: String, validate: {
-                    validator: (value: string) => {
-                        return RegExp("^([0-1][0-9]|2[0-3]):[0-5][0-9]$").test(value);
-                    },
-                    message: (props: any) => `${props.value} é invalido`
-                }},
-                end: {type: String, validate: {
-                    validator: (value: string) => {
-                        return RegExp("^([0-1][0-9]|2[0-3]):[0-5][0-9]$").test(value);
-                    },
-                    message: (props: any) => `${props.value} é invalido`
-                }}
-            },
-        },
-        delivery: {
-            enabled: {type: Boolean, default: false},
-            opening_hours: {
-                start: {type: String, validate: {
-                    validator: (value: string) => {
-                        return RegExp("^([0-1][0-9]|2[0-3]):[0-5][0-9]$").test(value);
-                    },
-                    message: (props: any) => `${props.value} é invalido`
-                }},
-                end: {type: String, validate: {
-                    validator: (value: string) => {
-                        return RegExp("^([0-1][0-9]|2[0-3]):[0-5][0-9]$").test(value);
-                    },
-                    message: (props: any) => `${props.value} é invalido`
-                }}
-            },
-        },
-        withdraw: {
-            enabled: {type: Boolean, default: false},
-            opening_hours: {
-                start: {type: String, validate: {
-                    validator: (value: string) => {
-                        return RegExp("^([0-1][0-9]|2[0-3]):[0-5][0-9]$").test(value);
-                    },
-                    message: (props: any) => `${props.value} é invalido`
-                }},
-                end: {type: String, validate: {
-                    validator: (value: string) => {
-                        return RegExp("^([0-1][0-9]|2[0-3]):[0-5][0-9]$").test(value);
-                    },
-                    message: (props: any) => `${props.value} é invalido`
-                }}
-            },
-        }
+        customer_service: Boolean,
+        delivery: Boolean,
+        withdraw: Boolean
     },
     tipValue: {
         type: Number,
@@ -199,27 +158,9 @@ interface IEstablishments {
         phone: string,
     },
     services: {
-        customer_service: {
-            enabled: boolean,
-            opening_hours: {
-                start: string,
-                end: string
-            },
-        },
-        delivery: {
-            enabled: boolean,
-            opening_hours: {
-                start: string,
-                end: string
-            },
-        },
-        withdraw: {
-            enabled: boolean,
-            opening_hours: {
-                start: string,
-                end: string
-            },
-        }
+        customer_service: boolean,
+        delivery: boolean,
+        withdraw: boolean
     },
     tipValue: number,
     maxDiscountAllowed?: number

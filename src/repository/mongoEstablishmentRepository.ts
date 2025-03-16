@@ -92,16 +92,16 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
 
         const establishment = await this.findOne(id);
 
-        if (!establishment.services.customer_service.enabled) {
+        if (!establishment.services.customer_service) {
             throw new BadRequestError("Estabelecimento não está aberto no momento.");
         }
         if (orderType === "delivery") {
-            if (!establishment.services.delivery.enabled) {
+            if (!establishment.services.delivery) {
                 throw new BadRequestError("Serviço de delivery não está disponível no momento.");
             }
         }
         if (orderType === "withdraw") {
-            if (!establishment.services.withdraw.enabled) {
+            if (!establishment.services.withdraw) {
                 throw new BadRequestError("Serviço de retira não está disponível no momento.");
             }
         }
