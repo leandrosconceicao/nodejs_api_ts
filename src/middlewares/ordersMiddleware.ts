@@ -73,7 +73,10 @@ export class OrdersMiddleware {
         try {
             const order : IOrder = req.result;
 
-            this.cloudService.addPreparationOrder(order);
+            if (order.products.some((prod) => prod.needsPreparation)) {
+                this.cloudService.addPreparationOrder(order);
+            }
+
 
         } catch (e) {
             ErrorAlerts.sendAlert(e, req);
