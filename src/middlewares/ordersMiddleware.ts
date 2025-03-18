@@ -151,4 +151,31 @@ export class OrdersMiddleware {
         }
         next();
     }
+
+    setOrdersOnPreparatioBatch = (req: Request, res: Response, _: NextFunction) => {
+        const data : Array<{
+            isReady: boolean,
+            order: IOrder
+        }> = req.result;
+
+        try {
+            for (let i = 0; i < data.length; i++) {
+                const item = data[i];
+
+                if (item.isReady) {
+
+                    this.cloudService.removePreparationOrder(item.order);
+
+                    if (item.order.firebaseToken) 
+                        this.cloudService.notifyUsers(item.order.firebaseToken, "Alerta de pedido", "pedido está pronto")
+
+                } else {
+                    this.cloudService.addPreparationOrder(item.order);
+                }
+            }
+        } catch (e) {
+            ErrorAlerts.sendAlert(e, req);
+        }
+        ApiResponse.success().send(res);
+    }
 }
