@@ -174,11 +174,18 @@ const orderValidation = z.object({
     message: "Informe um valor entre 0 e 100"
 }).default(0.0),
   products: z.array(orderProductValidation).nonempty(),
-  client: clientsBasicInfoValidation.default({
-    cgc: "",
-    name: "",
-    email: "",
-    phoneNumber: "",
+  client: z.object({
+    cgc: z.string().optional(),
+    name: z.string().optional(),
+    email: z.string().optional(),
+    phoneNumber: z.string().optional(),
+    address: z.string().optional(),
+    city: z.string().optional(),
+    complement: z.string().optional(),
+    district: z.string().optional(),
+    number: z.string().optional(),
+    state: z.string().optional(),
+    zipCode: z.string().optional()
   }),
   createdBy: idValidation.optional(),
   storeCode: idValidation,
