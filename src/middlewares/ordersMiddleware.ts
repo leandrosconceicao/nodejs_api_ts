@@ -94,7 +94,8 @@ export class OrdersMiddleware {
 
                 this.cloudService.removePreparationOrder(data.order);
 
-                this.cloudService.notifyUsers(data.order.firebaseToken, "Alerta de pedido", "pedido está pronto")
+                if (data.order.firebaseToken) 
+                    this.cloudService.notifyUsers(data.order.firebaseToken, "Alerta de pedido", "pedido está pronto")            
                 
             } else {
                 this.cloudService.addPreparationOrder(data.order)
