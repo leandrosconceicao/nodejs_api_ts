@@ -105,10 +105,10 @@ export default class MongoAccountRepository implements IAccountRepository {
             }),
             allProductsHasTipValue: ords.every((order) => order.products.every((product) => product.tipValue > 0))
         };
-        rec.totalTip = rec.orders.reduce((prev, next) => prev + next.totalTip, 0.0);
-        rec.totalOrder = rec.orders.reduce((a, b) => a + b.subTotal, 0.0);
-        rec.totalProducts = rec.orders.reduce((a, b) => a + b.totalProduct, 0.0);
-        rec.totalPayment = rec.payments.reduce((a, b) => a + b.total, 0.0);
+        rec.totalTip = parseFloat(rec.orders.reduce((prev, next) => prev + next.totalTip, 0.0).toFixed(2));
+        rec.totalOrder = parseFloat(rec.orders.reduce((a, b) => a + b.subTotal, 0.0).toFixed(2));
+        rec.totalProducts = parseFloat(rec.orders.reduce((a, b) => a + b.totalProduct, 0.0).toFixed(2));
+        rec.totalPayment = parseFloat(rec.payments.reduce((a, b) => a + b.total, 0.0).toFixed(2));
         rec.subTotal = rec.totalOrder - rec.totalPayment;
         return rec;
     }
