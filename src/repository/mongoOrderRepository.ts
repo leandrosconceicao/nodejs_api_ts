@@ -162,6 +162,9 @@ export default class MongoOrderRepository implements IOrderRepository {
 
         const store = await this.establishmentRepository.findOne(storeCode);
 
+        if (enabledTip && !store.tipValue)
+            throw new BadRequestError("Taxa de serviço do estabelecimento não está configurada");
+
         const updateResult = await Orders.updateMany({
             accountId: accountId,
             storeCode: storeCode
