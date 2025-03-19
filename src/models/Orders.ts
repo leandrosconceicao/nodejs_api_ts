@@ -129,9 +129,10 @@ orderSchema.virtual("totalTip").get(function() {
 
 orderSchema.virtual("subTotal")
   .get(function() {
-    const total = this.products.reduce((a, b) => a + (b.subTotal ?? 0.0), 0.0) + (this.deliveryTax ?? 0.0)
-    const totMinusDiscount = total - (total * this.discount);
-    return parseFloat(totMinusDiscount.toFixed(2));
+    const total = this.products.reduce((a, b) => a + (b.subTotal ?? 0.0), 0.0)
+    const totalProd = this.products.reduce((a, b) => a + (b.totalProduct ?? 0.0), 0.0)
+    const totMinusDiscount = total - (totalProd * this.discount);
+    return parseFloat((totMinusDiscount - (this.deliveryTax ?? 0.0)).toFixed(2));
   })
 
 orderSchema.virtual("totalProduct")
