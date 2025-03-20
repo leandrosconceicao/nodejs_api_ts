@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { IProduct } from "../products/Products";
+import { IProduct } from "../../domain/types/IProduct";
 
 const salesSchema = new mongoose.Schema({
     _id: {type: mongoose.Types.ObjectId},
