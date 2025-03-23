@@ -78,9 +78,11 @@ export default class CloudService implements ICloudService {
         const ref = db.ref(storeCode).child(SPOOL_PATH);
         const snap = await ref.get();
         const values = snap.val();
-        const value = Object.entries(values).find((data) => (data[1] as IPrinterSpool).orderId === id)
-        if (value?.length) {
-            ref.child(value[0]).remove();
+        if (values) {
+            const value = Object.entries(values).find((data) => (data[1] as IPrinterSpool).orderId === id)
+            if (value?.length) {
+                ref.child(value[0]).remove();
+            }
         }
     }
 
