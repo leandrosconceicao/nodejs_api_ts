@@ -152,6 +152,19 @@ export class OrdersMiddleware {
         next();
     }
 
+    cancelWithdrawOrder = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const order : IOrder = req.result;
+            if (order.orderType === OrderType.withdraw) {
+                order.status = OrderStatus.cancelled;
+                const withDrawOrder = await this.cloudService.updateWithdrawOrder(order);
+            }
+        } catch (e) {
+            ErrorAlerts.sendAlert(e, req);
+        }
+        next();
+    }
+
     setOrdersOnPreparatioBatch = (req: Request, res: Response, _: NextFunction) => {
         const data : Array<{
             isReady: boolean,
