@@ -73,7 +73,7 @@ export default class MongoCategoryRepository implements ICategoryRepository {
             })
         })
 
-        return data;
+        return data.filter((e) => e.products.length);
     }
 
     updateOrdenation(storeCode: string, data: Array<{ id: string; ordenacao: number; }>): Promise<any> {
