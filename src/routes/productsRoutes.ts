@@ -37,7 +37,7 @@ const addoneController = container.resolve(AddOneController);
 const productController = container.resolve(ProductController);
 
 export default express.Router()
-    .get(Endpoints.menu_items, menuController.get)
+    .get(`${Endpoints.menu_items}/:storeCode`, menuController.get)
     .get(Endpoints.add_ones, validateToken, addoneController.findAll)
     .post(Endpoints.add_ones, validateToken, addoneController.add)
     .put(`${Endpoints.add_ones}/:id`, validateToken, addoneController.update)

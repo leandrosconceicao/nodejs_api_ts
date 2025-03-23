@@ -3,6 +3,7 @@ import { Request, Response, NextFunction } from "express";
 import ApiResponse from "../../models/base/ApiResponse";
 import { autoInjectable, inject } from "tsyringe";
 import ICategoryRepository from "../../domain/interfaces/ICategoryRepository";
+import { idValidation } from "../../utils/defaultValidations";
 @autoInjectable()
 export default class MenuItemsController {
 
@@ -12,11 +13,9 @@ export default class MenuItemsController {
 
     get = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const query = z.object({
-                storeCode: z.string().min(1).max(24)
-            }).parse(req.query);
+            const storeCode = idValidation.parse(req.params.storeCode);
 
-            const data = await this.categoryRepository.getMenuItems(query.storeCode);
+            const data = await this.categoryRepository.getMenuItems(storeCode);
 
             return ApiResponse.success(data).send(res);
         } catch (e) {
