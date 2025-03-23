@@ -59,6 +59,6 @@ export class MongoAddonesRepository implements IAddonesRepository {
 
         const addone = await this.findOne(id);
 
-        AddOnes.findByIdAndDelete(addone._id);
+        await AddOnes.findByIdAndDelete(addone._id);
     }
 }
