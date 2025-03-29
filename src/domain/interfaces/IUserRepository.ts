@@ -11,7 +11,7 @@ export default interface IUserRepository {
 
     updateUserToken(id: string, token: string) : Promise<void>;
 
-    updateUser(id: string, data: IUsers) : Promise<IUsers>;
+    updateUser(id: string, data: Partial<IUsers>) : Promise<IUsers>;
 
     autenticateUser(email: string, password: string) : Promise<IUsers>;
 

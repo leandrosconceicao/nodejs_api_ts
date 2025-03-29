@@ -50,7 +50,7 @@ export default class MongoUserRepository implements IUserRepository {
         return user;
     }
 
-    updateUser(id: string, data: IUsers): Promise<IUsers> {
+    updateUser(id: string, data: Partial<IUsers>): Promise<IUsers> {
         return Users.findByIdAndUpdate(id, data, { new: true });
     }
 

@@ -40,7 +40,9 @@ enum GroupUser {
 }
 
 interface IUserSearchQuery {
+    _id?: mongoose.Types.ObjectId,
     storeCode?: mongoose.Types.ObjectId,
+    pass?: string,
     group_user?: string,
     username?: any,
     deleted?: any,
