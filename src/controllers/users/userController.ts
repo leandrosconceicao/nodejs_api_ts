@@ -14,6 +14,7 @@ import UnauthorizedError from "../../models/errors/UnauthorizedError";
 import ForbiddenAcessError from "../../domain/exceptions/ForbiddenAcessError";
 import { autoInjectable, inject } from "tsyringe";
 import IUserRepository from "../../domain/interfaces/IUserRepository";
+import BadRequestError from "../../models/errors/BadRequest";
 // import admin from "../../../config/firebaseConfig.js"
 
 // const FIREBASEAUTH = admin.auth();
@@ -69,6 +70,40 @@ class UserController {
       const updatedUser = await this.userRepository.updateUser(id, user as IUsers);
 
       return ApiResponse.success(updatedUser).send(res);
+    } catch (e) {
+      next(e);
+    }
+  }
+
+  updateUserData = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      
+      const id = idValidation.parse(req.params.id);
+
+      const data = z.object({
+        username: z.string().min(1).optional(),
+        newPass: z.string().min(1).optional(),
+        confirmationPass: z.string().min(1).optional(),
+      })
+      .parse(req.body);
+
+      const user = await this.userRepository.findOne(id)
+
+      
+      if (data.confirmationPass && user.pass !== new PassGenerator(data.confirmationPass).build())
+        throw new BadRequestError("Senha atual é inválida");
+      
+      let userUpdate : Partial<IUsers> = {};
+
+      if (data.username) userUpdate.username = data.username;
+      if (data.newPass) userUpdate.pass = new PassGenerator(data.newPass).build();
+
+      if (!Object.values(userUpdate).length) 
+        throw new BadRequestError("Nenhum dado foi informado")
+
+      const userUpdated = await this.userRepository.updateUser(id, userUpdate)
+
+      ApiResponse.success(userUpdated).send(res);
     } catch (e) {
       next(e);
     }
