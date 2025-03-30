@@ -230,6 +230,7 @@ interface IOrderProduct {
   subTotal?: number,
   totalProduct?: number,
   totalAddOnes?: number,
+  totalTip?: number,
   addOnes?: Array<IAddOne>      
 }
 

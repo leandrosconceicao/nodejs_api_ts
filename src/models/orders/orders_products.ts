@@ -29,11 +29,18 @@ const orders_products_schema = new mongoose.Schema<IOrderProduct>({
     default: undefined,
   },
 })
+orders_products_schema.virtual("totalTip").get(
+  function() {
+    const totalProd = (this.totalProduct ?? 0.0);
+    const totalTip = (this.tipValue ?? 0.0) * totalProd;
+    return parseFloat(totalTip.toFixed(2));
+  }
+)
 
 orders_products_schema.virtual("subTotal")
   .get(function() {
     let subTotal = this.totalProduct ?? 0.0;
-    return subTotal + ((this.tipValue ?? 0.0) * subTotal)
+    return subTotal + this.totalTip
   })
 
   orders_products_schema.virtual("totalAddOnes")

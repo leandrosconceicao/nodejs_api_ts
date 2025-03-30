@@ -95,7 +95,7 @@ export default class MongoAccountRepository implements IAccountRepository {
                 discount: e.discount,
                 totalProduct: e.totalProduct,
                 subTotal: e.subTotal,
-                totalTip: e.products.reduce((a, b) => a + (b.tipValue * b.totalProduct), 0.0),
+                totalTip: parseFloat((e.products.reduce((a, b) => a + b.totalTip, 0.0)).toFixed(2)),
                 products: e.products,
             }),
             payments: pays.map((el) => <IReceiptPayments> {
