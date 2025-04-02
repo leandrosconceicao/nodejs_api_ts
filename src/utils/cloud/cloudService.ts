@@ -12,6 +12,8 @@ import { IFirebaseOrder, IOrder, IOrderProduct, OrderType } from "../../models/O
 const PREPARATION_PATH = "preparation";
 const WITHDRAW_PATH = "withdraw";
 const SPOOL_PATH = "spool";
+const enviroment = process.env.ENVIROMENT;
+const isDevelopment = enviroment === "development";
 
 @injectable()
 @registry([
@@ -28,14 +30,14 @@ export default class CloudService implements ICloudService {
 
     async removePreparationOrder(order: IOrder): Promise<void> {
         const db = getDatabase();
-        db.ref(`${order.storeCode}`).child(PREPARATION_PATH).child(`${order._id}`).remove()
+        (isDevelopment ? db.ref(enviroment).child(`${order.storeCode}`) : db.ref(`${order.storeCode}`)).child(PREPARATION_PATH).child(`${order._id}`).remove()
     }
 
     async updateWithdrawOrder(order: IOrder): Promise<void> {
         if (order.orderType === OrderType.withdraw) {
             const parsedOrder = this.handlerOrder(order);
             const db = getDatabase();
-            db.ref(`${order.storeCode}`).child(WITHDRAW_PATH).child(`${order._id}`).update(parsedOrder)
+            (isDevelopment ? db.ref(enviroment).child(`${order.storeCode}`) : db.ref(`${order.storeCode}`)).child(WITHDRAW_PATH).child(`${order._id}`).update(parsedOrder)
         }
     }
 
@@ -43,14 +45,14 @@ export default class CloudService implements ICloudService {
         if (order.orderType === OrderType.withdraw) {
             const parsedOrder = this.handlerOrder(order);
             const db = getDatabase();
-            db.ref(`${order.storeCode}`).child(WITHDRAW_PATH).child(`${order._id}`).set(parsedOrder)
+            (isDevelopment ? db.ref(enviroment).child(`${order.storeCode}`) : db.ref(`${order.storeCode}`)).child(WITHDRAW_PATH).child(`${order._id}`).set(parsedOrder)
         }  
     }
 
     async addPreparationOrder(order: IOrder): Promise<void> {
         const parsedOrder = this.handlerOrder(order);
         const db = getDatabase();
-        db.ref(`${order.storeCode}`).child(PREPARATION_PATH).child(`${order._id}`).set(parsedOrder)
+        (isDevelopment ? db.ref(enviroment).child(`${order.storeCode}`) : db.ref(`${order.storeCode}`)).child(PREPARATION_PATH).child(`${order._id}`).set(parsedOrder)
     }
 
     async notifyMultipleUsers(messages: INotification[]): Promise<void> {
@@ -66,7 +68,7 @@ export default class CloudService implements ICloudService {
 
     async findSpoolData(storeCode: string): Promise<Array<IPrinterSpool>> {
         const db = getDatabase();
-        const ref = db.ref(storeCode).child(SPOOL_PATH);
+        const ref = (isDevelopment ? db.ref(enviroment).child(storeCode) : db.ref(storeCode)).child(SPOOL_PATH);
     
         const snap = await ref.get();
         const values = snap.val();
@@ -75,7 +77,7 @@ export default class CloudService implements ICloudService {
 
     async removeSpoolData(storeCode: string, id: string): Promise<void> {
         const db = getDatabase();
-        const ref = db.ref(storeCode).child(SPOOL_PATH);
+        const ref = (isDevelopment ? db.ref(enviroment).child(storeCode) : db.ref(storeCode)).child(SPOOL_PATH);
         const snap = await ref.get();
         const values = snap.val();
         if (values) {
@@ -88,8 +90,8 @@ export default class CloudService implements ICloudService {
 
     async pushSpoolData(order: IPrinterSpool): Promise<IPrinterSpool> {
         const db = getDatabase();
-        const data = await this.spoolHandler.prepareData(order)
-        db.ref(`${data.storeCode}`).child(SPOOL_PATH).push(data, (error) => {
+        const data = await this.spoolHandler.prepareData(order);
+        (isDevelopment ? db.ref(enviroment).child(`${data.storeCode}`) : db.ref(`${data.storeCode}`)).child(SPOOL_PATH).push(data, (error) => {
             if (error) throw error;
         })
         return data;
