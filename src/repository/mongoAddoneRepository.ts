@@ -4,7 +4,7 @@ import { IProductAddOne } from "../domain/types/IProduct";
 import NotFoundError from "../models/errors/NotFound";
 import { AddOnes } from "../models/products/AddOnes";
 import { injectable, registry, delay } from "tsyringe";
-import { MongoAppRepository } from "./mongoAppRepository";
+import BadRequestError from "../models/errors/BadRequest";
 
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -20,6 +20,10 @@ export class MongoAddonesRepository implements IAddonesRepository {
     async patch(id: string, movement: "pull" | "push", item: { name?: string; price?: number; }): Promise<void> {
 
         const addone = await this.findOne(id);
+
+        if (movement == "pull" && addone.items.length == 1) {
+            throw new BadRequestError("Não é possível remover todos os items do adicional")
+        }
 
         let update = movement === "push" ? {
             $push: { items: item }
