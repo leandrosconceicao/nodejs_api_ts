@@ -30,6 +30,7 @@ const userPatchValidation = z.object({
     username: z.string().min(1).optional(),
     isActive: z.boolean().optional(),
     token: z.string().min(1).optional(),
+    storeCode: idValidation.optional()
   });
 
 
