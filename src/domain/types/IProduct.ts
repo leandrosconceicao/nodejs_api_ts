@@ -18,30 +18,15 @@ export const PRODUCT_SCHEMA_VALIDATION = z.object({
     hasTipValue: z.boolean().optional(),
     descricao: z.string().optional(),
     preparacao: z.boolean().optional(),
-    dataImage: z.object({
-        path: z.string().min(1),
-        data: z.string().min(1),
-    }).optional(),
     image: z.string().optional(),
     addOnes: z.array(z.object({
         _id: z.string().default(TokenGenerator.generateId()),
         isRequired: z.boolean(),
-        // type: z.nativeEnum(AddOneType).default(AddOneType.checkbox),
-        // name: z.string(),
-        // maxQtdAllowed: z.number(),
-        // items: z.array(z.object({
-        //     name: z.string(),
-        //     price: z.number()
-        // }))
     })).optional(),
 });
 
 export interface IProduct {
     _id?: mongoose.Types.ObjectId,
-    dataImage?: {
-        path?: string,
-        data?: string
-    }
     isActive: boolean,
     storeCode: mongoose.Types.ObjectId | string,
     category: mongoose.Types.ObjectId | string,

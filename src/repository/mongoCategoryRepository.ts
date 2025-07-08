@@ -90,14 +90,7 @@ export default class MongoCategoryRepository implements ICategoryRepository {
 
     async update(id: string, data: Partial<{ nome: string; image: string; }>): Promise<ICategory> {
         
-        const category = await this.getCategoryData(id);
-
-        if (data.image) {
-            data.image = await this.cloudService.uploadFile({
-                data: data.image,
-                path: `assets/${category.storeCode}/${category._id}.png`
-            })
-        }
+        await this.getCategoryData(id);
 
         return Category.findByIdAndUpdate(id, data);
     }

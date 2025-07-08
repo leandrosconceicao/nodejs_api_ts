@@ -28,17 +28,7 @@ export class MongoProductRepository implements IProductRepository {
 
     update = async (id: string, data: Partial<IProduct>): Promise<IProduct> => {
 
-        const prod = await this.findOne(id);
-
-        if (data.dataImage) {
-            const link = await this.cloudService.uploadFile({
-                path: `assets/${prod.storeCode}/${data.dataImage.path}.png`,
-                data: data.dataImage.data
-            })
-
-            if (link) 
-                data.image = link
-        }
+        await this.findOne(id);
 
         return Products.findByIdAndUpdate(id, data, {new: true});
     }

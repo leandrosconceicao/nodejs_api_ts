@@ -108,12 +108,7 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
     }
 
     async update(id: string, data: Partial<IEstablishments>): Promise<IEstablishments> {
-        if (data.dataImage) {
-            data.logo = await this.service.uploadFile({
-                data: data.dataImage.data,
-                path: `assets/${id}/${data.dataImage.path}`
-            });
-        }
+        
         return Establishments.findByIdAndUpdate(id, data, {
             new: true
         });
@@ -131,12 +126,7 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
     }
 
     async add(newEstablishment: IEstablishments): Promise<IEstablishments> {
-        if (newEstablishment.dataImage) {
-            newEstablishment.logo = await this.service.uploadFile({
-                data: newEstablishment.dataImage.data,
-                path: `assets/logo/${newEstablishment.dataImage.path}`
-            })
-        }
+                
         return Establishments.create(newEstablishment,)
     }
 
