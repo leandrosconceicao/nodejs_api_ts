@@ -256,10 +256,9 @@ export default class MongoOrderRepository implements IOrderRepository {
 
         if (order.status === OrderStatus.finished && order.orderType !== OrderType.account)
             throw new BadRequestError("Não é possível aplicar desconto em pedidos finalizados.")
-
-        await this.establishmentRepository.validateDiscount(order.storeCode.toString(), discount);
         
         if (discount > 0) {
+            await this.establishmentRepository.validateDiscount(order.storeCode.toString(), discount);
             discount = discount / 100
         }
 

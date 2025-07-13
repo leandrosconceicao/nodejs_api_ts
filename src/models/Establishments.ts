@@ -25,10 +25,6 @@ const establishmentAttributes = z.object({
     location: z.string().optional(),
     ownerId: z.string().min(11).max(14),
     logo: z.string().optional(),
-    dataImage: z.object({
-        path: z.string().min(1),
-        data: z.string().min(1)
-    }).optional(),
     opening_hours: OPENING_VALIDATION.optional(),
     pixKey: z.string().optional(),
     telegramChatId: z.string().optional(),
@@ -48,10 +44,6 @@ const establishmentUpdateValidation = z.object({
     location: z.string().optional(),
     ownerId: z.string().min(11).max(14).optional(),
     logo: z.string().optional(),
-    dataImage: z.object({
-        path: z.string().min(1),
-        data: z.string().min(1)
-    }).optional(),
     pixKey: z.string().optional(),
     telegramChatId: z.string().optional(),
     url: z.string().optional(),
@@ -63,7 +55,14 @@ const establishmentUpdateValidation = z.object({
         coordinates: z.array(z.number()),
     }).optional(),
     tipValue: z.number().default(0.0),
-    maxDiscountAllowed: z.number().optional()
+    maxDiscountAllowed: z.number()
+        .min(1, {
+            message: "Valor não pode ser menor do que 1"
+        })
+        .max(99.99, {
+            message: "Valor não pode ser maior do que 99.99"
+        })
+        .optional()
 });
 
 const schema = new mongoose.Schema({
@@ -135,7 +134,6 @@ interface IEstablishments {
     _id?: string,
     name: string,
     deleted?: boolean,
-    // createDate: Date,
     location: string,   
     geoLocation: {
         type: GeolocationType,
@@ -143,10 +141,6 @@ interface IEstablishments {
     },
     ownerId: string,
     logo: string,
-    dataImage?: {
-        path: string,
-        data: string
-    },
     pixKey: string,
     telegramChatId: string,
     url: string,
