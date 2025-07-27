@@ -24,4 +24,11 @@ const booleanStringValidation = z.string().toLowerCase()
     })
     .transform((value) => value === "true");
 
-export {idValidation, booleanStringValidation, decimalValidation};
+const macAddressRegex = /^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$/;
+
+const macAddressValidation = z.string({
+    message: "campo obrigatório"
+}).min(1, { message: "campo obrigatório" })
+  .regex(macAddressRegex, { message: "MAC address inválido" });
+
+export {idValidation, booleanStringValidation, decimalValidation, macAddressValidation};
