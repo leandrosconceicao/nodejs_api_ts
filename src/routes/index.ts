@@ -11,6 +11,7 @@ import ordersRoutes from "./ordersRoutes";
 import accountRoutes from "./accountRoutes";
 import reportRoutes from "./reportRoutes";
 import printerSpoolRoutes from "./printerSpoolRoutes";
+import printRoutes from "./printRoutes";
 
 export default (app: express.Application) => {
     app.get("/", (_: express.Request, res: express.Response, next: NextFunction) => {
@@ -33,6 +34,7 @@ export default (app: express.Application) => {
         // clientRoutes,
         accountRoutes,
         reportRoutes,
-        printerSpoolRoutes
+        printerSpoolRoutes,
+        printRoutes
     )
 }

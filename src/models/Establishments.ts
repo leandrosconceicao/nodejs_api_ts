@@ -62,12 +62,12 @@ const establishmentUpdateValidation = z.object({
         .max(99.99, {
             message: "Valor não pode ser maior do que 99.99"
         })
-        .optional()
+        .optional(),
+    printEnabled: z.boolean().optional()
 });
 
 const schema = new mongoose.Schema({
     name: {type: String, required: [true, "Parametro (name) é obrigatório"] },
-    // createDate: {type: Date, default: () => { return new Date() }},
     location: {type: String, default: ""},   
     geoLocation: {
         type: {
@@ -118,7 +118,8 @@ const schema = new mongoose.Schema({
     maxDiscountAllowed: {
         type: Number
     },
-    deleted: { type: Boolean, default: undefined }
+    deleted: { type: Boolean, default: undefined },
+    printEnabled: {type: Boolean, default: false}
 }, {
     versionKey: false,
     timestamps: true
@@ -157,7 +158,8 @@ interface IEstablishments {
         withdraw: boolean
     },
     tipValue: number,
-    maxDiscountAllowed?: number
+    maxDiscountAllowed?: number,
+    printEnabled: boolean
 }
 
 const Establishments = mongoose.model<IEstablishments>('establishments', schema);

@@ -1,10 +1,10 @@
 import { NextFunction, Request, Response } from "express";
 import { IOrder } from "../models/Orders";
 import ApiResponse from "../models/base/ApiResponse";
-import { IPrinterSpool, SpoolType } from "../models/PrinterSpool";
-import LogsController from "../controllers/logs/logsController";
+import { IPrinterSpool, SpoolType } from "../domain/types/IPrinterSpool";
 import { autoInjectable, inject } from "tsyringe";
 import ICloudService from "../domain/interfaces/ICloudService";
+import ErrorAlerts from "../utils/errorAlerts";
 
 @autoInjectable()
 export class PrinterSpoolMiddleware {
@@ -26,16 +26,17 @@ export class PrinterSpoolMiddleware {
         }
     }
 
-    removePrinterSpool = async (req: Request, res: Response, next: NextFunction) => {
+    removePrinterSpool = async (req: Request, res: Response, _: NextFunction) => {
         const order = req.result as IOrder;
         try {
             this.cloudService.removeSpoolData(`${order.storeCode}`, `${order._id}`);
         } catch (e) {
+            ErrorAlerts.sendDefaultAlert(e);
         }
         ApiResponse.success(req.result).send(res);
     }
 
-    fetchSpool = async (req: Request, res: Response, next: NextFunction) => {
+    fetchSpool = async (req: Request, res: Response, _: NextFunction) => {
         const storeCode = req.result;
 
         const values = await this.cloudService.findSpoolData(storeCode);
@@ -48,7 +49,7 @@ export class PrinterSpoolMiddleware {
         }
     }
 
-    printerSpoolMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+    printerSpoolMiddleware = async (req: Request, res: Response, _: NextFunction) => {
         const order = req.result as IOrder;
         try {
             
@@ -58,12 +59,13 @@ export class PrinterSpoolMiddleware {
                 orderId: `${order._id}`,
                 accountId: `${order?.accountId ?? ""}`,
                 reprint: false,
-                createdAt: new Date().toISOString()
+                createdAt: new Date().toISOString(),
             })            
     
         } catch (e) {
-            const log = new LogsController();
-            log.saveReqLog(req, e);
+            if (!(e instanceof ApiResponse)) {
+                ErrorAlerts.sendDefaultAlert(e);
+            }
         }
         return ApiResponse.success(order).send(res);
     }

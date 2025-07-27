@@ -23,11 +23,14 @@ import IEstablishmentRepository from '../domain/interfaces/IEstablishmentReposit
 import MongoEstablishmentRespository from '../repository/mongoEstablishmentRepository';
 import { IAddonesRepository } from '../domain/interfaces/IAddonesRepository';
 import { MongoAddonesRepository } from '../repository/mongoAddoneRepository';
+import IPrinterRepository from '../domain/interfaces/IPrinterRepository';
+import MongoPrinterRepository from '../repository/mongoPrinterRepository';
 
 container.resolve<IEstablishmentRepository>(MongoEstablishmentRespository);
 container.resolve<IOrderRepository>(MongoOrderRepository);
 container.resolve<IAccountRepository>(MongoAccountRepository);
 container.resolve<ISpoolHandler>(SpoolHandler);
+container.resolve<IPrinterRepository>(MongoPrinterRepository);
 container.resolve<ICloudService>(CloudService);
 container.resolve<IAddonesRepository>(MongoAddonesRepository);
 container.resolve<ICategoryRepository>(MongoCategoryRepository);

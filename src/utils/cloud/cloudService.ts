@@ -1,13 +1,17 @@
 import { delay, inject, injectable, registry } from "tsyringe";
 import ICloudService, { INotification } from "../../domain/interfaces/ICloudService";
 import {getStorage, getDownloadURL} from "firebase-admin/storage";
-import { getDatabase } from "firebase-admin/database";
+import { getDatabase, Reference } from "firebase-admin/database";
 import { messaging } from "firebase-admin";
 import ErrorAlerts from "../errorAlerts";
 import ISpoolHandler from "../../domain/interfaces/ISpoolHandler";
-import { IPrinterSpool } from "../../models/PrinterSpool";
+import { IPrinterSpool, SpoolType } from "../../domain/types/IPrinterSpool";
 import { Message } from "firebase-admin/lib/messaging/messaging-api";
 import { IFirebaseOrder, IOrder, IOrderProduct, OrderType } from "../../models/Orders";
+import IEstablishmentRepository from "../../domain/interfaces/IEstablishmentRepository";
+import IPrinterRepository from "../../domain/interfaces/IPrinterRepository";
+import BadRequestError from "../../models/errors/BadRequest";
+import NotFoundError from "../../models/errors/NotFound";
 
 const PREPARATION_PATH = "preparation";
 const WITHDRAW_PATH = "withdraw";
@@ -25,7 +29,8 @@ const isDevelopment = enviroment === "development";
 export default class CloudService implements ICloudService {
 
     constructor(
-        @inject('ISpoolHandler') private readonly spoolHandler: ISpoolHandler
+        @inject('ISpoolHandler') private readonly spoolHandler: ISpoolHandler,
+        @inject("IPrinterRepository") private readonly printerRepository: IPrinterRepository
     ) {}
 
     async removePreparationOrder(order: IOrder): Promise<void> {
@@ -88,10 +93,41 @@ export default class CloudService implements ICloudService {
         }
     }
 
-    async pushSpoolData(order: IPrinterSpool): Promise<IPrinterSpool> {
+    async pushSpoolData(spool: IPrinterSpool): Promise<IPrinterSpool> {
+        
+        const printers = await this.printerRepository.findAll(spool.storeCode?.toString(), spool.type);
+
+        if (!printers?.length) {
+            throw new NotFoundError("Fila de impressão não está habilitada");
+        }
+
+        spool.printers = printers.map((print) => {
+            return {
+                _id: print._id ?? "",
+                address: print.address,
+                name: print.name,
+                storeCode: print.storeCode,
+                spools: print.spools.map((e) => {
+                    return {
+                        type: e.type,
+                        enabled: e.enabled
+                    }
+                }),
+                deleted: print.deleted
+            };
+        })
+
         const db = getDatabase();
-        const data = await this.spoolHandler.prepareData(order);
-        (isDevelopment ? db.ref(enviroment).child(`${data.storeCode}`) : db.ref(`${data.storeCode}`)).child(SPOOL_PATH).push(data, (error) => {
+        var ref: Reference;
+
+        const data = await this.spoolHandler.prepareData(spool);
+
+        if (isDevelopment) {
+            ref = db.ref(enviroment).child(`${data.storeCode}`)
+        } else {
+            ref = db.ref(`${data.storeCode}`)
+        }
+        ref.child(SPOOL_PATH).push(data, (error) => {
             if (error) throw error;
         })
         return data;
