@@ -12,7 +12,7 @@ import { checkIfUserExists } from "../users/userController";
 import TokenGenerator from "../../utils/tokenGenerator";
 import PaymentController from "./paymentController";
 import { CASH_REGISTER_COMPARE_VALIDATION, CashRegisterCompare } from "../../models/CashRegisterCompare";
-import { IPrinterSpool, SpoolType } from "../../models/PrinterSpool";
+import { IPrinterSpool, SpoolType } from "../../domain/types/IPrinterSpool";
 var ObjectId = mongoose.Types.ObjectId;
 
 class CashRegisterController implements BaseController {

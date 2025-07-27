@@ -1,4 +1,4 @@
-import { IPrinterSpool } from "../../models/PrinterSpool";
+import { IPrinterSpool } from "../types/IPrinterSpool";
 import ReceiptEnconder from "@mexicocss/esc-pos-encoder-ts";
 
 

@@ -1,12 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import { idValidation } from "../../utils/defaultValidations";
-import {PrinterSpool, PRINTER_SPOOL_VALIDATION} from "../../models/PrinterSpool";
-import mongoose from "mongoose";
+import { PRINTER_SPOOL_VALIDATION} from "../../domain/types/IPrinterSpool";
 import { autoInjectable, inject } from "tsyringe";
 import ICloudService from "../../domain/interfaces/ICloudService";
-
-var ObjectId = mongoose.Types.ObjectId;
-
 @autoInjectable()
 export default class PrintSpoolController {
 

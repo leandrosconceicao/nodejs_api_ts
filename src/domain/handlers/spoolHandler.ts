@@ -1,4 +1,4 @@
-import { IPrinterSpool, SpoolType } from "../../models/PrinterSpool";
+import { IPrinterSpool, SpoolType } from "../types/IPrinterSpool";
 import { IOrder, IOrderProduct, Orders } from "../../models/Orders";
 import ReceiptEnconder, { PrinterWidthEnum } from "@mexicocss/esc-pos-encoder-ts";
 import ISpoolHandler from "../interfaces/ISpoolHandler";
@@ -269,7 +269,6 @@ export default class SpoolHandler implements ISpoolHandler {
         this.genText(encoder, `Vendedor: ${this.removerAcentos(parsedOrder.userCreate?.username ?? "Sistema")}`);
         encoder.text(`Nome do cliente: ${this.removerAcentos(parsedOrder?.client?.name ?? "")}\n`);
         encoder.text(`Telefone: ${parsedOrder?.client?.phoneNumber ?? ""}\n`);
-        // encoder.text(`Endereco: ${this.removerAcentos(parsedOrder.client.address ?? "")}\n`);
     
         if (parsedOrder.accountDetail)
             this.genText(encoder, `Conta: ${this.removerAcentos(parsedOrder.accountDetail.description ?? "")}`)

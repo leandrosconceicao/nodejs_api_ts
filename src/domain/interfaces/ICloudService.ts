@@ -1,5 +1,5 @@
 import { IOrder } from "../../models/Orders";
-import { IPrinterSpool } from "../../models/PrinterSpool";
+import { IPrinterSpool } from "../types/IPrinterSpool";
 
 export interface INotification {
     token: string, 
