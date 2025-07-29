@@ -8,6 +8,7 @@ import { container } from "tsyringe";
 import IUserRepository from '../domain/interfaces/IUserRepository';
 import MongoUserRepository from '../repository/mongoUserRepository';
 import adminTokenValidation from '../middlewares/adminTokenValidation';
+import tokenController from '../middlewares/tokenController';
 
 container.resolve<IUserRepository>(MongoUserRepository);
 const userController = container.resolve(UserController);
@@ -19,5 +20,5 @@ export default express.Router()
     .delete(`${Endpoints.users}/:id`, adminTokenValidation, userController.delete)
     .post(Endpoints.authentication, userController.authenticate)
     .patch(`${Endpoints.users}/change_password`, adminTokenValidation, userController.updatePass)
-    .patch(`${Endpoints.users}/:id`, adminTokenValidation, userController.patch)
+    .patch(`${Endpoints.users}/:id`, tokenController, userController.patch)
     .put(`${Endpoints.users}/update_basic_info/:id`, validateToken, userController.updateUserData)
