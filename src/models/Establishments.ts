@@ -7,18 +7,9 @@ const OPENING_VALIDATION = z.object({
 });
 
 const SERVICES_VALIDATION = z.object({
-    customer_service: z.object({
-        enabled: z.boolean().optional(),
-        opening_hours: OPENING_VALIDATION.optional()
-    }).optional(),
-    delivery: z.object({
-        enabled: z.boolean().optional(),
-        opening_hours: OPENING_VALIDATION.optional()   
-    }).optional(),
-    withdraw: z.object({
-        enabled: z.boolean().optional(),
-        opening_hours: OPENING_VALIDATION.optional()
-    }).optional(),
+    customer_service: z.boolean().optional(),
+    delivery: z.boolean().optional(),
+    withdraw: z.boolean().optional(),
 });
 
 const SOCICAL_VALIDATION = z.object({
@@ -31,14 +22,10 @@ const SOCICAL_VALIDATION = z.object({
 
 const establishmentAttributes = z.object({
     name: z.string().min(1),
-    createDate: z.string().datetime().optional(),
     location: z.string().optional(),
-    ownerId: z.string().min(11).max(14).optional(),
+    ownerId: z.string().min(11).max(14),
     logo: z.string().optional(),
-    dataImage: z.object({
-        path: z.string().min(1),
-        data: z.string().min(1)
-    }).optional(),
+    opening_hours: OPENING_VALIDATION.optional(),
     pixKey: z.string().optional(),
     telegramChatId: z.string().optional(),
     url: z.string().optional(),
@@ -47,12 +34,40 @@ const establishmentAttributes = z.object({
     geoLocation: z.object({
         type: z.string().default("Point"),
         coordinates: z.array(z.number()),
-    }).optional()
+    }).optional(),
+    tipValue: z.number().default(0.0),
+    maxDiscountAllowed: z.number().optional()
+});
+
+const establishmentUpdateValidation = z.object({
+    name: z.string().min(1).optional(),
+    location: z.string().optional(),
+    ownerId: z.string().min(11).max(14).optional(),
+    logo: z.string().optional(),
+    pixKey: z.string().optional(),
+    telegramChatId: z.string().optional(),
+    url: z.string().optional(),
+    social: SOCICAL_VALIDATION.optional(),
+    opening_hours: OPENING_VALIDATION.optional(),
+    services: SERVICES_VALIDATION.optional(),
+    geoLocation: z.object({
+        type: z.string().default("Point"),
+        coordinates: z.array(z.number()),
+    }).optional(),
+    tipValue: z.number().default(0.0),
+    maxDiscountAllowed: z.number()
+        .min(1, {
+            message: "Valor não pode ser menor do que 1"
+        })
+        .max(99.99, {
+            message: "Valor não pode ser maior do que 99.99"
+        })
+        .optional(),
+    printEnabled: z.boolean().optional()
 });
 
 const schema = new mongoose.Schema({
     name: {type: String, required: [true, "Parametro (name) é obrigatório"] },
-    createDate: {type: Date, default: () => { return new Date() }},
     location: {type: String, default: ""},   
     geoLocation: {
         type: {
@@ -65,7 +80,6 @@ const schema = new mongoose.Schema({
         },
         coordinates: [{type: Number, required: true}]
     },
-    // isOpen: {type: Boolean, default: false},
     ownerId: {type: String, required: [true, "Parametro (ownerId) é obrigatório"]},
     logo: {type: String, default: ""},
     pixKey: {type: String, default: ""},
@@ -78,63 +92,76 @@ const schema = new mongoose.Schema({
         email: {type: String, default: ""},
         phone: {type: String, default: ""},
     },
+    opening_hours: {
+        start: {type: String, validate: {
+            validator: (value: string) => {
+                return RegExp("^([0-1][0-9]|2[0-3]):[0-5][0-9]$").test(value);
+            },
+            message: (props: any) => `${props.value} é invalido`
+        }},
+        end: {type: String, validate: {
+            validator: (value: string) => {
+                return RegExp("^([0-1][0-9]|2[0-3]):[0-5][0-9]$").test(value);
+            },
+            message: (props: any) => `${props.value} é invalido`
+        }}
+    },
     services: {
-        customer_service: {
-            enabled: {type: Boolean, default: false},
-            opening_hours: {
-                start: {type: String, validate: {
-                    validator: (value: string) => {
-                        return RegExp("^([0-1][0-9]|2[0-3]):[0-5][0-9]$").test(value);
-                    },
-                    message: (props: any) => `${props.value} é invalido`
-                }},
-                end: {type: String, validate: {
-                    validator: (value: string) => {
-                        return RegExp("^([0-1][0-9]|2[0-3]):[0-5][0-9]$").test(value);
-                    },
-                    message: (props: any) => `${props.value} é invalido`
-                }}
-            },
-        },
-        delivery: {
-            enabled: {type: Boolean, default: false},
-            opening_hours: {
-                start: {type: String, validate: {
-                    validator: (value: string) => {
-                        return RegExp("^([0-1][0-9]|2[0-3]):[0-5][0-9]$").test(value);
-                    },
-                    message: (props: any) => `${props.value} é invalido`
-                }},
-                end: {type: String, validate: {
-                    validator: (value: string) => {
-                        return RegExp("^([0-1][0-9]|2[0-3]):[0-5][0-9]$").test(value);
-                    },
-                    message: (props: any) => `${props.value} é invalido`
-                }}
-            },
-        },
-        withdraw: {
-            enabled: {type: Boolean, default: false},
-            opening_hours: {
-                start: {type: String, validate: {
-                    validator: (value: string) => {
-                        return RegExp("^([0-1][0-9]|2[0-3]):[0-5][0-9]$").test(value);
-                    },
-                    message: (props: any) => `${props.value} é invalido`
-                }},
-                end: {type: String, validate: {
-                    validator: (value: string) => {
-                        return RegExp("^([0-1][0-9]|2[0-3]):[0-5][0-9]$").test(value);
-                    },
-                    message: (props: any) => `${props.value} é invalido`
-                }}
-            },
-        }
-    }
+        customer_service: Boolean,
+        delivery: Boolean,
+        withdraw: Boolean
+    },
+    tipValue: {
+        type: Number,
+        default: 0.0
+    },
+    maxDiscountAllowed: {
+        type: Number
+    },
+    deleted: { type: Boolean, default: undefined },
+    printEnabled: {type: Boolean, default: false}
 }, {
     versionKey: false,
+    timestamps: true
 });
 
-const Establishments = mongoose.model('establishments', schema);
+schema.index({ name: 1, ownerId: 1, deleted: 1 }, { unique: true, partialFilterExpression: { deleted: null } });
 
-export {schema, Establishments, establishmentAttributes }
+enum GeolocationType {
+    point = "Point"
+}
+
+interface IEstablishments {
+    _id?: string,
+    name: string,
+    deleted?: boolean,
+    location: string,   
+    geoLocation: {
+        type: GeolocationType,
+        coordinates: Array<number>
+    },
+    ownerId: string,
+    logo: string,
+    pixKey: string,
+    telegramChatId: string,
+    url: string,
+    social: {
+        instagram: string,
+        facebook: string,
+        whatsapp: string,
+        email: string,
+        phone: string,
+    },
+    services: {
+        customer_service: boolean,
+        delivery: boolean,
+        withdraw: boolean
+    },
+    tipValue: number,
+    maxDiscountAllowed?: number,
+    printEnabled: boolean
+}
+
+const Establishments = mongoose.model<IEstablishments>('establishments', schema);
+
+export {schema, Establishments, establishmentAttributes, IEstablishments, establishmentUpdateValidation }

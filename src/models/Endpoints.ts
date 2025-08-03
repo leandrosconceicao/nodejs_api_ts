@@ -32,4 +32,6 @@ export default class Endpoints {
     static bakery_configs = `${this.bakery}/configs`;
     static bakery_expanses = `${this.bakery}/expanses`;
     static accounts = '/accounts';
+    static printerSpool = '/printer_spool';
+    static printers = "/printers"
 }

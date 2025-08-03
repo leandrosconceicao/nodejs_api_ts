@@ -1,121 +1,152 @@
 import { Request, Response, NextFunction } from "express";
-import { Validators } from "../../utils/validators";
-import {Establishments, establishmentAttributes } from "../../models/Establishments";
+import {IEstablishments, establishmentAttributes, establishmentUpdateValidation } from "../../models/Establishments";
 import {z} from "zod";
-import NotFoundError from "../../models/errors/NotFound";
 import ApiResponse from "../../models/base/ApiResponse";
-import InvalidParameter from "../../models/errors/InvalidParameters";
-import establishmentDataCheck from "./establishmentDataCheck";
-import FirebaseStorage from "../../utils/firebase/storage";
-import fs from "fs/promises";
+import { idValidation } from "../../utils/defaultValidations";
+import { autoInjectable, inject } from "tsyringe";
+import IEstablishmentRepository from "../../domain/interfaces/IEstablishmentRepository";
+import { IDeliveryDistrict, IDeliveryDistrictValues } from "../../domain/types/IDeliveryDistrict";
 
-
+@autoInjectable()
 export default class EstablishmentsController {
 
-    static async findAll(req: Request, res: Response, next: NextFunction) {
-        interface establishmentQuery {
-            _id?: string
-        }
+    constructor(
+        @inject("IEstablishmentRepository") private readonly repository : IEstablishmentRepository,
+    ) {
+
+    }
+
+    findAll = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            let { id } = req.query;
-            let myQuery: establishmentQuery = {};
-            const idValidation = new Validators("id", id, "string").validate();
-            if (idValidation.isValid) {
-                myQuery._id = `${id}`;
-            }
-            req.result = Establishments.find(myQuery).select({ ownerId: 0 });
+            const query = z.object({
+                storeCode: idValidation.optional()
+            }).parse(req.query);
+
+            req.result = this.repository.findAll(query.storeCode);
             next();
         } catch (e) {
             next(e);
         }
     }
 
-    static async findOne(req: Request, res: Response, next: NextFunction) {
+    findOne = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const id = req.params.id;
-            z.string().min(24).max(24).parse(id);
-            const establishment = await Establishments.findById(id);
-            if (!establishment) {
-                throw new NotFoundError();
-            }
+            const id = idValidation.parse(req.params.id);
+            
+            const establishment = await this.repository.findOne(id);
+            
             return ApiResponse.success(establishment).send(res);
         } catch (e) {
             next(e);
         }
     }
 
-    static async add(req: Request, res: Response, next: NextFunction) {
+    add = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const newEst = new Establishments(establishmentAttributes.parse(req.body));
-            await newEst.save();
+
+            const data = establishmentAttributes.parse(req.body);
+            const newEst = await this.repository.add(data as IEstablishments)
             return ApiResponse.success(newEst).send(res);
         } catch (e) {
             next(e);
         }
     }
 
-    static async delete(req: Request, res: Response, next: NextFunction) {
+    delete = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const id = req.body.id as string;
-            const idValidation = new Validators("id", id, "string").validate();
-            if (!idValidation.isValid) {
-                throw new InvalidParameter(idValidation);
-            }
-            const checks = await establishmentDataCheck.check(id);
-            if (!checks) {
-                return ApiResponse.badRequest("Estabelecimento possui informações vinculadas, não é possível excluir.").send(res);
-            }
-            const process = await Establishments.findByIdAndDelete(id);
-            return ApiResponse.success(process.value).send(res);
-        } catch (e) {
-            next(e);
-        }
-    }
+            const id = idValidation.parse(req.params.id);            
 
-    static async put(req: Request, res: Response, next: NextFunction) {
-        try {
-            const id = req.params.id;
-            z.string().min(24).max(24).parse(id);
-            const establishments = establishmentAttributes.parse(req.body);
-            if (establishments.dataImage) {
-                establishments.logo = await updateLogo({
-                    data: establishments.dataImage.data,
-                    path: `assets/${id}/${establishments.dataImage.path}`
-                });
-            }
-            const process = await Establishments.findByIdAndUpdate(id, establishments, {
-                new: true
-            });
+            const process = await this.repository.delete(id);
+            
             return ApiResponse.success(process).send(res);
         } catch (e) {
             next(e);
         }
     }
 
-    static async checkOpening(establishmentId: any, orderType: string) {
-        const establishment = await Establishments.findById(establishmentId)
-        if (orderType === "frontDesk" || orderType == "account") {
-            if (!establishment.services.customer_service.enabled) {
-                throw ApiResponse.badRequest("Estabelecimento não está aberto no momento.");
-            }
-        }
-        if (orderType === "delivery") {
-            if (!establishment.services.delivery.enabled) {
-                throw ApiResponse.badRequest("Serviço de delivery não está disponível no momento.");
-            }
-        }
-        if (orderType === "withdraw") {
-            if (establishment.services.withdraw.enabled) {
-                throw ApiResponse.badRequest("Serviço de retira não está disponível no momento.");
-            }
+    put = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const id = idValidation.parse(req.params.id);
+
+            const establishments = establishmentUpdateValidation.parse(req.body);
+
+            const process = await this.repository.update(id, establishments as Partial<IEstablishments>)
+            
+            return ApiResponse.success(process).send(res);
+        } catch (e) {
+            next(e);
         }
     }
 
-}
-async function updateLogo(data: {
-    path?: string;
-    data?: string;
-}) {
-    const fireSrv = new FirebaseStorage();
-    return fireSrv.uploadFile(data);
+    getDeliveryDistricts = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const storeCode = idValidation.parse(req.params.storeCode);
+
+            const data = await this.repository.getDeliveryDistrict(storeCode);
+
+            ApiResponse.success(data).send(res);
+
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    deleteDeliveryDistrict = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const id = idValidation.parse(req.params.id);
+
+            await this.repository.deleteDeliveryDistrict(id);
+
+            res.sendStatus(204);
+
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    updateDeliveryDistrict = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            
+            const id = idValidation.parse(req.params.id);
+
+            const update = z.object({
+                movement: z.enum(["pull", "push"]),
+                data: z.object({
+                    description: z.string(),
+                    value: z.number()
+                })
+            }).parse(req.body);
+
+            const updatedData = await this.repository.updateDeliveryDistrict(id, update.movement, update.data as IDeliveryDistrictValues)
+
+
+            ApiResponse.success(updatedData).send(res);
+
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    addDeliveryDistrict = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            
+            const data = z.object({
+                storeCode: idValidation,
+                districts: z.array(
+                    z.object({
+                        description: z.string(),
+                        value: z.number()
+                    })
+                ).nonempty()
+            }).parse(req.body);
+
+            const newData = await this.repository.addDeliveryDistrict(data as IDeliveryDistrict)
+
+            ApiResponse.success(newData).send(res);
+
+        } catch (e) {
+            next(e);
+        }
+    }
+
 }

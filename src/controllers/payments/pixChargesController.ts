@@ -320,12 +320,11 @@ async function paymentSave(req: Request, pix: EfiPixResponse) {
                 updated_at: new Date(),
             }
         }).lean();
-        process.paymentData.value.txId = pix.txid;
         const newPayment = new Payments({
             accountId: process.paymentData.accountId,
             storeCode: process.storeCode,
             userCreate: process.userCreate,
-            value: process.paymentData.value,
+            total: process.paymentData.total,
         });
         await newPayment.save();
     } catch (e) {

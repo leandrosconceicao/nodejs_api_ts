@@ -28,12 +28,17 @@ export default class Headers {
     }
 
     getPagination(): Pagination {
-        let limit = parseInt(this.filters.limit as string);
-        let page = parseInt(this.filters.offset as string);
-        let config = (page - 1) * limit;
+        if (!this.filters.offset) {
+            return {
+                offset: 0,
+                limit: Infinity
+            }
+        }
+        let page = parseInt(this.filters.offset as string) || 0;
+        let limit = parseInt(this.filters.limit as string) || 100;
         return {
-            offset: config > 0 ? config : 0,
-            limit: limit > 0 ? limit : Infinity
+            offset: page * limit,
+            limit: limit
         }
     }
 }

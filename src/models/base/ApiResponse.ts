@@ -1,4 +1,5 @@
 import express from "express";
+import { z } from "zod";
 
 type ApiInfo<T> = {
     statusProcess: boolean;
@@ -41,10 +42,11 @@ export default class ApiResponse<T={}> extends Error {
         });
     }
 
-    static invalidParameter(parameter?: string) : ApiResponse {
+    static invalidParameter(parameter?: z.ZodIssue[]) : ApiResponse {
+        const message = parameter.map((err) => `Parametro (${err.path}) é inválido, ${err.message}`).join(", ");
         return new ApiResponse({
             statusProcess: false,
-            message: `Parametro obrigatório é inválido ou não foi informado (${parameter})`,
+            message: message,
             status: 406
         });
     }
@@ -63,6 +65,14 @@ export default class ApiResponse<T={}> extends Error {
             message: `Recurso não existe ou não foi localizado`,
             status: 404
         });
+    }
+
+    static forbidden(message?: string) : ApiResponse {
+        return new ApiResponse({
+            statusProcess: false,
+            message: message ?? "Acesso não permitido",
+            status: 403,
+        })
     }
 
     send(res: express.Response) {

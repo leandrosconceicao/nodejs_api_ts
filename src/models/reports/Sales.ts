@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { IProduct } from "../../domain/types/IProduct";
 
 const salesSchema = new mongoose.Schema({
     _id: {type: mongoose.Types.ObjectId},
@@ -7,7 +8,19 @@ const salesSchema = new mongoose.Schema({
     storeCode: {type: mongoose.Types.ObjectId}
 
 })
+
+interface ITotalSales {
+    _id: string;
+    orderType: string,
+    pedidosId: number,
+    createdAt: Date,
+    total: number;
+    quantity: number;
+    discount: number;
+    storeCode: string;
+    products: Array<IProduct>;
+}
 // const menuItems = mongoose.model('menuItems', menuItemsSchema, 'categorias')
 const TotalSales = mongoose.model('totalSales', salesSchema, 'orders')
 
-export default TotalSales;
+export {TotalSales, ITotalSales};

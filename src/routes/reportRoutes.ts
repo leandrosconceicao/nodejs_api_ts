@@ -7,4 +7,6 @@ import paginationAndFilters from "../middlewares/paginationAndFilters";
 export default express.Router()
     .get(Endpoints.quantSales, validateToken, validateToken, ReportsController.quantifySales)
     .get(Endpoints.quantSalesByProduct, validateToken, ReportsController.quantifySalesByProduct)
-    .get(`${Endpoints.reports}/average_preparation_time`, validateToken, ReportsController.averagePreparationTime)
+    .get(`${Endpoints.reports}/paymentsByMethods`, validateToken, ReportsController.getPayments)
+    .get(`${Endpoints.reports}/paymentsByCashregister/:id`, validateToken, ReportsController.getPaymentsByCashregister)
+    .get(`${Endpoints.reports}/establishment_analytic/:id`, validateToken, ReportsController.establishmentAnaltic)

@@ -1,10 +1,14 @@
 import Jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { v4 as uuidv4 } from 'uuid';
+import { IUsers } from '../models/Users';
 
 export default class TokenGenerator {
-    static generate(account: string) {
-        return Jwt.sign({id: account}, process.env.CHAVE_JWT, {expiresIn: '12h'});
+    static generate(user: IUsers) {
+        return Jwt.sign({
+            id: user.id,
+            group_user: user.group_user
+        }, process.env.CHAVE_JWT, {expiresIn: '12h'},);
     }
 
     static verify(token: string) {
