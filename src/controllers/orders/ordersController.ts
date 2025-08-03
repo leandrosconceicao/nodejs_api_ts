@@ -133,67 +133,6 @@ export default class OrdersController {
         }
     }
 
-    static async transfer(req: Request, res: Response, next: NextFunction) {
-        try {
-            const {orderIds, originId, destinationId, userCode}: {
-                orderIds: Array<string>,
-                originId: string,
-                destinationId: string,
-                userCode: string
-            } = req.body;
-            if (!orderIds.length) {
-                throw ApiResponse.badRequest("Ids dos pedidos são inválidos ou não foram informados");
-            }
-            const originIdVal = new Validators("originId", originId).validate();
-            const destinationIdVal = new Validators("destinationId", destinationId).validate();
-            const userVal = new Validators("userCode", userCode).validate();
-            if (!originIdVal.isValid) {
-                throw new InvalidParameter(originIdVal);
-            }
-            if (!destinationIdVal.isValid) {
-                throw new InvalidParameter(destinationIdVal);
-            }
-            if (!userVal.isValid) {
-                throw new InvalidParameter(userVal);
-            }
-            const originAcc = await Accounts.findById(originId).lean();
-            const destiAcc = await Accounts.findById(destinationId).lean();
-            if (originAcc.status !== "open") {
-                throw ApiResponse.badRequest("Conta de origem não está aberta");
-            }
-            if (destiAcc.status !== "open") {
-                throw ApiResponse.badRequest("Conta de destino não está aberta");
-            }
-            const process = await Orders.updateMany({
-                _id: {
-                    $in: orderIds.map((e) => new ObjectId(e))
-                }
-            }, {
-                $set: {
-                    accountId: new ObjectId(destinationId),
-                    updated_at: new Date(),
-                    updated_by: new ObjectId(userCode)
-                }
-            });
-            if (!process.modifiedCount) {
-                throw ApiResponse.badRequest("Nenhum dado modificado, pedidos informados não foram localizados");
-            }
-            logControl.saveReqLog(
-                req, 
-                null,
-                {
-                  orderId: new ObjectId(originAcc._id),
-                  description: `Transferência de pedidos da conta (${originAcc.description}) para a conta (${destiAcc.description})`,
-                  storeCode: new ObjectId(originAcc.storeCode.toString()),
-                  userCreate: new ObjectId(userCode)
-                }
-              );
-            return ApiResponse.success(process).send(res);
-        } catch (e) {
-            next(e);
-        }
-    }
-
     changeSeller = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const id = idValidation.parse(req.params.id);
