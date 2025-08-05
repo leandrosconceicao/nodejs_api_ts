@@ -116,7 +116,7 @@ class CashRegisterController implements BaseController {
                 reprint: false,
                 createdAt: new Date().toISOString()
             }
-            next();
+            return ApiResponse.success().send(res);
         } catch (e) {
             next(e);
         }
