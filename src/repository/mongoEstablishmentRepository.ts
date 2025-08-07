@@ -60,20 +60,15 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
         });
     }
 
-    updateDeliveryDistrict = async (id: string, movement: "push" | "pull", data: IDeliveryDistrictValues): Promise<IDeliveryDistrict> => {
-        const item = await this.findDeliveryDistrictById(id);
-        if (item.districts.length === 1 && movement === "pull")
-            throw new BadRequestError("Deve haver ao menos um bairro no registro");
-
-        const update = movement === "push" ? {
-            $push: { districts: data }
-        } : {
-            $pull: { districts: data }
-        }
+    updateDeliveryDistrict = async (id: string, data: Partial<IDeliveryDistrict>): Promise<IDeliveryDistrict> => {
+        
+        await this.findDeliveryDistrictById(id);        
 
         return DeliveryDistrict.findOneAndUpdate({
             _id: new ObjectId(id)
-        }, update, {new: true})
+        }, data, {
+            new: true
+        });
     }
 
     async validateDiscount(id: string, discount?: number): Promise<void> {

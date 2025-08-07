@@ -5,7 +5,7 @@ import ApiResponse from "../../models/base/ApiResponse";
 import { idValidation } from "../../utils/defaultValidations";
 import { autoInjectable, inject } from "tsyringe";
 import IEstablishmentRepository from "../../domain/interfaces/IEstablishmentRepository";
-import { IDeliveryDistrict, IDeliveryDistrictValues } from "../../domain/types/IDeliveryDistrict";
+import { deliveryDistrictValidation, IDeliveryDistrict } from "../../domain/types/IDeliveryDistrict";
 
 @autoInjectable()
 export default class EstablishmentsController {
@@ -110,15 +110,11 @@ export default class EstablishmentsController {
             const id = idValidation.parse(req.params.id);
 
             const update = z.object({
-                movement: z.enum(["pull", "push"]),
-                data: z.object({
-                    description: z.string(),
-                    value: z.number()
-                })
+                description: z.string().min(1).optional(),
+                value: z.number().min(0.01).optional()
             }).parse(req.body);
 
-            const updatedData = await this.repository.updateDeliveryDistrict(id, update.movement, update.data as IDeliveryDistrictValues)
-
+            const updatedData = await this.repository.updateDeliveryDistrict(id, update);
 
             ApiResponse.success(updatedData).send(res);
 
