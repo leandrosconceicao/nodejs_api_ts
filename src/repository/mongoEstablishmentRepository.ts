@@ -37,14 +37,11 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
         return DeliveryDistrict.create(data);
     }
 
-    async getDeliveryDistrict(storeCode: string): Promise<IDeliveryDistrict> {
-        const data = await DeliveryDistrict.findOne({
+    async getDeliveryDistrict(storeCode: string): Promise<IDeliveryDistrict[]> {
+        const data = await DeliveryDistrict.find({
             storeCode: new ObjectId(storeCode),
             deleted: undefined
         })
-
-        if (!data)
-            throw new NotFoundError("Dados não localizados");
 
         return data;
     }
@@ -151,7 +148,7 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
 
     async findOne(id: string): Promise<IEstablishments> {
 
-        const establishment = await Establishments.findById(id);
+        const establishment = await Establishments.findById(id).populate("deliveryDistricts").lean();
 
         if (!establishment)
             throw new NotFoundError("Estabelecimento não localizado");
