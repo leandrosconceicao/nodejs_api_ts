@@ -6,7 +6,7 @@ import mongoose from "mongoose";
 import ICloudService from "../domain/interfaces/ICloudService";
 import { OrderType } from "../models/Orders";
 import BadRequestError from "../models/errors/BadRequest";
-import { IDeliveryDistrict, IDeliveryDistrictValues } from "../domain/types/IDeliveryDistrict";
+import { IDeliveryDistrict } from "../domain/types/IDeliveryDistrict";
 import { DeliveryDistrict } from "../models/DeliveryDistricts";
 
 var ObjectId = mongoose.Types.ObjectId;
@@ -24,7 +24,16 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
         @inject("ICloudService") private readonly service: ICloudService
     ) {}
 
-    addDeliveryDistrict(data: IDeliveryDistrict): Promise<IDeliveryDistrict> {
+    async addDeliveryDistrict(data: IDeliveryDistrict): Promise<IDeliveryDistrict> {
+        const query = await DeliveryDistrict.findOne({
+            description: data.description,
+            storeCode: new ObjectId(data.storeCode)
+        })
+
+        if (query) {
+            throw new BadRequestError(`Já existe um registro cadastrado com esse nome (${data.description}) para o seu estabelecimento`);
+        }
+
         return DeliveryDistrict.create(data);
     }
 

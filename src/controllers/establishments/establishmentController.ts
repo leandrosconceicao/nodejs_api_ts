@@ -126,15 +126,7 @@ export default class EstablishmentsController {
     addDeliveryDistrict = async (req: Request, res: Response, next: NextFunction) => {
         try {
             
-            const data = z.object({
-                storeCode: idValidation,
-                districts: z.array(
-                    z.object({
-                        description: z.string(),
-                        value: z.number()
-                    })
-                ).nonempty()
-            }).parse(req.body);
+            const data = deliveryDistrictValidation.parse(req.body);
 
             const newData = await this.repository.addDeliveryDistrict(data as IDeliveryDistrict)
 
