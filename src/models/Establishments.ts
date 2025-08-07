@@ -126,6 +126,13 @@ const schema = new mongoose.Schema({
     timestamps: true
 });
 
+schema.virtual("deliveryDistricts", {
+    ref: "deliveryDistricts",
+    localField: "_id",
+    foreignField: "storeCode",
+    match: { deleted: { $eq: undefined } },
+});
+
 schema.index({ name: 1, ownerId: 1, deleted: 1 }, { unique: true, partialFilterExpression: { deleted: null } });
 
 enum GeolocationType {
