@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import {z} from "zod";
+import { IDeliveryDistrict } from "../domain/types/IDeliveryDistrict";
 
 const OPENING_VALIDATION = z.object({
     start: z.string().regex(RegExp("^([0-1][0-9]|2[0-3]):[0-5][0-9]$")).optional(),
@@ -159,7 +160,8 @@ interface IEstablishments {
     },
     tipValue: number,
     maxDiscountAllowed?: number,
-    printEnabled: boolean
+    printEnabled: boolean,
+    deliveryDistricts?: IDeliveryDistrict[]
 }
 
 const Establishments = mongoose.model<IEstablishments>('establishments', schema);
