@@ -3,7 +3,7 @@ name: Deploy to Google App Engine Homolog
 on:
     push:
         branches:
-            - payment_methods
+            - homolog
 
 jobs:
     deploy:
