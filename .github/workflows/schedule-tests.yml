@@ -1,11 +1,12 @@
+name: "Limpeza de pedidos antigos"
 on:
   schedule:
-    - cron: '*/5 * * * *'  
+    - cron: '0 0 */5 * *'  
 
 jobs:
   delete-endpoint:
     runs-on: ubuntu-latest
     steps:
-      - name: Teste de execução
+      - name: Limpeza de pedidos antigos a mais de 5 dias.
         run: |
-          curl -X GET ${{secrets.CLEAN_OLD_ORDERS}}
+          curl -X DELETE ${{secrets.CLEAN_OLD_ORDERS}}
