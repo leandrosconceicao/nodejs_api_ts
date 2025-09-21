@@ -365,4 +365,17 @@ export default class OrdersController {
             this.cloudService.notifyUsers(user?.token?.toString(), "Preparação de pedido", `Atenção, pedido: ${process.pedidosId} ${isReady ? 'está pronto' : 'não está pronto'}, ${info}`);
         }
     }
+
+    checkPreparationOrders = async (req: Request, res: Response, next: NextFunction) => {
+        try {                      
+
+            const companies = await this.establishmentRepository.findAll();
+
+            await Promise.all(companies.map((e) => this.cloudService.checkPreparationOrders(e._id.toString())));
+            
+            return ApiResponse.success().send(res);
+        } catch (e) {
+            next(e);
+        }
+    }
 }

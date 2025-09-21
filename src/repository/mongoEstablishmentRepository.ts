@@ -6,7 +6,7 @@ import mongoose from "mongoose";
 import ICloudService from "../domain/interfaces/ICloudService";
 import { OrderType } from "../models/Orders";
 import BadRequestError from "../models/errors/BadRequest";
-import { IDeliveryDistrict, IDeliveryDistrictValues } from "../domain/types/IDeliveryDistrict";
+import { IDeliveryDistrict } from "../domain/types/IDeliveryDistrict";
 import { DeliveryDistrict } from "../models/DeliveryDistricts";
 
 var ObjectId = mongoose.Types.ObjectId;
@@ -24,18 +24,24 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
         @inject("ICloudService") private readonly service: ICloudService
     ) {}
 
-    addDeliveryDistrict(data: IDeliveryDistrict): Promise<IDeliveryDistrict> {
+    async addDeliveryDistrict(data: IDeliveryDistrict): Promise<IDeliveryDistrict> {
+        const query = await DeliveryDistrict.findOne({
+            description: data.description,
+            storeCode: new ObjectId(data.storeCode)
+        })
+
+        if (query) {
+            throw new BadRequestError(`Já existe um registro cadastrado com esse nome (${data.description}) para o seu estabelecimento`);
+        }
+
         return DeliveryDistrict.create(data);
     }
 
-    async getDeliveryDistrict(storeCode: string): Promise<IDeliveryDistrict> {
-        const data = await DeliveryDistrict.findOne({
+    async getDeliveryDistrict(storeCode: string): Promise<IDeliveryDistrict[]> {
+        const data = await DeliveryDistrict.find({
             storeCode: new ObjectId(storeCode),
             deleted: undefined
         })
-
-        if (!data)
-            throw new NotFoundError("Dados não localizados");
 
         return data;
     }
@@ -60,20 +66,15 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
         });
     }
 
-    updateDeliveryDistrict = async (id: string, movement: "push" | "pull", data: IDeliveryDistrictValues): Promise<IDeliveryDistrict> => {
-        const item = await this.findDeliveryDistrictById(id);
-        if (item.districts.length === 1 && movement === "pull")
-            throw new BadRequestError("Deve haver ao menos um bairro no registro");
-
-        const update = movement === "push" ? {
-            $push: { districts: data }
-        } : {
-            $pull: { districts: data }
-        }
+    updateDeliveryDistrict = async (id: string, data: Partial<IDeliveryDistrict>): Promise<IDeliveryDistrict> => {
+        
+        await this.findDeliveryDistrictById(id);        
 
         return DeliveryDistrict.findOneAndUpdate({
             _id: new ObjectId(id)
-        }, update, {new: true})
+        }, data, {
+            new: true
+        });
     }
 
     async validateDiscount(id: string, discount?: number): Promise<void> {
@@ -133,21 +134,21 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
     findAll(storeCode?: string): Promise<Array<IEstablishments>> {
         const filter = <{
             deleted: object,
-            storeCode?: mongoose.Types.ObjectId
+            _id?: mongoose.Types.ObjectId
         }>{
             deleted: {
                 $eq: null
             }
         };
         if (storeCode) {
-            filter.storeCode = new mongoose.Types.ObjectId(storeCode)
+            filter._id = new mongoose.Types.ObjectId(storeCode)
         }
         return Establishments.find(filter).select({ ownerId: 0 });
     }
 
     async findOne(id: string): Promise<IEstablishments> {
 
-        const establishment = await Establishments.findById(id);
+        const establishment = await Establishments.findById(id).populate("deliveryDistricts").lean();
 
         if (!establishment)
             throw new NotFoundError("Estabelecimento não localizado");

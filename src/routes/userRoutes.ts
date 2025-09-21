@@ -5,12 +5,9 @@ import validateToken from "../middlewares/tokenController";
 import {UserController} from "../controllers/users/userController";
 import paginationAndFilters from "../middlewares/paginationAndFilters";
 import { container } from "tsyringe";
-import IUserRepository from '../domain/interfaces/IUserRepository';
-import MongoUserRepository from '../repository/mongoUserRepository';
 import adminTokenValidation from '../middlewares/adminTokenValidation';
 import tokenController from '../middlewares/tokenController';
 
-container.resolve<IUserRepository>(MongoUserRepository);
 const userController = container.resolve(UserController);
 
 export default express.Router()
