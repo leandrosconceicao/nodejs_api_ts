@@ -5,13 +5,12 @@ import { getDatabase, Reference } from "firebase-admin/database";
 import { messaging } from "firebase-admin";
 import ErrorAlerts from "../errorAlerts";
 import ISpoolHandler from "../../domain/interfaces/ISpoolHandler";
-import { IPrinterSpool, SpoolType } from "../../domain/types/IPrinterSpool";
+import { IPrinterSpool } from "../../domain/types/IPrinterSpool";
 import { Message } from "firebase-admin/lib/messaging/messaging-api";
 import { IFirebaseOrder, IOrder, IOrderProduct, OrderType } from "../../models/Orders";
-import IEstablishmentRepository from "../../domain/interfaces/IEstablishmentRepository";
 import IPrinterRepository from "../../domain/interfaces/IPrinterRepository";
-import BadRequestError from "../../models/errors/BadRequest";
 import NotFoundError from "../../models/errors/NotFound";
+import { ISender } from "../../domain/interfaces/ISender";
 
 const PREPARATION_PATH = "preparation";
 const WITHDRAW_PATH = "withdraw";
@@ -30,7 +29,8 @@ export default class CloudService implements ICloudService {
 
     constructor(
         @inject('ISpoolHandler') private readonly spoolHandler: ISpoolHandler,
-        @inject("IPrinterRepository") private readonly printerRepository: IPrinterRepository
+        @inject("IPrinterRepository") private readonly printerRepository: IPrinterRepository,
+        @inject("ISender") private readonly sender: ISender
     ) {}
 
     async removePreparationOrder(order: IOrder): Promise<void> {
@@ -230,5 +230,39 @@ export default class CloudService implements ICloudService {
             ]
         }
         return parsedOrder;
+    }
+
+    checkPreparationOrders = async (companyId: string): Promise<void> => {
+        const db = getDatabase();
+        
+        const ref = (isDevelopment ? db.ref(enviroment).child(companyId) : db.ref(companyId)).child(PREPARATION_PATH);
+
+        const getRef = await ref.get();
+
+        const oldOrders = <string[]>[];
+
+        getRef.forEach((e) => {
+            const data = e.toJSON() as any;
+            const orderCreation = new Date(data.createdAt);
+
+            const now = new Date();
+
+            const diffTime = Math.abs(now.getTime() - orderCreation.getTime());
+
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+            if (diffDays > 5) {
+                oldOrders.push(e.key);
+            }
+        });
+
+        if (oldOrders.length === 0) {
+            return;
+        }
+        
+        await Promise.all(oldOrders.map((e: string) => ref.child(e).remove()))
+
+        this.sender.infoAlert(`Processamento de limpeza de ordens antigas finalizado`);
+
     }
 }
