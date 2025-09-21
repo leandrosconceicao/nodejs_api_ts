@@ -1,4 +1,3 @@
-import 'reflect-metadata';
 import express from "express";
 import Endpoints from "../models/Endpoints";
 import PaymentController from "../controllers/payments/paymentController";
@@ -8,12 +7,10 @@ import validateToken from "../middlewares/tokenController";
 import CardPaymentsController from "../controllers/payments/cardPayments";
 import PaymentMethodsController from "../controllers/payments/paymentMethodsControllers";
 import {CashRegisterController} from "../controllers/payments/cashRegisterController";
-import { PrinterSpoolMiddleware } from "../middlewares/printerSpoolMiddleware";
 import { container } from "tsyringe";
-// import { spoolManagement } from "../middlewares/printerSpoolMiddleware";
-const spoolHandler = container.resolve(PrinterSpoolMiddleware);
-const paymentMethodsCtrl = new PaymentMethodsController();
-const cashRegisterCtrl = new CashRegisterController();
+
+const paymentMethodsCtrl = container.resolve(PaymentMethodsController);
+const cashRegisterCtrl = container.resolve(CashRegisterController);
 
 export default express.Router()
     .post(`${Endpoints.payments}/cash_register`,  validateToken, cashRegisterCtrl.onNewData)

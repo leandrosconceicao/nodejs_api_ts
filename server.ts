@@ -1,4 +1,6 @@
+import 'reflect-metadata';
 import * as dotenv from 'dotenv';
+import "./src/dependencyInjection";
 import {server, wss} from "./src/app";
 dotenv.config();
 

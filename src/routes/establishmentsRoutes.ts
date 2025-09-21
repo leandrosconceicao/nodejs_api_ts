@@ -4,11 +4,7 @@ import validateToken, { TokenController } from "../middlewares/tokenController";
 import EstablishmentsController from "../controllers/establishments/establishmentController";
 import paginationAndFilters from "../middlewares/paginationAndFilters";
 import { container } from "tsyringe";
-import IEstablishmentRepository from "../domain/interfaces/IEstablishmentRepository";
-import MongoEstablishmentRespository from "../repository/mongoEstablishmentRepository";
 import superUserTokenValidation from "../middlewares/superUserTokenValidation";
-
-container.resolve<IEstablishmentRepository>(MongoEstablishmentRespository);
 
 const establishmentController = container.resolve(EstablishmentsController);
 const tokenController = container.resolve(TokenController);

@@ -4,10 +4,7 @@ import Endpoints from "../models/Endpoints";
 import paginationAndFilters from "../middlewares/paginationAndFilters";
 import AppsController from "../controllers/apps/appsController";
 import { container } from "tsyringe";
-import IAppRepository from "../domain/interfaces/IAppRepository";
-import { MongoAppRepository } from "../repository/mongoAppRepository";
 
-container.resolve<IAppRepository>(MongoAppRepository);
 const controller = container.resolve(AppsController);
 
 export default express.Router()

@@ -4,10 +4,7 @@ import AccountsController from "../controllers/accounts/accountsController";
 import paginationAndFilters from "../middlewares/paginationAndFilters";
 import validateToken, { TokenController } from "../middlewares/tokenController";
 import { container } from "tsyringe";
-import IAccountRepository from "../domain/interfaces/IAccountRepository";
-import MongoAccountRepository from "../repository/mongoAccountRepository";
 
-container.resolve<IAccountRepository>(MongoAccountRepository);
 const accountController = container.resolve(AccountsController);
 const tokenController = container.resolve(TokenController)
 
