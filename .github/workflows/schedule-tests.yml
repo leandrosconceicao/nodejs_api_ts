@@ -1,0 +1,11 @@
+on:
+  schedule:
+    - cron: '*/5 * * * *'  
+
+jobs:
+  delete-endpoint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Teste de execução
+        run: |
+          curl -X GET ${{secrets.CLEAN_OLD_ORDERS}}
