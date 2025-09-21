@@ -134,14 +134,14 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
     findAll(storeCode?: string): Promise<Array<IEstablishments>> {
         const filter = <{
             deleted: object,
-            storeCode?: mongoose.Types.ObjectId
+            _id?: mongoose.Types.ObjectId
         }>{
             deleted: {
                 $eq: null
             }
         };
         if (storeCode) {
-            filter.storeCode = new mongoose.Types.ObjectId(storeCode)
+            filter._id = new mongoose.Types.ObjectId(storeCode)
         }
         return Establishments.find(filter).select({ ownerId: 0 });
     }

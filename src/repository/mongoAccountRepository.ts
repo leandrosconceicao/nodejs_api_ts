@@ -23,7 +23,7 @@ const populateEstablish = ["-establishments", "-pass"];
 export default class MongoAccountRepository implements IAccountRepository {
 
     constructor(
-        @inject('IOrderRepository') private readonly orderRepository : IOrderRepository
+        
     ) {}
 
     addNew(newAccount: IAccount): Promise<IAccount> {
@@ -71,7 +71,7 @@ export default class MongoAccountRepository implements IAccountRepository {
             throw new NotFoundError("Conta não foi localizada")
 
         const data = await Promise.all([
-            this.orderRepository.findAll({
+            Orders.find({
                 accountId: new ObjectId(accountId),
                 status: {
                     $ne: "cancelled"
