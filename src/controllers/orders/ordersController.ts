@@ -371,7 +371,7 @@ export default class OrdersController {
 
             const companies = await this.establishmentRepository.findAll();
 
-            await Promise.all(companies.map((e) => this.cloudService.checkPreparationOrders(e._id.toString())));
+            await Promise.all(companies.map((e) => this.cloudService.checkPreparationOrders(e._id.toString(), e.diffDaysToCleanPreparation)));
             
             return ApiResponse.success().send(res);
         } catch (e) {
