@@ -232,7 +232,7 @@ export default class CloudService implements ICloudService {
         return parsedOrder;
     }
 
-    checkPreparationOrders = async (companyId: string): Promise<void> => {
+    checkPreparationOrders = async (companyId: string, days: number): Promise<void> => {
         const db = getDatabase();
         
         const ref = (isDevelopment ? db.ref(enviroment).child(companyId) : db.ref(companyId)).child(PREPARATION_PATH);
@@ -251,7 +251,7 @@ export default class CloudService implements ICloudService {
 
             const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-            if (diffDays > 5) {
+            if (diffDays > days) {
                 oldOrders.push(e.key);
             }
         });
