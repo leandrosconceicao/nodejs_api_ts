@@ -32,5 +32,5 @@ export default interface ICloudService {
 
     removePreparationOrder(order: IOrder) : Promise<void>;
 
-    checkPreparationOrders(companyId: string) : Promise<void>;
+    checkPreparationOrders(companyId: string, days: number) : Promise<void>;
 }
