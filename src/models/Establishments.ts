@@ -120,7 +120,8 @@ const schema = new mongoose.Schema({
         type: Number
     },
     deleted: { type: Boolean, default: undefined },
-    printEnabled: {type: Boolean, default: false}
+    printEnabled: {type: Boolean, default: false},
+    diffDaysToCleanPreparation: {type: Number, default: 5}
 }, {
     versionKey: false,
     timestamps: true
@@ -168,7 +169,8 @@ interface IEstablishments {
     tipValue: number,
     maxDiscountAllowed?: number,
     printEnabled: boolean,
-    deliveryDistricts?: IDeliveryDistrict[]
+    deliveryDistricts?: IDeliveryDistrict[],
+    diffDaysToCleanPreparation: number
 }
 
 const Establishments = mongoose.model<IEstablishments>('establishments', schema);
