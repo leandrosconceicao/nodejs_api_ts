@@ -42,7 +42,7 @@ export default class MongoCategoryRepository implements ICategoryRepository {
             },
             {
                 $project: {
-                    _id: 0,
+                    // _id: 0,
                     storeCode: 0,
                     // "products.preparacao": 0,
                     "products.categoria": 0,
