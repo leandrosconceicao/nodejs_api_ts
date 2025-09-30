@@ -1,9 +1,9 @@
 name: Deploy to Google App Engine Homolog
 
 on:
-    push:
-        branches:
-            - homolog
+    pull_request: 
+      branches: 
+        ["homolog"]
 
 jobs:
     deploy:
