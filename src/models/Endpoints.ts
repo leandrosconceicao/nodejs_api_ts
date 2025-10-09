@@ -34,4 +34,5 @@ export default class Endpoints {
     static accounts = '/accounts';
     static printerSpool = '/printer_spool';
     static printers = "/printers"
+    static utils = "/utils";
 }
