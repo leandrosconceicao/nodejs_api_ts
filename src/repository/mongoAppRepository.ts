@@ -22,7 +22,7 @@ export class MongoAppRepository implements IAppRepository {
         
         await this.findOne(id);
 
-        return Apps.findByIdAndUpdate(id, newData)
+        return Apps.findByIdAndUpdate(id, newData, {new: true});
 
     }
 
