@@ -13,9 +13,10 @@
         "forceConsistentCasingInFileNames": true,
         "outDir": "./build",
         "lib": [
-          "ES2021.String"
+          "ES2021.String",
+          "dom"
         ],
-        "baseUrl": "./sr",
+        "baseUrl": "./src",
         "typeRoots" : [
             "@types",
             "./node_modules/@types", 
