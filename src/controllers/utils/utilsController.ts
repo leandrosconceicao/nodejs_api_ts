@@ -20,7 +20,7 @@ export class UtilsController {
             const qrcode = await this.utilities.generateQrCode(body.value);
 
             return ApiResponse.success({
-                qrcode: qrcode.toString("base64")
+                base64: qrcode.toString("base64")
             }).send(res);
         } catch (e) {
             next(e);
