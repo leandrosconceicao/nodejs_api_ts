@@ -21,5 +21,5 @@ export default interface ICategoryRepository {
         ordenacao?: number
     }>) : Promise<void>
 
-    getMenuItems(storeCode: string) : Promise<ICategory[]>;
+    getMenuItems(storeCode: string, categoryId?: string) : Promise<ICategory[]>;
 }

@@ -23,6 +23,8 @@ import { IProductRepository } from "./domain/interfaces/IProductRepository";
 import { MongoProductRepository } from "./repository/mongoProductRepository";
 import IAppRepository from "./domain/interfaces/IAppRepository";
 import { MongoAppRepository } from "./repository/mongoAppRepository";
+import { IUtilities } from "./domain/interfaces/IUtilities";
+import { Utilities } from "./utils/utilities";
 
 container.register<ISender>("ISender", Sender);
 container.register<IUserRepository>("IUserRepository", MongoUserRepository);
@@ -36,3 +38,4 @@ container.register<IAddonesRepository>("IAddonesRepository", MongoAddonesReposit
 container.register<ICategoryRepository>("ICategoryRepository", MongoCategoryRepository);
 container.register<IProductRepository>("IProductRepository", MongoProductRepository);
 container.register<IAppRepository>("IAppRepository", MongoAppRepository);
+container.register<IUtilities>("IUtilities", Utilities);
