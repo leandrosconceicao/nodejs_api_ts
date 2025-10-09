@@ -5,7 +5,7 @@ import ApiResponse from "../../models/base/ApiResponse";
 import NotFoundError from "../../models/errors/NotFound";
 import { idValidation } from "../../utils/defaultValidations";
 import { RegexBuilder } from "../../utils/regexBuilder";
-import { appValidation, IApp, QuerySearch } from "../../domain/types/IApp";
+import { appUpdateValidation, appValidation, IApp, QuerySearch } from "../../domain/types/IApp";
 import { autoInjectable, inject } from "tsyringe";
 import IAppRepository from "../../domain/interfaces/IAppRepository";
 
@@ -70,7 +70,7 @@ export default class AppsController {
         try {
             const id = idValidation.parse(req.params.id);
             
-            const data = appValidation.parse(req.body);
+            const data = appUpdateValidation.parse(req.body);
             
             const dt = await this.appRepository.update(id, data);
 

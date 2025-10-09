@@ -24,7 +24,11 @@ export default class MongoCategoryRepository implements ICategoryRepository {
 
     constructor(@inject("ICloudService") private readonly cloudService: ICloudService) {}
 
-    async getMenuItems(storeCode: string): Promise<ICategory[]> {
+    async getMenuItems(storeCode: string, categoryId?: string): Promise<ICategory[]> {
+        const productQuery = { 'isActive': true } as any;
+        if (categoryId) {
+            productQuery['category'] = new ObjectId(categoryId)
+        }
         const data = await MenuItems.aggregate<ICategory>([
             {
                 $match: {
@@ -37,7 +41,7 @@ export default class MongoCategoryRepository implements ICategoryRepository {
                     localField: "_id",
                     foreignField: "category",
                     as: "products",
-                    pipeline: [{ $match: { 'isActive': true } }],
+                    pipeline: [{ $match: productQuery }],
                 },
             },
             {
@@ -73,7 +77,7 @@ export default class MongoCategoryRepository implements ICategoryRepository {
             })
         })
 
-        return data.filter((e) => e.products.length);
+        return data;
     }
 
     updateOrdenation(storeCode: string, data: Array<{ id: string; ordenacao: number; }>): Promise<any> {

@@ -5,6 +5,7 @@ import ICategoryRepository from "../../domain/interfaces/ICategoryRepository";
 import { idValidation } from "../../utils/defaultValidations";
 import IEstablishmentRepository from "../../domain/interfaces/IEstablishmentRepository";
 import { IEstablishmentMenuItems } from "../../domain/interfaces/IEstablishmentMenuItems";
+import { z } from "zod";
 @autoInjectable()
 export default class MenuItemsController {
 
@@ -29,9 +30,13 @@ export default class MenuItemsController {
         try {
             const id = idValidation.parse(req.params.storeCode);
 
+            const query = z.object({
+                category: idValidation.optional()
+            }).parse(req.query);
+
             const store = await this.establishmentRepository.findOne(id);
         
-            const categories = await this.categoryRepository.getMenuItems(id);
+            const categories = await this.categoryRepository.getMenuItems(id, query.category);
 
             const data: IEstablishmentMenuItems = {
                 company: store,

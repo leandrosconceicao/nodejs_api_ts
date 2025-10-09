@@ -13,5 +13,6 @@ export default mongoose.model<IApp>("apps", new mongoose.Schema({
         type: String,
         required: [true, "Parametro (version) é obrigatório"]
     },
-    releaseDate: { type: Date, default: () => { return new Date(); } }
+    releaseDate: { type: Date, default: () => { return new Date(); } },
+    url: {type: String, trim: true, default: ""}
 }))
