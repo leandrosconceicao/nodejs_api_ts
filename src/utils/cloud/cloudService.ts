@@ -103,10 +103,10 @@ export default class CloudService implements ICloudService {
 
         spool.printers = printers.map((print) => {
             return {
-                _id: print._id ?? "",
+                _id: print?._id.toString() ?? "",
                 address: print.address,
                 name: print.name,
-                storeCode: print.storeCode,
+                storeCode: print.storeCode.toString(),
                 spools: print.spools.map((e) => {
                     return {
                         type: e.type,
