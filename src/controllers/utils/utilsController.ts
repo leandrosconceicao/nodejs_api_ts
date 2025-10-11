@@ -14,10 +14,11 @@ export class UtilsController {
     generateQrcode = async (req: Request, res: Response, next: NextFunction) => {
         try {
             const body = z.object({
-                value: z.string()
+                value: z.string(),
+                scale: z.number().optional()
             }).parse(req.body)
 
-            const qrcode = await this.utilities.generateQrCode(body.value);
+            const qrcode = await this.utilities.generateQrCode(body.value, body.scale);
 
             return ApiResponse.success({
                 base64: qrcode.toString("base64")
