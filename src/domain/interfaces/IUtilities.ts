@@ -1,3 +1,3 @@
 export interface IUtilities {
-    generateQrCode(data: string) : Promise<Buffer>;
+    generateQrCode(data: string, scale?: number) : Promise<Buffer>;
 }
