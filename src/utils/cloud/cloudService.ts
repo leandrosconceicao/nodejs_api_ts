@@ -207,7 +207,7 @@ export default class CloudService implements ICloudService {
                     return <IOrderProduct>{
                         quantity: e.quantity,
                         productName: e.productName,
-                        productId: e.productId,
+                        productId: e.productId.toString(),
                         observations: e.observations,
                         orderDescription: e.orderDescription,
                         needsPreparation: e.needsPreparation,
