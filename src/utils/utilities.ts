@@ -11,7 +11,9 @@ import QRCode from 'qrcode'
 ])
 export class Utilities implements IUtilities {
     
-    generateQrCode(data: string): Promise<Buffer> {
-        return QRCode.toBuffer(data);
+    generateQrCode(data: string, scale?: number): Promise<Buffer> {
+        return QRCode.toBuffer(data, {
+            scale: scale
+        });
     }
 }
