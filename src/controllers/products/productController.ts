@@ -53,6 +53,9 @@ export default class ProductController {
                 }
             }).parse(req.query);
 
+            if (req.headers.orderby) delete req.headers.orderby;
+            if (req.headers.ordenation) delete req.headers.ordenation;
+
             req.result = this.productRepository.findAll(prod);
 
             next();
