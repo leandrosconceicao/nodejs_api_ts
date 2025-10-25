@@ -37,7 +37,7 @@ export class MongoProductRepository implements IProductRepository {
 
         const data = await this.findOne(id);
 
-        Products.findByIdAndDelete(data._id);
+        await Products.deleteOne(data._id);
     }
 
     add = async (data: IProduct): Promise<IProduct> => {
