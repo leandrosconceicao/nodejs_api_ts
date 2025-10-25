@@ -146,7 +146,7 @@ export default class CloudService implements ICloudService {
     async uploadFile(data: { path?: string; data?: string; }): Promise<string> {
         const bucket = getStorage().bucket();
         const imageBuffer = Buffer.from(data.data, "base64");
-        const uploadFIle = bucket.file(data.path);
+        const uploadFIle = bucket.file(isDevelopment ? `development/${data.path}` : data.path);
         await uploadFIle.save(imageBuffer);
         return getDownloadURL(uploadFIle);
     }
