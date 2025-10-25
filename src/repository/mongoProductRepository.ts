@@ -46,7 +46,26 @@ export class MongoProductRepository implements IProductRepository {
         if (!category)
             throw new NotFoundError("Categoria informada não foi localizada");
 
+        await this.uploadImages(data);
+
         return Products.create(data);
+    }
+
+    private async uploadImages(data: IProduct) {
+        if (data?.images?.length) {
+            try {
+                for (let image = 0; image < data.images.length; image++) {
+                    let element = data.images[image];
+                    const link = await this.cloudService.uploadFile({
+                        path: `${data.storeCode.toString()}/products/${Date.now()}_${element.filename}`,
+                        data: element.base64
+                    });
+                    element.link = link;    
+                }
+            } catch (e) {
+
+            }
+        }
     }
 
     findAll(query: ProductFilters): Promise<IProduct[]> {

@@ -23,6 +23,10 @@ export const PRODUCT_SCHEMA_VALIDATION = z.object({
         _id: z.string().default(TokenGenerator.generateId()),
         isRequired: z.boolean(),
     })).optional(),
+    images: z.array(z.object({
+        filename: z.string().min(1),
+        base64: z.string().base64()
+    })).optional()
 });
 
 export interface IProduct {
@@ -34,7 +38,13 @@ export interface IProduct {
     produto: string,
     tipValue: number,
     image?: string,
-    addOnes?: Array<IProductAddOne>
+    addOnes?: Array<IProductAddOne>,
+    thumbnail: string,
+    images?: {
+        filename: string,
+        link: string,
+        base64: string
+    }[]
 }
 
 export interface ProductFilters {
