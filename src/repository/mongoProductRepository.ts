@@ -1,14 +1,13 @@
-import { delay, inject, injectable, registry } from "tsyringe";
+import { delay, injectable, registry } from "tsyringe";
 import { IProductRepository } from "../domain/interfaces/IProductRepository";
-import { ProductFilters, IProduct, IProductAddOne } from "../domain/types/IProduct";
+import { ProductFilters, IProduct, IProductAddOne, IProductImages } from "../domain/types/IProduct";
 import NotFoundError from "../models/errors/NotFound";
 import { AddOnes } from "../models/products/AddOnes";
 import { Products } from "../models/products/Products";
-import ICloudService from "../domain/interfaces/ICloudService";
-import ICategoryRepository from "../domain/interfaces/ICategoryRepository";
 import BadRequestError from "../models/errors/BadRequest";
 import { IOrderProduct } from "../models/Orders";
 import mongoose from "mongoose";
+import { Category } from "../models/Categories";
 
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -19,12 +18,48 @@ var ObjectId = mongoose.Types.ObjectId;
         useToken: delay(() => MongoProductRepository)
     }
 ])
-export class MongoProductRepository implements IProductRepository {
+export class MongoProductRepository implements IProductRepository {    
 
-    constructor(
-        @inject('ICategoryRepository') private readonly categoryRepository: ICategoryRepository,
-        @inject('ICloudService') private readonly cloudService : ICloudService
-    ) {}
+    removeImage = async (storeCode: string, productId: string, file: { filename: string; link: string; }): Promise<IProduct> => {
+        await this.findByCompanyFilter(storeCode, productId);
+
+        const update = await Products.findByIdAndUpdate(new ObjectId(productId), {
+            $pull: {
+                images: file
+            }
+        }, {
+            new: true
+        })
+        
+        return update;
+    }
+
+    async addImage(storeCode: string, productId: string, file: { filename: string; link: string; }): Promise<IProduct> {
+        await this.findByCompanyFilter(storeCode, productId);
+
+        const update = await Products.findByIdAndUpdate(new ObjectId(productId), {
+            $push: {
+                images: file
+            }
+        }, {
+            new: true
+        })
+
+        return update;
+    }    
+
+    findByCompanyFilter = async (storeCode: string, id: string): Promise<IProduct> => {
+        const product = await Products.findOne({
+            _id: new ObjectId(id),
+            storeCode: new ObjectId(storeCode)
+        })
+
+        if (!product) {
+            throw new NotFoundError("Produto não localizado")
+        }
+
+        return product;
+    }
 
     update = async (id: string, data: Partial<IProduct>): Promise<IProduct> => {
 
@@ -37,17 +72,21 @@ export class MongoProductRepository implements IProductRepository {
 
         const data = await this.findOne(id);
 
-        Products.findByIdAndDelete(data._id);
+        await Products.deleteOne(data._id);
     }
 
     add = async (data: IProduct): Promise<IProduct> => {
-        const category = await this.categoryRepository.findOne(`${data.category}`);
+        const category = await Category.findById(`${data.category}`);
         
         if (!category)
             throw new NotFoundError("Categoria informada não foi localizada");
 
-        return Products.create(data);
-    }
+        const product = await Products.create(data);
+
+        product.images = data.images;
+
+        return product;
+    }   
 
     findAll(query: ProductFilters): Promise<IProduct[]> {
         return Products.find(query).populate('category')
@@ -90,5 +129,37 @@ export class MongoProductRepository implements IProductRepository {
             if (!fetchProduct || !fetchProduct.isActive) 
                 throw new BadRequestError(`Produto (${prod.productName}) não está disponível`)
         }
+    }
+
+    setProductThumbnail = async (storeCode: string, productId: string, file: IProductImages): Promise<IProduct> => {
+        
+        const product = await this.findByCompanyFilter(storeCode, productId);
+
+        const imageIndex = product.images.findIndex(img => img.filename === file.filename && img.link === file.link);
+
+        if (imageIndex === -1) {
+            throw new NotFoundError('Image not found');
+        }
+
+        await Products.findByIdAndUpdate(new ObjectId(productId), {
+            $set: {
+                "images.$[].thumbnail": false
+            }
+        })
+
+        const update = await Products.findByIdAndUpdate(
+            new ObjectId(productId),
+            {
+                $set: {
+                    [`images.${imageIndex}.thumbnail`]: file.thumbnail
+                }
+            },
+            {
+                new: true
+            }
+        );
+
+        return update;
+        
     }
 }
