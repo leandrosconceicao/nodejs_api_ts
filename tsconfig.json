@@ -16,7 +16,7 @@
           "ES2021.String",
           "dom"
         ],
-        "baseUrl": "./src",
+        "baseUrl": "./sr",
         "typeRoots" : [
             "@types",
             "./node_modules/@types", 
