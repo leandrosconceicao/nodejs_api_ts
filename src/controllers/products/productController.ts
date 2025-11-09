@@ -1,29 +1,23 @@
-import { Validators } from "../../utils/validators";
 import { z } from "zod";
 import ApiResponse from "../../models/base/ApiResponse";
 import { booleanStringValidation, idValidation } from "../../utils/defaultValidations";
-import NotFoundError from "../../models/errors/NotFound";
 
 import { Request, Response, NextFunction } from "express";
-import InvalidParameter from "../../models/errors/InvalidParameters";
 import mongoose, { ObjectId } from "mongoose";
 import { RegexBuilder } from "../../utils/regexBuilder";
-import ProductHandler from "../../domain/handlers/products/productCreationHandler";
-import { AddOnes } from "../../models/products/AddOnes";
-import { Products } from "../../models/products/Products";
-import { IProduct, IProductAddOne, PRODUCT_SCHEMA_VALIDATION, ProductFilters } from "../../domain/types/IProduct";
+import { IProduct, PRODUCT_UPDATE_SCHEMA_VALIDATION, ProductFilters } from "../../domain/types/IProduct";
 import { autoInjectable, inject } from "tsyringe";
 import { IProductRepository } from "../../domain/interfaces/IProductRepository";
+import { IProductHandler } from "../../domain/interfaces/IProductHandler";
 
 var ObjectId = mongoose.Types.ObjectId;
-
-const handler = new ProductHandler();
 
 @autoInjectable()
 export default class ProductController {
 
     constructor(
-        @inject('IProductRepository') private readonly productRepository: IProductRepository
+        @inject('IProductRepository') private readonly productRepository: IProductRepository,
+        @inject("IProductHandler") private readonly handler : IProductHandler
     ) {}
 
     findAll = async (req: Request, _: Response, next: NextFunction) => {
@@ -80,10 +74,7 @@ export default class ProductController {
     addProduct = async (req: Request, res: Response, next: NextFunction) => {
         try {
 
-            const data = PRODUCT_SCHEMA_VALIDATION.parse(req.body);
-            
-            
-            const newProductAdd = await this.productRepository.add(data as IProduct);
+            const newProductAdd = await this.handler.createProduct(req.body);
 
             return ApiResponse.success(newProductAdd).send(res);
         } catch (e) {
@@ -95,7 +86,7 @@ export default class ProductController {
         try {
             const id = idValidation.parse(req.params.id);
 
-            const product = PRODUCT_SCHEMA_VALIDATION.parse(req.body);
+            const product = PRODUCT_UPDATE_SCHEMA_VALIDATION.parse(req.body);
 
             const newProduct = await this.productRepository.update(id, product as IProduct);
 
@@ -107,35 +98,12 @@ export default class ProductController {
 
     deleteProduct = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const id = idValidation.parse(req.params.id);
-
-            await this.productRepository.delete(id);
+            await this.handler.deleteProduct(req.params.storeCode, req.params.id);
 
             return ApiResponse.success().send(res);
         } catch (e) {
             next(e);
         }
     };
-
-    static async deleteImage(req: Request, res: Response, next: NextFunction) {
-        try {
-            let image = req.query.name;
-            const imageValidation = new Validators("name", image, "string").validate();
-            if (!imageValidation.isValid) {
-                throw new InvalidParameter(imageValidation);
-            } else {
-                await Products.updateMany(
-                    {
-                        image: {
-                            name: image,
-                        },
-                    },
-                    { $unset: { image: "" } }
-                );
-                return ApiResponse.success().send(res);
-            }
-        } catch (e) {
-            next(e);
-        }
-    }
+    
 }

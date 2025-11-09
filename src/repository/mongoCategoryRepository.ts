@@ -59,11 +59,11 @@ export default class MongoCategoryRepository implements ICategoryRepository {
                     "products.isActive": 0,
                 },
             },
-            // {
-            //     $sort: {
-            //         ordenacao: 1,
-            //     },
-            // },
+            {
+                $sort: {
+                    ordenacao: 1,
+                },
+            },
         ]);
         data.forEach((category) => {
             category.products.forEach((products: any) => {
@@ -73,11 +73,10 @@ export default class MongoCategoryRepository implements ICategoryRepository {
                     ordenacao: category.ordenacao,
                     createDate: category.createDate,
                     image: category.image,
-                }
+                },
+                products.thumbnail = products.images.find((e: any) => e.thumbnail)?.link || ""
             })
         })
-
-        data.sort((a, b) => a.ordenacao - b.ordenacao);
 
         return data;
     }

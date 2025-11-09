@@ -32,7 +32,9 @@ initializeApp({
 
 app.use(cors());
 app.use(function (req, res, next) {
-    req.headers['content-type'] = 'application/json';
+    if (req.headers['content-type'] && !req.headers['content-type'].includes("multipart")) {
+        req.headers['content-type'] = 'application/json';
+    }
     next();
 });
 app.use(bodyParse.json({

@@ -1,11 +1,13 @@
 import { IOrderProduct } from "../../models/Orders";
-import { IProduct, ProductFilters } from "../types/IProduct";
+import { IProduct, IProductImages, ProductFilters } from "../types/IProduct";
 
 export interface IProductRepository {
     
     findAll(query: ProductFilters) : Promise<IProduct[]>;
 
     findOne(id: string) : Promise<IProduct>;
+    
+    findByCompanyFilter(storeCode: string, id: string) : Promise<IProduct>;
 
     add(data: IProduct) : Promise<IProduct>;
 
@@ -15,4 +17,9 @@ export interface IProductRepository {
 
     validateProducts(storeCode: string, products: IOrderProduct[]) : Promise<void>;
 
+    addImage(storeCode: string, productId: string, file: IProductImages) : Promise<IProduct>;
+
+    setProductThumbnail(storeCode: string, productId: string, file: IProductImages) : Promise<IProduct>;
+
+    removeImage(storeCode: string, productId: string, file: IProductImages) : Promise<IProduct>;    
 }

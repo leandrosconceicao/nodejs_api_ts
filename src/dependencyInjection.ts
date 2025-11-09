@@ -25,6 +25,8 @@ import IAppRepository from "./domain/interfaces/IAppRepository";
 import { MongoAppRepository } from "./repository/mongoAppRepository";
 import { IUtilities } from "./domain/interfaces/IUtilities";
 import { Utilities } from "./utils/utilities";
+import { IProductHandler } from "./domain/interfaces/IProductHandler";
+import ProductHandler from "./domain/handlers/products/productCreationHandler";
 
 container.register<ISender>("ISender", Sender);
 container.register<IUserRepository>("IUserRepository", MongoUserRepository);
@@ -39,3 +41,4 @@ container.register<ICategoryRepository>("ICategoryRepository", MongoCategoryRepo
 container.register<IProductRepository>("IProductRepository", MongoProductRepository);
 container.register<IAppRepository>("IAppRepository", MongoAppRepository);
 container.register<IUtilities>("IUtilities", Utilities);
+container.register<IProductHandler>("IProductHandler", ProductHandler);

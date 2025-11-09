@@ -32,7 +32,6 @@ export default class CloudService implements ICloudService {
         @inject("IPrinterRepository") private readonly printerRepository: IPrinterRepository,
         @inject("ISender") private readonly sender: ISender
     ) {}
-
     async removePreparationOrder(order: IOrder): Promise<void> {
         const db = getDatabase();
         (isDevelopment ? db.ref(enviroment).child(`${order.storeCode}`) : db.ref(`${order.storeCode}`)).child(PREPARATION_PATH).child(`${order._id}`).remove()
@@ -146,7 +145,7 @@ export default class CloudService implements ICloudService {
     async uploadFile(data: { path?: string; data?: string; }): Promise<string> {
         const bucket = getStorage().bucket();
         const imageBuffer = Buffer.from(data.data, "base64");
-        const uploadFIle = bucket.file(data.path);
+        const uploadFIle = bucket.file(isDevelopment ? `development/${data.path}` : data.path);
         await uploadFIle.save(imageBuffer);
         return getDownloadURL(uploadFIle);
     }
@@ -264,5 +263,18 @@ export default class CloudService implements ICloudService {
 
         this.sender.infoAlert(`Processamento de limpeza de ordens antigas finalizado`);
 
+    }
+    deleteBucketFile = async (path: string): Promise<void> => {
+        try {
+            const bucket = getStorage().bucket();
+            const file = bucket.file(isDevelopment ? `development/${path}` : path);
+            const fileExists = await file.exists();
+
+            if (fileExists[0]) {
+                await file.delete();
+            }
+        } catch (e) {
+            console.log(e);
+        }
     }
 }

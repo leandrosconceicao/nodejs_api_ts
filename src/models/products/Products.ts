@@ -37,9 +37,28 @@ const productSchema = new mongoose.Schema({
     ],
     default: undefined,
   },
-  image: {type: String, default: ""}
+  images: {
+      type: [
+        {
+          filename: {type: String, default: ""},
+          link: {type: String, default: ""},
+          thumbnail: {type: Boolean, default: false}
+        }
+      ],
+      _id: false,
+    },
 }, {
   timestamps: true
+});
+
+productSchema.virtual("thumbnail").get(function() {
+  if (this.images?.length > 1) {
+    return this.images.find((e) => e.thumbnail)?.link ?? this.images[0].link;
+  }
+  if (this.images?.length === 1) {
+    return this.images[0].link
+  }
+  return "";
 });
 
 addSchema.virtual("name");
@@ -49,6 +68,9 @@ addSchema.virtual("type")
 
 addSchema.set("toJSON", {virtuals: true});
 addSchema.set("toObject", {virtuals: true});
+
+productSchema.set("toJSON", {virtuals: true});
+productSchema.set("toObject", {virtuals: true});
 
 const Products = mongoose.model<IProduct>("products", productSchema);
 

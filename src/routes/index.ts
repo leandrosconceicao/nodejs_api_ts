@@ -13,6 +13,7 @@ import reportRoutes from "./reportRoutes";
 import printerSpoolRoutes from "./printerSpoolRoutes";
 import printRoutes from "./printRoutes";
 import utilsRoutes from "./utilsRoutes";
+import productImageRouters from "./productImageRouters";
 
 export default (app: express.Application) => {
     app.get("/", (_: express.Request, res: express.Response, next: NextFunction) => {
@@ -28,6 +29,7 @@ export default (app: express.Application) => {
         userRoutes,
         establishmentsRoutes,
         productsRoutes,
+        productImageRouters,
         categoryRoutes,
         appRoutes,
         paymentRoutes,
