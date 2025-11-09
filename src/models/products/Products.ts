@@ -37,12 +37,12 @@ const productSchema = new mongoose.Schema({
     ],
     default: undefined,
   },
-  image: {type: String, default: ""},
   images: {
       type: [
         {
           filename: {type: String, default: ""},
           link: {type: String, default: ""},
+          thumbnail: {type: Boolean, default: false}
         }
       ],
       _id: false,
@@ -52,7 +52,10 @@ const productSchema = new mongoose.Schema({
 });
 
 productSchema.virtual("thumbnail").get(function() {
-  if (this.images?.length) {
+  if (this.images?.length > 1) {
+    return this.images.find((e) => e.thumbnail)?.link ?? this.images[0].link;
+  }
+  if (this.images?.length === 1) {
     return this.images[0].link
   }
   return "";

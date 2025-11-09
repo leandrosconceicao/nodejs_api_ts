@@ -11,6 +11,27 @@ export enum AddOneType {
 export const PRODUCT_SCHEMA_VALIDATION = z.object({
     isActive: z.boolean().optional(),
     storeCode: idValidation,
+    category: idValidation,
+    preco: z.number().default(0.0),
+    produto: z.string().min(1).optional(),
+    tipValue: z.number().optional(),
+    hasTipValue: z.boolean().optional(),
+    descricao: z.string().optional(),
+    preparacao: z.boolean().optional(),
+    addOnes: z.array(z.object({
+        _id: z.string().default(TokenGenerator.generateId()),
+        isRequired: z.boolean(),
+    })).optional(),
+    images: z.array(z.object({
+        filename: z.string().min(1),
+        base64: z.string().base64(),
+        thumbnail: z.boolean().default(false).optional()
+    })).optional()
+});
+
+export const PRODUCT_UPDATE_SCHEMA_VALIDATION = z.object({
+    isActive: z.boolean().optional(),
+    storeCode: idValidation,
     category: idValidation.optional(),
     preco: z.number().optional(),
     produto: z.string().min(1).optional(),
@@ -18,17 +39,18 @@ export const PRODUCT_SCHEMA_VALIDATION = z.object({
     hasTipValue: z.boolean().optional(),
     descricao: z.string().optional(),
     preparacao: z.boolean().optional(),
-    image: z.string().optional(),
     addOnes: z.array(z.object({
         _id: z.string().default(TokenGenerator.generateId()),
         isRequired: z.boolean(),
     })).optional(),
-    images: z.array(z.object({
-        filename: z.string().min(1),
-        base64: z.string().base64()
-    })).optional()
 });
 
+export interface IProductImages {
+    filename: string,
+    link: string,
+    base64?: string,
+    thumbnail?: boolean
+}
 export interface IProduct {
     _id?: mongoose.Types.ObjectId,
     isActive: boolean,
@@ -40,11 +62,7 @@ export interface IProduct {
     image?: string,
     addOnes?: Array<IProductAddOne>,
     thumbnail: string,
-    images?: {
-        filename: string,
-        link: string,
-        base64: string
-    }[]
+    images?: IProductImages[]
 }
 
 export interface ProductFilters {
