@@ -34,8 +34,13 @@ export class MongoProductRepository implements IProductRepository {
         return update;
     }
 
-    async addImage(storeCode: string, productId: string, file: { filename: string; link: string; }): Promise<IProduct> {
-        await this.findByCompanyFilter(storeCode, productId);
+    async addImage(storeCode: string, productId: string, file: IProductImages): Promise<IProduct> {
+        
+        const company = await this.findByCompanyFilter(storeCode, productId);
+
+        if (!company.images.some((e) => e.thumbnail)) {
+            file.thumbnail = true;
+        }
 
         const update = await Products.findByIdAndUpdate(new ObjectId(productId), {
             $push: {
