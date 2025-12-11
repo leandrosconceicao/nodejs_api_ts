@@ -45,6 +45,30 @@ export const PRODUCT_UPDATE_SCHEMA_VALIDATION = z.object({
     })).optional(),
 });
 
+export type ProductBatchUpdate = {
+    id: string,
+    isActive: boolean,
+    preco: number,
+    produto: string,
+    preparacao: boolean,
+    category: string,
+    descricao: string,
+}
+
+export const PRODUCT_UPDATE_BACH = z.array(
+    z.object({
+        id: idValidation,
+        isActive: z.boolean(),
+        preco: z.number(),
+        produto: z.string().min(1, {
+            message: "Nome do produto não pode ser vazio"
+        }),
+        preparacao: z.boolean().optional(),
+        category: idValidation.optional(),
+        descricao: z.string().optional(),
+    })
+).nonempty()
+
 export interface IProductImages {
     filename: string,
     link: string,
@@ -62,7 +86,9 @@ export interface IProduct {
     image?: string,
     addOnes?: Array<IProductAddOne>,
     thumbnail: string,
-    images?: IProductImages[]
+    images?: IProductImages[],
+    descricao: string,
+    preparacao: boolean
 }
 
 export interface ProductFilters {

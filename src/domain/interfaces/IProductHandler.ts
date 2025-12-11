@@ -18,5 +18,6 @@ export interface IProductHandler {
     createProduct(body: any) : Promise<IProduct>;
 
     deleteProduct(storeCode: string, id: string) : Promise<void>;
-    
+
+    batchUpdate(products: any) : Promise<void>;    
 }

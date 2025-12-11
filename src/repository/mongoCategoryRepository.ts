@@ -73,6 +73,7 @@ export default class MongoCategoryRepository implements ICategoryRepository {
                     ordenacao: category.ordenacao,
                     createDate: category.createDate,
                     image: category.image,
+                    _id: category._id,
                 },
                 products.thumbnail = products.images.find((e: any) => e.thumbnail)?.link || ""
             })
