@@ -1,19 +1,22 @@
 import { autoInjectable, inject } from "tsyringe";
 import { IProductRepository } from "../../interfaces/IProductRepository";
 import ICloudService from "../../interfaces/ICloudService";
-import { IProduct, IProductImages, PRODUCT_SCHEMA_VALIDATION, ProductFilters } from "../../types/IProduct";
+import { IProduct, IProductImages, PRODUCT_SCHEMA_VALIDATION, PRODUCT_UPDATE_BACH, ProductBatchUpdate, ProductFilters } from "../../types/IProduct";
 import { IProductHandler } from "../../interfaces/IProductHandler";
 import { IFile } from "../../interfaces/IFile";
 import { idValidation } from "../../../utils/defaultValidations";
 import { z } from "zod";
 import BadRequestError from "../../../models/errors/BadRequest";
+import ICategoryRepository from "../../interfaces/ICategoryRepository";
+import NotFoundError from "../../../models/errors/NotFound";
 
 @autoInjectable()
 export default class ProductHandler implements IProductHandler {
 
     constructor(
         @inject("IProductRepository") private readonly repository : IProductRepository,
-        @inject("ICloudService") private readonly cloudService: ICloudService
+        @inject("ICloudService") private readonly cloudService: ICloudService,
+        @inject("ICategoryRepository") private readonly catRepository : ICategoryRepository
     ) {}   
     
     
@@ -157,5 +160,32 @@ export default class ProductHandler implements IProductHandler {
         }).parse(image);
 
         await this.repository.setProductThumbnail(storeCode, productId, image);
+    }
+
+    batchUpdate = async (products: any): Promise<void> => {
+        
+        const body = PRODUCT_UPDATE_BACH
+            .transform((value) => value as ProductBatchUpdate[])
+            .parse(products);
+
+        for (let prod of body) {
+            const product = await this.findOne(prod.id);
+
+            if (prod.category) {
+                const category = await this.catRepository.findOne(prod.category);
+                if (!category) {
+                    throw new NotFoundError("Categoria não localizada")
+                }
+            }
+
+            await this.repository.update(product._id.toString(), {
+                isActive: prod.isActive,
+                preco: prod.preco,
+                category: prod.category,
+                descricao: prod.descricao,
+                produto: prod.produto,
+                preparacao: prod.preparacao
+            })
+        }
     }
 }
