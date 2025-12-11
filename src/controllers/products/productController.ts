@@ -96,6 +96,18 @@ export default class ProductController {
         }
     };
 
+    updateBatch = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+
+            await this.handler.batchUpdate(req.body);
+
+            return ApiResponse.success().send(res);
+
+        } catch (e) {
+            next(e);
+        }
+    }
+
     deleteProduct = async (req: Request, res: Response, next: NextFunction) => {
         try {
             await this.handler.deleteProduct(req.params.storeCode, req.params.id);
