@@ -102,7 +102,7 @@ export default class ProductHandler implements IProductHandler {
     }
 
     findOne(id: string): Promise<IProduct> {
-        return this.findOne(id);
+        return this.repository.findOne(id);
     }
 
     private async uploadFile(storeCode: string, productId: string, filename: string, base64String: string) {

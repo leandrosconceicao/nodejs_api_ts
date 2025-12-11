@@ -68,7 +68,15 @@ export class MongoProductRepository implements IProductRepository {
 
     update = async (id: string, data: Partial<IProduct>): Promise<IProduct> => {
 
-        await this.findOne(id);
+        const product = await this.findOne(id);
+
+        if (data.category) {
+            const category = await Category.findById(data.category);
+
+            if (!category) {
+                throw new BadRequestError("Categoria não localizada");
+            }
+        }
 
         return Products.findByIdAndUpdate(id, data, {new: true});
     }
