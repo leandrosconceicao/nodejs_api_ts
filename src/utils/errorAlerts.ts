@@ -15,7 +15,7 @@ export default class ErrorAlerts {
         try {
             await axios.post(`${TELEGRAM_API_URL}/bot${BOT_TOKEN}/sendMessage`, {
                 "chat_id": CHAT_ID,
-                "text": `Houve um erro não tratado\n${error}\n\nURL: ${req.url}\nMETHOD: ${req.method}\nBODY: ${JSON.stringify(req.body)}}`
+                "text": `Houve um erro não tratado\n${error}\n\nURL: ${req.url}\nMETHOD: ${req.method}\nBODY: ${JSON.stringify(req.body)}\n\nIP: ${req.ip}`
             });
         } catch (e) {
             console.log(e);
