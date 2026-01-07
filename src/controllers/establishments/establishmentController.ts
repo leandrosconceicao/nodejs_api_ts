@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import {IEstablishments, establishmentAttributes, establishmentUpdateValidation } from "../../models/Establishments";
-import {z} from "zod";
+import {z, ZodMap} from "zod";
 import ApiResponse from "../../models/base/ApiResponse";
 import { idValidation } from "../../utils/defaultValidations";
 import { autoInjectable, inject } from "tsyringe";
@@ -31,7 +31,12 @@ export default class EstablishmentsController {
 
     findOne = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const id = idValidation.parse(req.params.id);
+            const id = z.union([
+                z.string().regex(/^[a-zA-Z0-9]{6}$/, {
+                    message: "Id do estabelecimento é inválido"
+                }),
+                idValidation
+            ]).parse(req.params.id);
             
             const establishment = await this.repository.findOne(id);
             

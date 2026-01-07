@@ -43,7 +43,7 @@ export default class ApiResponse<T={}> extends Error {
     }
 
     static invalidParameter(parameter?: z.ZodIssue[]) : ApiResponse {
-        const message = parameter.map((err) => `Parametro (${err.path}) é inválido, ${err.message}`).join(", ");
+        const message = parameter.map((err) => `Parametro (${err.path.length ? err.path : 'ID'}) é inválido, ${err.message}`).join(", ");
         return new ApiResponse({
             statusProcess: false,
             message: message,

@@ -148,7 +148,23 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
 
     async findOne(id: string): Promise<IEstablishments> {
 
-        const establishment = await Establishments.findById(id).populate("deliveryDistricts").lean();
+        let establishment;
+
+        if (id.length === 6) {
+            establishment = await Establishments.findOne({
+                $expr: { 
+                    $regexMatch: { 
+                        input: { 
+                            $toString: '$_id' 
+                        }, 
+                        regex: `^${id}` 
+                    } 
+                }
+            }).populate("deliveryDistricts").lean();
+        } else {
+            establishment = await Establishments.findById(id).populate("deliveryDistricts").lean();
+        }
+
 
         if (!establishment)
             throw new NotFoundError("Estabelecimento não localizado");
