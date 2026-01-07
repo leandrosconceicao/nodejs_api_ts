@@ -45,6 +45,10 @@ export default function(err: Error, req: express.Request, res: express.Response,
     if (err instanceof ApiResponse) {
         return err.send(res);
     }
+    if (err instanceof SyntaxError && 'body' in err) {
+        console.warn('JSON INVÁLIDO', {ip: req.ip, ua: req.get('User-Agent')});
+        return ApiResponse.badRequest("JSON Inválido").send(res);
+    }
     ErrorAlerts.sendAlert(err, req);
     return ApiResponse.serverError().send(res);
     
