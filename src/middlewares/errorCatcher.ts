@@ -46,6 +46,6 @@ export default function(err: Error, req: express.Request, res: express.Response,
         return err.send(res);
     }
     ErrorAlerts.sendAlert(err, req);
-    return ApiResponse.serverError(err.message).send(res);
+    return ApiResponse.serverError().send(res);
     
 }
