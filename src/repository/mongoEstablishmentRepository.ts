@@ -37,11 +37,17 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
         return DeliveryDistrict.create(data);
     }
 
-    async getDeliveryDistrict(storeCode: string): Promise<IDeliveryDistrict[]> {
-        const data = await DeliveryDistrict.find({
+    async getDeliveryDistrict(storeCode: string, cep?: string): Promise<IDeliveryDistrict[]> {
+        const query : Partial<IDeliveryDistrict> = {
             storeCode: new ObjectId(storeCode),
-            deleted: undefined
-        })
+            deleted: undefined,
+        };
+
+        if (cep) {
+            query.cep = cep;
+        }
+
+        const data = await DeliveryDistrict.find(query);
 
         return data;
     }
@@ -68,11 +74,21 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
 
     updateDeliveryDistrict = async (id: string, data: Partial<IDeliveryDistrict>): Promise<IDeliveryDistrict> => {
         
-        await this.findDeliveryDistrictById(id);        
+        let deliveryDistrict = await this.findDeliveryDistrictById(id);
+
+        if (data.description) deliveryDistrict.description = data.description;
+
+        if (data.value) deliveryDistrict.value = data.value;
+
+        if (data.cep) deliveryDistrict.cep = data.cep;
 
         return DeliveryDistrict.findOneAndUpdate({
             _id: new ObjectId(id)
-        }, data, {
+        }, {
+            description: deliveryDistrict.description,
+            value: deliveryDistrict.value,
+            cep: deliveryDistrict.cep,
+        }, {
             new: true
         });
     }

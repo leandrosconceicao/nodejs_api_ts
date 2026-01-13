@@ -9,6 +9,14 @@ const deliveryDistrictsSchema = new mongoose.Schema({
         ref: "establishments",
         required: [true, "Parametro (storeCode) é obrigatório"],
     },
+    cep: {
+        type: String,
+        required: [true, "Parametro (cep) é obrigatório"],
+        validate: {
+            validator: (value: string) => /^\d{8}$/.test(value),
+            message: "CEP é inválido"
+        }
+    },
     description: String,
     value: Number,
     deleted: { type: Boolean, default: undefined }
