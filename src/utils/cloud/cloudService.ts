@@ -11,9 +11,11 @@ import { IFirebaseOrder, IOrder, IOrderProduct, OrderType } from "../../models/O
 import IPrinterRepository from "../../domain/interfaces/IPrinterRepository";
 import NotFoundError from "../../models/errors/NotFound";
 import { ISender } from "../../domain/interfaces/ISender";
+import { IDeliveryOrder } from "../../domain/types/IDeliveryOrder";
 
 const PREPARATION_PATH = "preparation";
 const WITHDRAW_PATH = "withdraw";
+const DELIVERY_PATH = "delivery";
 const SPOOL_PATH = "spool";
 const enviroment = process.env.ENVIROMENT;
 const isDevelopment = enviroment === "development";
@@ -276,5 +278,33 @@ export default class CloudService implements ICloudService {
         } catch (e) {
             console.log(e);
         }
+    }
+
+    addDeliveryOrder = async (storeCode: string, order: IDeliveryOrder): Promise<void> => {
+        const db = getDatabase();
+
+        const ref = (isDevelopment ? db.ref(enviroment).child(storeCode) : db.ref(storeCode)).child(DELIVERY_PATH);
+
+        ref.child(order._id.toString()).set({
+            _id: order._id.toString(),
+            storeCode: order.storeCode.toString(),
+            createdAt: order.createdAt.toISOString(),
+            status: order.status,
+            client: {
+                cgc: order?.client?.cgc || "",
+                name: order?.client?.name || "",
+                email: order?.client?.email || "",
+                phoneNumber: order?.client?.phoneNumber || "",
+                address: order?.client?.address || "",
+                city: order?.client?.city || "",
+                complement: order?.client?.complement || "",
+                district: order?.client?.district || "",
+                number: order?.client?.number || "",
+                state: order?.client?.state || "",
+                zipCode: order?.client?.zipCode || "",
+            }
+        }, (error) => {
+            if (error) throw error;
+        })
     }
 }
