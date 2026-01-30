@@ -126,10 +126,14 @@ export class OrdersMiddleware {
 
                 deliveryOrder = await this.orderRepository.updateDeliveryOrder(deliveryOrder._id.toString(), {
                     orderId: order._id,
-                })
-            }
+                });
 
-            ApiResponse.success(deliveryOrder).send(res);
+                req.result = order;
+
+                next();
+                return;
+            }
+            return ApiResponse.success().send(res);
         } catch (e) {
             next(e);
         }
