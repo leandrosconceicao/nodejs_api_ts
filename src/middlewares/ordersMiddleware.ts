@@ -126,10 +126,14 @@ export class OrdersMiddleware {
 
                 deliveryOrder = await this.orderRepository.updateDeliveryOrder(deliveryOrder._id.toString(), {
                     orderId: order._id,
-                })
-            }
+                });
 
-            ApiResponse.success(deliveryOrder).send(res);
+                req.result = order;
+
+                next();
+                return;
+            }
+            return ApiResponse.success().send(res);
         } catch (e) {
             next(e);
         }
@@ -190,5 +194,18 @@ export class OrdersMiddleware {
             ErrorAlerts.sendAlert(e, req);
         }
         ApiResponse.success().send(res);
+    }
+
+    sendDeliveryOrderNotification = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const deliveryOrder = req.result as IDeliveryOrder;
+
+            this.cloudService.addDeliveryOrder(deliveryOrder.storeCode.toString(), deliveryOrder);
+            
+        } catch (e) {
+            ErrorAlerts.sendAlert(e, req);
+        }
+
+        return ApiResponse.success().send(res);
     }
 }

@@ -288,7 +288,9 @@ export default class OrdersController {
 
             const orderRequest = await this.orderRepository.requestDeliveryOrder(data as IDeliveryOrder);
 
-            ApiResponse.success(orderRequest, 201).send(res);
+            req.result = orderRequest;
+
+            next();
 
         } catch (e) {
             next(e);
@@ -298,9 +300,11 @@ export default class OrdersController {
     findAllDeliveryOrders = async (req: Request, res: Response, next: NextFunction) => {
         try {
 
+            const storeCode = idValidation.parse(req.params.storeCode);
+
             const data = deliveryOrdersSearchValidation.parse(req.query);
     
-            const orderRequest = await this.orderRepository.getDeliveryOrders(data);
+            const orderRequest = await this.orderRepository.getDeliveryOrders(storeCode, data);
     
             ApiResponse.success(orderRequest).send(res);
     
@@ -312,9 +316,11 @@ export default class OrdersController {
     findDeliveryOrderById = async (req: Request, res: Response, next: NextFunction) => {
         try {
 
+            const storeCode = idValidation.parse(req.params.storeCode);
+
             const id = idValidation.parse(req.params.id);
     
-            const orderRequest = await this.orderRepository.getDeliveryOrderById(id)
+            const orderRequest = await this.orderRepository.getDeliveryOrderById(storeCode, id);
     
             ApiResponse.success(orderRequest).send(res);
     

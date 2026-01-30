@@ -29,9 +29,9 @@ export default interface IOrderRepository {
 
     requestDeliveryOrder(order: IDeliveryOrder) : Promise<IDeliveryOrder>;
 
-    getDeliveryOrderById(id: string) : Promise<IDeliveryOrder>;
+    getDeliveryOrderById(storeCode: string, id: string) : Promise<IDeliveryOrder>;
 
-    getDeliveryOrders(query: Partial<ISearchDeliveryOrder>) : Promise<IDeliveryOrder[]>;
+    getDeliveryOrders(storeCode: string, query: Partial<ISearchDeliveryOrder>) : Promise<IDeliveryOrder[]>;
 
     getDeliveryOrderByOrderId(orderId: string) : Promise<IDeliveryOrder>;
 

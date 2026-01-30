@@ -9,6 +9,14 @@ const deliveryDistrictsSchema = new mongoose.Schema({
         ref: "establishments",
         required: [true, "Parametro (storeCode) é obrigatório"],
     },
+    cep: {
+        type: String,
+        required: [true, "Parametro (cep) é obrigatório"],
+        validate: {
+            validator: (value: string) => /^\d{8}$/.test(value),
+            message: "CEP é inválido"
+        }
+    },
     description: String,
     value: Number,
     deleted: { type: Boolean, default: undefined }
@@ -16,6 +24,6 @@ const deliveryDistrictsSchema = new mongoose.Schema({
     timestamps: true
 });
 
-deliveryDistrictsSchema.index({ storeCode: 1, description: 1 }, { unique: true, partialFilterExpression: { deleted: null } });
+deliveryDistrictsSchema.index({ storeCode: 1, description: 1, cep: 1 }, { unique: true, partialFilterExpression: { deleted: null } });
 
 export const DeliveryDistrict = mongoose.model<IDeliveryDistrict>('deliveryDistricts', deliveryDistrictsSchema);
