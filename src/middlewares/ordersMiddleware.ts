@@ -191,4 +191,17 @@ export class OrdersMiddleware {
         }
         ApiResponse.success().send(res);
     }
+
+    sendDeliveryOrderNotification = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const deliveryOrder = req.result as IDeliveryOrder;
+
+            this.cloudService.addDeliveryOrder(deliveryOrder.storeCode.toString(), deliveryOrder);
+            
+        } catch (e) {
+            ErrorAlerts.sendAlert(e, req);
+        }
+
+        return ApiResponse.success().send(res);
+    }
 }
