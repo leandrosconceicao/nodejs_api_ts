@@ -54,7 +54,10 @@ export default class MongoOrderRepository implements IOrderRepository {
 
     async updateDeliveryOrder(id: string, data: Partial<IDeliveryOrder>): Promise<IDeliveryOrder> {
         
-        const deliveryOrder = await this.getDeliveryOrderById(id);
+        const deliveryOrder = await DeliveryOrders.findById(id);
+
+        if (!deliveryOrder)
+            throw new NotFoundError("Pedido não localizado")
 
         if (deliveryOrder.status === OrderStatus.cancelled || deliveryOrder.status === OrderStatus.finished)
             throw new BadRequestError(`Status do pedido não permite alterações`)
@@ -88,15 +91,25 @@ export default class MongoOrderRepository implements IOrderRepository {
         if (!method)
             throw new NotFoundError("Metodo de pagamento não foi localizadao")
 
+        const deliveryDiscrict = store.deliveryDistricts.find((e) => e._id.toString() === order.deliveryDistrictId);
+
+        if (!deliveryDiscrict)
+            throw new NotFoundError("Bairro selecionado não foi localizado");
+
+        order.deliveryTax = deliveryDiscrict.value;
+
         await this.productRepository.validateProducts(store._id, order.products);
         
         return DeliveryOrders.create(order);
     }
 
-    async getDeliveryOrderById(id: string): Promise<IDeliveryOrder> {
-        const data = await DeliveryOrders.findById(id)
-            .populate('establishmentDetail')
-            .populate('paymentMethodDetail')
+    async getDeliveryOrderById(storeCode: string, id: string): Promise<IDeliveryOrder> {
+        const data = await DeliveryOrders.findOne({
+            _id: new ObjectId(id),
+            storeCode: new ObjectId(storeCode),
+        })
+        .populate('establishmentDetail')
+        .populate('paymentMethodDetail')
 
         if (!data)
             throw new NotFoundError("Pedido não localizado")
@@ -104,18 +117,17 @@ export default class MongoOrderRepository implements IOrderRepository {
         return data;
     }
 
-    getDeliveryOrders(query: Partial<ISearchDeliveryOrder>): Promise<IDeliveryOrder[]> {
+    getDeliveryOrders(storeCode: string, query: Partial<ISearchDeliveryOrder>): Promise<IDeliveryOrder[]> {
         const search = <{
             storeCode?: object,
             createdAt?: object,
             orderId?: object,
             status?: string,
-            paymentMethod?: object
+            paymentMethod?: object,
+            "client.phoneNumber"?: string
         }>{};
-        if (query.storeCode) {
 
-            search.storeCode = new ObjectId(query.storeCode);
-        }
+        search.storeCode = new ObjectId(storeCode);
 
         if (query.status) {
             search.status = query.status;
@@ -131,6 +143,10 @@ export default class MongoOrderRepository implements IOrderRepository {
 
         if (query.paymentMethod) {
             search.paymentMethod = new ObjectId(query.paymentMethod)
+        }
+
+        if (query.clientPhoneNumber) {
+            search["client.phoneNumber"] = query.clientPhoneNumber;
         }
 
         return DeliveryOrders.find(search)
