@@ -24,6 +24,6 @@ const deliveryDistrictsSchema = new mongoose.Schema({
     timestamps: true
 });
 
-deliveryDistrictsSchema.index({ storeCode: 1, description: 1 }, { unique: true, partialFilterExpression: { deleted: null } });
+deliveryDistrictsSchema.index({ storeCode: 1, description: 1, cep: 1 }, { unique: true, partialFilterExpression: { deleted: null } });
 
 export const DeliveryDistrict = mongoose.model<IDeliveryDistrict>('deliveryDistricts', deliveryDistrictsSchema);
