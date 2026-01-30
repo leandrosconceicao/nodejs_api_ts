@@ -199,7 +199,8 @@ enum OrderStatus {
   cancelled = 'cancelled', 
   finished = 'finished', 
   onTheWay = 'onTheWay',
-  preparation = "preparation"
+  preparation = "preparation",
+  denied = "denied"
 }
 
 interface IOrderSearchQuery {
