@@ -52,9 +52,12 @@ export default class MongoOrderRepository implements IOrderRepository {
         })
     }
 
-    async updateDeliveryOrder(id: string, data: Partial<IDeliveryOrder>): Promise<IDeliveryOrder> {
+    async updateDeliveryOrder(storeCode: string, id: string, data: Partial<IDeliveryOrder>): Promise<IDeliveryOrder> {
         
-        const deliveryOrder = await DeliveryOrders.findById(id);
+        const deliveryOrder = await DeliveryOrders.findOne({
+            _id: new ObjectId(id),
+            storeCode: new ObjectId(storeCode)
+        });
 
         if (!deliveryOrder)
             throw new NotFoundError("Pedido não localizado")

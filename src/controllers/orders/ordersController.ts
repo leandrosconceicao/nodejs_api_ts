@@ -332,12 +332,14 @@ export default class OrdersController {
 
     updateDeliveryOrder = async (req: Request, res: Response, next: NextFunction) => {
         try {
+    
+            const storeCode = idValidation.parse(req.params.storeCode);
             
             const id = idValidation.parse(req.params.id);
 
             const body = deliveryOrdersUpdateValidation.parse(req.body);
 
-            const updatedOrder = await this.orderRepository.updateDeliveryOrder(id, body);
+            const updatedOrder = await this.orderRepository.updateDeliveryOrder(storeCode, id, body);
 
             req.result = updatedOrder;
 
@@ -350,8 +352,16 @@ export default class OrdersController {
 
     cancelDeliveryOrder = async (req: Request, res: Response, next: NextFunction) => {
         try {
+            const storeCode = req.params.storeCode;
             const id = req.params.id;
-            
+
+            const deliveryOrder = await this.orderRepository.getDeliveryOrderById(storeCode, id);
+
+            const deletedDeliveryOrder = await this.orderRepository.updateDeliveryOrder(deliveryOrder.storeCode.toString(), deliveryOrder._id.toString(), {
+                status: OrderStatus.cancelled,
+            })
+
+            return ApiResponse.success(deletedDeliveryOrder).send(res);            
 
         } catch (e) {
             next(e);
