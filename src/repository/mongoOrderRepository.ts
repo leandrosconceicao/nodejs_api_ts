@@ -111,7 +111,6 @@ export default class MongoOrderRepository implements IOrderRepository {
             _id: new ObjectId(id),
             storeCode: new ObjectId(storeCode),
         })
-        .populate('establishmentDetail')
         .populate('paymentMethodDetail')
 
         if (!data)
@@ -125,15 +124,21 @@ export default class MongoOrderRepository implements IOrderRepository {
             storeCode?: object,
             createdAt?: object,
             orderId?: object,
-            status?: string,
-            paymentMethod?: object,
+            status?: string | object,
+            paymentMethod?: string | object,
             "client.phoneNumber"?: string
         }>{};
 
         search.storeCode = new ObjectId(storeCode);
 
-        if (query.status) {
+        if (query.status && typeof(query.status) === "string") {
             search.status = query.status;
+        }
+
+        if (query.status && typeof(query.status) === "object") {
+            search.status = {
+                $in: query.status
+            }
         }
         
         if (query.from && query.to) {
@@ -144,8 +149,14 @@ export default class MongoOrderRepository implements IOrderRepository {
             search.orderId = new ObjectId(query.orderId);
         }
 
-        if (query.paymentMethod) {
+        if (query.paymentMethod && typeof(query.paymentMethod) === "string") {
             search.paymentMethod = new ObjectId(query.paymentMethod)
+        }
+
+        if (query.paymentMethod && typeof(query.paymentMethod) === "object") {
+            search.paymentMethod = {
+                $in: query.paymentMethod.map((e) => new ObjectId(e))
+            }
         }
 
         if (query.clientPhoneNumber) {
