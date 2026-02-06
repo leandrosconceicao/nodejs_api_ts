@@ -124,7 +124,7 @@ export class OrdersMiddleware {
 
                 order = await this.orderRepository.createOrder(order as IOrder)
 
-                deliveryOrder = await this.orderRepository.updateDeliveryOrder(deliveryOrder._id.toString(), {
+                deliveryOrder = await this.orderRepository.updateDeliveryOrder(deliveryOrder.storeCode.toString(), deliveryOrder._id.toString(), {
                     orderId: order._id,
                 });
 
@@ -145,7 +145,7 @@ export class OrdersMiddleware {
             if (order.orderType === OrderType.delivery) {
                 const deliveryOrder = await this.orderRepository.getDeliveryOrderByOrderId(order._id.toString());
                 if (deliveryOrder && deliveryOrder.status !== OrderStatus.cancelled) {
-                    await this.orderRepository.updateDeliveryOrder(deliveryOrder._id.toString(), {
+                    await this.orderRepository.updateDeliveryOrder(deliveryOrder.storeCode.toString(), deliveryOrder._id.toString(), {
                         status: OrderStatus.cancelled
                     })
                 }

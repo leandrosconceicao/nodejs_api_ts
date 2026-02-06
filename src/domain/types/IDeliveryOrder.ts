@@ -23,8 +23,14 @@ export const deliveryOrdersSearchValidation = z.object({
         offset: true
     }).optional(),
     orderId: idValidation.optional(),
-    status: z.nativeEnum(OrderStatus).optional(),
-    paymentMethod: idValidation.optional(),
+    status: z.union([
+        z.array(z.nativeEnum(OrderStatus)),
+        z.nativeEnum(OrderStatus)
+    ]).optional(),
+    paymentMethod: z.union([
+        idValidation,
+        z.array(idValidation)
+    ]).optional(),
     clientPhoneNumber: z.string().optional()
 })
 
@@ -39,8 +45,8 @@ export interface ISearchDeliveryOrder {
     orderId: string,
     from: string,
     to: string,
-    status: string,
-    paymentMethod: string,
+    status: string | string[],
+    paymentMethod: string | string[],
     clientPhoneNumber: string
 }
 
@@ -58,4 +64,6 @@ export interface IDeliveryOrder {
     paymentMethodDetail?: any,
     establishmentDetail?: IEstablishments,
     products: Array<IOrderProduct>,
+    totalProduct?: number,
+    observation?: string,
 }

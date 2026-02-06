@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { clientBasicInfoSchema, clientsSchema, deliveryAddressSchema } from "../Clients";
+import { clientBasicInfoSchema } from "../Clients";
 import orders_products_schema from "./orders_products";
 import { IDeliveryOrder } from "../../domain/types/IDeliveryOrder";
 
@@ -16,7 +16,6 @@ const deliveryOrdersSchema = new mongoose.Schema({
         required: [true, "Parametro (storeCode) é obrigatório"]
     },
     client: clientBasicInfoSchema,
-    deliveryAddress: deliveryAddressSchema,
     deliveryTax: Number,
     status: {
         type: String,
@@ -26,6 +25,7 @@ const deliveryOrdersSchema = new mongoose.Schema({
             message: "O status {VALUE} não é um valor permitido"
         }
     },
+    observation: String,
     paymentMethod: {
         required: [true, "Parametro (paymentMethod) é obrigatório"],
         type: ObjectId,
@@ -53,12 +53,11 @@ deliveryOrdersSchema.virtual('paymentMethodDetail', {
   foreignField: "_id"
 });
 
-deliveryOrdersSchema.virtual('establishmentDetail', {
-  justOne: true,
-  ref: "establishments",
-  localField: 'storeCode',
-  foreignField: "_id"
-});
+deliveryOrdersSchema.virtual("totalProduct")
+  .get(function() {
+    const total = this.products.reduce((a, b) => a + (b.totalProduct ?? 0.0), 0.0)
+    return total;
+  })
 
 deliveryOrdersSchema.virtual('subTotal')
   .get(function () {

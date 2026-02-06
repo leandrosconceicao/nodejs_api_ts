@@ -35,5 +35,5 @@ export default interface IOrderRepository {
 
     getDeliveryOrderByOrderId(orderId: string) : Promise<IDeliveryOrder>;
 
-    updateDeliveryOrder(id: string, data: Partial<IDeliveryOrder>) : Promise<IDeliveryOrder>;
+    updateDeliveryOrder(storeCode: string, id: string, data: Partial<IDeliveryOrder>) : Promise<IDeliveryOrder>;
 }
