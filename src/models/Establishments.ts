@@ -108,9 +108,9 @@ const schema = new mongoose.Schema({
         }}
     },
     services: {
-        customer_service: Boolean,
-        delivery: Boolean,
-        withdraw: Boolean
+        customer_service: {type: Boolean, default: false},
+        delivery: {type: Boolean, default: false},
+        withdraw: {type: Boolean, default: false}
     },
     tipValue: {
         type: Number,
