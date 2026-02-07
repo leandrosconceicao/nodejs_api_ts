@@ -2,10 +2,14 @@ import {Request, Response, NextFunction} from "express";
 import { IOrder, OrderStatus, OrderType} from "../models/Orders";
 import ErrorAlerts from "../utils/errorAlerts";
 import { autoInjectable, inject } from "tsyringe";
-import ICloudService from "../domain/interfaces/ICloudService";
+import ICloudService, { INotification } from "../domain/interfaces/ICloudService";
 import ApiResponse from "../models/base/ApiResponse";
 import { IDeliveryOrder } from "../domain/types/IDeliveryOrder";
 import IOrderRepository from "../domain/interfaces/IOrderRepository";
+import IUserRepository from "../domain/interfaces/IUserRepository";
+import mongoose from "mongoose";
+
+var ObjectId = mongoose.Types.ObjectId;
 
 @autoInjectable()
 export class OrdersMiddleware {
@@ -13,6 +17,7 @@ export class OrdersMiddleware {
     constructor(
         @inject("ICloudService") private readonly cloudService : ICloudService,
         @inject("IOrderRepository") private readonly orderRepository: IOrderRepository,
+        @inject("IUserRepository") private readonly userRepository: IUserRepository
     ) {}
     
     updateWithDrawMonitorBatch = (req: Request, _: Response, next: NextFunction) => {
@@ -200,7 +205,28 @@ export class OrdersMiddleware {
         try {
             const deliveryOrder = req.result as IDeliveryOrder;
 
-            this.cloudService.addDeliveryOrder(deliveryOrder.storeCode.toString(), deliveryOrder);
+            const users = await this.userRepository.findAll({
+                storeCode: new ObjectId(deliveryOrder.storeCode.toString()),
+                isActive: true,
+                deleted: {
+                    $in: [null, false]
+                },
+                token: {
+                    $ne: ""
+                }
+            });
+
+            if (users.length) {
+                const messages = users.map((e) => {
+                    const msg : INotification = {
+                        token: e.token,
+                        title: "Delivery",
+                        body: "Novo pedido de delivery",
+                    };
+                    return msg;
+                })
+                this.cloudService.notifyMultipleUsers(messages);
+            }
             
         } catch (e) {
             ErrorAlerts.sendAlert(e, req);
