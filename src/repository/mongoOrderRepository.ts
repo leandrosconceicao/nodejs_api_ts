@@ -90,6 +90,10 @@ export default class MongoOrderRepository implements IOrderRepository {
         
         const store = await this.establishmentRepository.findOne(order.storeCode.toString());
 
+        if (!store.services.delivery)
+            throw new BadRequestError("Serviço de delivery não está disponível no momento.");
+        
+
         const method = await PaymentMethods.findById(order.paymentMethod);
         if (!method)
             throw new NotFoundError("Metodo de pagamento não foi localizadao")
