@@ -116,7 +116,7 @@ export class OrdersMiddleware {
             
             let deliveryOrder : IDeliveryOrder = req.result;
 
-            if (deliveryOrder.status === OrderStatus.preparation) {
+            if (deliveryOrder.status === OrderStatus.accepted) {
                 
                 let order: Partial<IOrder> = {
                     client: deliveryOrder.client,
