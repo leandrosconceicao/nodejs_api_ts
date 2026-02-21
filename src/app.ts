@@ -1,6 +1,6 @@
+import 'reflect-metadata';
+import "./dependencyInjection";
 import express from "express";
-import http from 'http';
-import WebSocket from "ws";
 import cors from "cors";
 import db from "../config/db";
 import router from "./routes/index";
@@ -10,9 +10,6 @@ import { initializeApp, cert } from "firebase-admin/app";
 import serviceAccount from '../firebase_config.json';
 import * as dotenv from "dotenv";
 import bodyParse from "body-parser";
-import WebSocketService from "./services/websocket_service";
-
-let wss : WebSocket.Server<typeof WebSocket, typeof http.IncomingMessage>;
 
 var app = express();
 
@@ -41,17 +38,11 @@ app.use(bodyParse.json({
     limit: "200mb"
 }))
 
-app.use(function (req, res, next) {
-    const websocket = new WebSocketService(wss);
-    websocket.handlerRequest(req, res, next);
-})
-
 router(app);
 
 app.use(pageNotFound)
 app.use(errorCatcher)
 
-const server = http.createServer(app);
-wss = new WebSocket.Server({server, path: "/chat"});
+const port = process.env.PORT || 80;
 
-export {server, wss};
+app.listen(port)
