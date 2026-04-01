@@ -177,10 +177,6 @@ export default class OrdersController {
         try {
             const rawData = orderValidation.parse(req.body);
 
-            await this.establishmentRepository.checkOpening(rawData.storeCode, rawData.orderType)        
-
-            await this.establishmentRepository.validateDiscount(rawData.storeCode.toString(), rawData.discount);            
-
             const order = await this.orderRepository.createOrder(rawData as IOrder);
 
             await this.orderRepository.updateId(order._id.toString(),  order.storeCode.toString());
