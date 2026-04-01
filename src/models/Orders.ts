@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import {z} from "zod";
 import orders_products_schema from "./orders/orders_products";
-import { clientBasicInfoSchema, clientsBasicInfoValidation, IClient, IClientBasicInfo } from "./Clients";
+import { clientBasicInfoSchema, IClientBasicInfo } from "./Clients";
 import { idValidation } from "../utils/defaultValidations";
 import MongoId from "./custom_types/mongoose_types";
 import { IUsers } from "./Users";
@@ -280,7 +280,7 @@ interface IFirebaseOrder {
   discount?: number,
   status?: OrderStatus,
   products: Array<Partial<IOrderProduct>>,
-  client?: IClient,
+  client?: IClientBasicInfo,
   createdBy?: string,
   updatedBy?: string,
   storeCode: string,
