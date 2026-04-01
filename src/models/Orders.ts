@@ -9,6 +9,7 @@ import { IAccount } from "./Accounts";
 import { IEstablishments } from "./Establishments";
 import { IPayment } from "./Payments";
 import { DateQuery } from "../utils/PeriodQuery";
+import Counters from "./Counters";
 var ObjectId = mongoose.Types.ObjectId;
 
 enum OrderType {
@@ -87,6 +88,39 @@ orderSchema.pre("save", function(next) {
   next();
 })
 
+orderSchema.post("save", async function (doc, next) {
+  let count = 0;
+  let counter = await Counters.findOne({
+      storeCode: doc.storeCode
+  });
+  if (!counter) {
+      count += 1;
+  } else {
+      const now = new Date();
+      if (counter.createDate.toLocaleDateString() !== now.toLocaleDateString()) {
+          count += 1;
+      } else {
+          count = counter.seq_value + 1;
+      }
+  }
+  await Promise.all([
+      Orders.findByIdAndUpdate(doc._id.toString(), {
+          pedidosId: count
+      }, {
+        new: true
+      }),
+      Counters.updateMany({
+          storeCode: doc.storeCode
+      }, {
+          seq_value: count, 
+          createDate: new Date()
+      }, {
+          upsert: true
+      })
+  ]);
+  next();
+})
+
 orderSchema.virtual("userCreate", {
   ref: 'users',
   localField: 'createdBy',
@@ -132,7 +166,7 @@ orderSchema.virtual("subTotal")
     const total = this.products.reduce((a, b) => a + (b.subTotal ?? 0.0), 0.0)
     const totalProd = this.products.reduce((a, b) => a + (b.totalProduct ?? 0.0), 0.0)
     const totMinusDiscount = total - (totalProd * this.discount);
-    return parseFloat((totMinusDiscount - (this.deliveryTax ?? 0.0)).toFixed(2));
+    return parseFloat((totMinusDiscount + (this.deliveryTax ?? 0.0)).toFixed(2));
   })
 
 orderSchema.virtual("totalProduct")

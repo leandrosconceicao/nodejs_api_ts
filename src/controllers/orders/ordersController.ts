@@ -179,8 +179,6 @@ export default class OrdersController {
 
             const order = await this.orderRepository.createOrder(rawData as IOrder);
 
-            await this.orderRepository.updateId(order._id.toString(),  order.storeCode.toString());
-
             const updatedOrder = await this.orderRepository.findOne(`${order._id}`)
 
             req.result = updatedOrder;
