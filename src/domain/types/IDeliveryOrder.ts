@@ -8,7 +8,6 @@ import { IEstablishments } from "../../models/Establishments"
 export const deliveryOrdersValidation = z.object({
     storeCode: idValidation,
     client: clientsBasicInfoValidation,
-    deliveryTax: z.number(),
     status: z.nativeEnum(OrderStatus).default(OrderStatus.pending),
     paymentMethod: idValidation,
     deliveryDistrictId: idValidation,
