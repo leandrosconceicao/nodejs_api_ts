@@ -5,7 +5,7 @@ import {AccountStatus, accountValidation, IAccount} from "../../models/Accounts"
 import mongoose from "mongoose";
 import { PeriodQuery } from "../../utils/PeriodQuery";
 import { Request, Response, NextFunction } from "express";
-import { clientsSchemaValidation } from "../../models/Clients";
+import { clientsBasicInfoValidation } from "../../models/Clients";
 import { autoInjectable, inject } from "tsyringe";
 import IAccountRepository from "../../domain/interfaces/IAccountRepository";
 import IOrderRepository from "../../domain/interfaces/IOrderRepository";
@@ -75,7 +75,7 @@ export default class AccountsController {
                 storeCode: idValidation,
                 status: z.nativeEnum(AccountStatus).default(AccountStatus.open),
                 created_by: idValidation.default(req.autenticatedUser.id),
-                client: clientsSchemaValidation.optional(),
+                client: clientsBasicInfoValidation.optional(),
             })
             .parse(req.body)
 
