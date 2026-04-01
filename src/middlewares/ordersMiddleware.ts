@@ -8,6 +8,7 @@ import { IDeliveryOrder } from "../domain/types/IDeliveryOrder";
 import IOrderRepository from "../domain/interfaces/IOrderRepository";
 import IUserRepository from "../domain/interfaces/IUserRepository";
 import mongoose from "mongoose";
+import { Payments } from "../models/Payments";
 
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -137,6 +138,16 @@ export class OrdersMiddleware {
 
                 next();
                 return;
+            }
+            if (deliveryOrder.status === OrderStatus.finished) {
+                const payment = new Payments({
+                    storeCode: deliveryOrder.storeCode,
+                    orderId: deliveryOrder.orderId,
+                    method: deliveryOrder.paymentMethod,
+                    total: deliveryOrder.subTotal
+                });
+
+                await payment.save();
             }
             return ApiResponse.success().send(res);
         } catch (e) {
