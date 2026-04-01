@@ -215,6 +215,10 @@ export default class MongoOrderRepository implements IOrderRepository {
 
     createOrder = async (data: IOrder): Promise<IOrder> => {
 
+        await this.establishmentRepository.checkOpening(data.storeCode.toString(), data.orderType)        
+        
+        await this.establishmentRepository.validateDiscount(data.storeCode.toString(), data.discount);            
+
         await this.productRepository.validateProducts(data.storeCode.toString(), data.products);
 
         let handler = this.getInstance(data);
