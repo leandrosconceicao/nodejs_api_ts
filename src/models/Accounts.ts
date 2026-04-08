@@ -7,13 +7,13 @@ import MongoId from "./custom_types/mongoose_types";
 var ObjectId = mongoose.Types.ObjectId;
 
 class Receipt implements IReceipt {
-    _id: mongoose.Types.ObjectId | string;
-    description: string;
-    payments: Array<IReceiptPayments>;
-    orders: Array<IReceiptOrders>
+    _id!: mongoose.Types.ObjectId | string;
+    description!: string;
+    payments!: Array<IReceiptPayments>;
+    orders!: Array<IReceiptOrders>
     totalOrder?: number;
     totalProducts?: number;
-    storeCode: mongoose.Types.ObjectId | string;
+    storeCode!: mongoose.Types.ObjectId | string;
     totalPayment?: number;
     totalTip?: number;
     allProductsHasTipValue?: boolean;
@@ -138,4 +138,4 @@ accountSchema.virtual('payments');
 const Accounts = mongoose.model<IAccount>("accounts", accountSchema)
 
 
-export {accountStatus, Accounts, accountValidation, Receipt, IAccount, IReceiptOrders, IReceiptPayments, AccountStatus, IAccountSearch};
+export {accountStatus, Accounts, accountValidation, Receipt, IAccount, IReceiptOrders, IReceiptPayments, AccountStatus, IAccountSearch, IReceiptOrdersProducts};

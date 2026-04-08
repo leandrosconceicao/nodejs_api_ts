@@ -1,7 +1,6 @@
 import { injectable, registry, delay, inject } from "tsyringe";
 import IAccountRepository from "../domain/interfaces/IAccountRepository";
 import { Accounts, IAccount, IAccountSearch, IReceiptOrders, IReceiptPayments, Receipt } from "../models/Accounts";
-import IOrderRepository from "../domain/interfaces/IOrderRepository";
 import { ObjectId } from "../controllers/orders/ordersController";
 import { Orders } from "../models/Orders";
 import { Payments } from "../models/Payments";
@@ -9,7 +8,6 @@ import NotFoundError from "../models/errors/NotFound";
 import BadRequestError from "../models/errors/BadRequest";
 
 
-const populateClient = "client";
 const populateCreated = "created_by";
 const populateEstablish = ["-establishments", "-pass"];
 
@@ -31,7 +29,7 @@ export default class MongoAccountRepository implements IAccountRepository {
     }
 
     async accountIsOpen(id: string): Promise<boolean> {
-        return (await Accounts.findById(id, {status: -1})).status === "open"
+        return (await Accounts.findById(id, {status: -1}))?.status === "open"
     }
 
     update(id: string, data: object): Promise<IAccount> {
@@ -40,7 +38,6 @@ export default class MongoAccountRepository implements IAccountRepository {
 
 
     findAll(query: IAccountSearch): Promise<IAccount[]> {
-        query.deleted_id = null;
         if (typeof(query.status) === "object") {
             query.status = {
                 $in: query.status
@@ -95,7 +92,7 @@ export default class MongoAccountRepository implements IAccountRepository {
                 discount: e.discount,
                 totalProduct: e.totalProduct,
                 subTotal: e.subTotal,
-                totalTip: parseFloat((e.products.reduce((a, b) => a + b.totalTip, 0.0)).toFixed(2)),
+                totalTip: parseFloat((e.products.reduce((a, b) => a + (b.totalTip ?? 0.0), 0.0)).toFixed(2)),
                 products: e.products,
             }),
             payments: pays.map((el) => <IReceiptPayments> {
@@ -103,11 +100,11 @@ export default class MongoAccountRepository implements IAccountRepository {
                 description: el.methodData?.description,
                 method: el._id
             }),
-            allProductsHasTipValue: ords.every((order) => order.products.every((product) => product.tipValue > 0))
+            allProductsHasTipValue: ords.every((order) => order.products.every((product) => (product.tipValue ?? 0.0) > 0))
         };
-        rec.totalTip = parseFloat(rec.orders.reduce((prev, next) => prev + next.totalTip, 0.0).toFixed(2));
-        rec.totalOrder = parseFloat(rec.orders.reduce((a, b) => a + b.subTotal, 0.0).toFixed(2));
-        rec.totalProducts = parseFloat(rec.orders.reduce((a, b) => a + b.totalProduct, 0.0).toFixed(2));
+        rec.totalTip = parseFloat(rec.orders.reduce((prev, next) => prev + (next.totalTip ?? 0.0), 0.0).toFixed(2));
+        rec.totalOrder = parseFloat(rec.orders.reduce((a, b) => a + (b.subTotal ?? 0.0), 0.0).toFixed(2));
+        rec.totalProducts = parseFloat(rec.orders.reduce((a, b) => a + (b.totalProduct ?? 0.0), 0.0).toFixed(2));
         rec.totalPayment = parseFloat(rec.payments.reduce((a, b) => a + b.total, 0.0).toFixed(2));
         rec.subTotal = rec.totalOrder - rec.totalPayment;
         return rec;

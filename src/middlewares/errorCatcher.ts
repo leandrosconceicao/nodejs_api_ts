@@ -1,5 +1,4 @@
 import mongoose from "mongoose"
-import {MongoServerError} from "mongodb";
 import express, { NextFunction } from "express";
 import ApiResponse from "../models/base/ApiResponse";
 import Jwt from "jsonwebtoken";
@@ -16,10 +15,8 @@ export default function(err: Error, req: express.Request, res: express.Response,
     if (err instanceof z.ZodError) {
         return ApiResponse.invalidParameter(err.errors).send(res);
     }
-    if (err instanceof MongoServerError) {
-        if (err.code === 11000) {
-            return new DuplicateError(err).send(res);
-        }
+    if ((err as any).code === 11000) {
+        return new DuplicateError(err).send(res);
     }
     if (err instanceof mongoose.Error.CastError) {
         return ApiResponse.badRequest(err.message).send(res);
@@ -37,10 +34,10 @@ export default function(err: Error, req: express.Request, res: express.Response,
         return err.send(res);
     }
     if (err instanceof AxiosError) {
-        if (err.response.status < 499) {
-            return ApiResponse.badRequest(err.response.data.mensagem).send(res);
+        if (err.response!.status < 499) {
+            return ApiResponse.badRequest(err.response!.data.mensagem).send(res);
         }
-        return ApiResponse.serverError(err.response.data.mensagem).send(res);
+        return ApiResponse.serverError(err.response!.data.mensagem).send(res);
     }
     if (err instanceof ApiResponse) {
         return err.send(res);

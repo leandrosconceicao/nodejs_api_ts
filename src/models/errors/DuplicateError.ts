@@ -1,14 +1,11 @@
 import ApiResponse from "../base/ApiResponse";
-import {MongoServerError} from "mongodb";
 
 class DuplicateError extends ApiResponse {
-  constructor(error: MongoServerError) {
+  constructor(error: any) {
     const info = Object.entries(error.keyValue)[0];
     super({
       statusProcess: false,
-      message: `Não foi possível salvar, registro único violado, este (${info[0]}) já está cadastrado.`,
-      dados: null,
-      tecnical: null,
+      message: `Não foi possível salvar, registro único violado, (${info[1]}) já está cadastrado.`,
       status: 400,
     });
   }

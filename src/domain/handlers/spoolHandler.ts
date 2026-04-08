@@ -7,6 +7,7 @@ import NotFoundError from "../../models/errors/NotFound";
 import PaymentController from "../../controllers/payments/paymentController";
 import { delay, inject, injectable, registry } from "tsyringe";
 import IAccountRepository from "../interfaces/IAccountRepository";
+import { IReceiptOrdersProducts } from "../../models/Accounts";
 
 const popuAccId = "accountDetail";
 const popuPayment = "-payments";
@@ -73,7 +74,7 @@ export default class SpoolHandler implements ISpoolHandler {
 
         encoder.newline();
 
-        this.genText(encoder, `Saldo inicial: ${cash.openValue.toFixed(2)}`);
+        this.genText(encoder, `Saldo inicial: ${(cash.openValue ?? 0).toFixed(2)}`);
 
         const incomes = cash.suppliersAndWithdraws.filter((sw) => sw.type === "supply");
 
@@ -93,7 +94,7 @@ export default class SpoolHandler implements ISpoolHandler {
 
         this.genText(encoder, `Total Saidas: ${(totalOutcomes).toFixed(2)}`);
 
-        this.genText(encoder, `Saldo Final: ${operationTotal + cash.openValue}`);
+        this.genText(encoder, `Saldo Final: ${operationTotal + (cash.openValue ?? 0)}`);
 
         encoder.newline();
         encoder.newline();
@@ -182,22 +183,22 @@ export default class SpoolHandler implements ISpoolHandler {
         const totPay = data.totalPayment;
         
         data.orders.forEach((orders) => {
-            this.parseProducts(encoder, orders.products);
+            this.parseProductsAccount(encoder, orders.products);
         });
                 
         encoder.newline();
 
         data.payments.forEach((payments) => {
-            encoder.text(`${this.removerAcentos(payments.description)} - ${payments.total.toFixed(2)}`).align("center")
+            encoder.text(`${this.removerAcentos(payments.description ?? "")} - ${payments.total.toFixed(2)}`).align("center")
             encoder.emptyLine()
         })
     
         encoder.newline();
         encoder.newline().align("left");
     
-        this.genText(encoder, `Valor do pedido: ${subTotal.toFixed(2)}`)
-        this.genText(encoder, `Total pago: ${totPay.toFixed(2)}`)
-        this.genText(encoder, `Restando: ${(subTotal - totPay).toFixed(2)}`)
+        this.genText(encoder, `Valor do pedido: ${(subTotal ?? 0).toFixed(2)}`)
+        this.genText(encoder, `Total pago: ${(totPay ?? 0).toFixed(2)}`)
+        this.genText(encoder, `Restando: ${((subTotal ?? 0) - (totPay ?? 0)).toFixed(2)}`)
     
         encoder.newline();
         encoder.newline();
@@ -238,7 +239,7 @@ export default class SpoolHandler implements ISpoolHandler {
             encoder.text("REIMPRESSAO").align("center");
             encoder.newline();
         }
-        encoder.text(this.formatDate(parsedOrder.createdAt))
+        encoder.text(this.formatDate(parsedOrder.createdAt ?? new Date()))
     
         encoder.newline();
         encoder.newline();
@@ -257,10 +258,10 @@ export default class SpoolHandler implements ISpoolHandler {
         encoder.newline();
         encoder.newline().align("left");
     
-        this.genText(encoder, `Valor do pedido: ${parsedOrder.totalProduct.toFixed(2)}`)
-        this.genText(encoder, `Desconto aplicado: ${(parsedOrder.discount * 100).toFixed(1)}%`)
+        this.genText(encoder, `Valor do pedido: ${(parsedOrder.totalProduct ?? 0).toFixed(2)}`)
+        this.genText(encoder, `Desconto aplicado: ${((parsedOrder.discount ?? 0) * 100).toFixed(1)}%`)
         this.genText(encoder, `Total pago: ${totPay.toFixed(2)}`)
-        this.genText(encoder, `Restando: ${(subTotal - totPay).toFixed(2)}`)
+        this.genText(encoder, `Restando: ${((subTotal ?? 0) - totPay).toFixed(2)}`)
     
         encoder.newline();
         encoder.newline();
@@ -329,20 +330,41 @@ export default class SpoolHandler implements ISpoolHandler {
 
     parseProducts = (encoder: ReceiptEnconder, products: IOrderProduct[]) => {
         products.forEach((prod) => {
-            encoder.text(`${prod.quantity}x ${(prod.subTotal).toFixed(2)} ${this.removerAcentos(prod.orderDescription)}`).align("left");
+            encoder.text(`${prod.quantity}x ${(prod.subTotal ?? 0).toFixed(2)} ${this.removerAcentos(prod.orderDescription ?? "")}`).align("left");
             if (prod.addOnes?.length) {
                 encoder.emptyLine();
                 encoder.text('Complementos').align("center")
                 prod.addOnes.forEach((add) => {
-                    let hasPrice = add.price > 0;
+                    let hasPrice = (add.price ?? 0) > 0;
                     encoder.emptyLine();
-                    encoder.text(`${add.addOneName} - ${hasPrice ? `${add.quantity}x ${add.price.toFixed(2)} ` : ""}${this.removerAcentos(add.name)}`).align("left")
+                    encoder.text(`${add.addOneName} - ${hasPrice ? `${add.quantity}x ${(add.price ?? 0).toFixed(2)} ` : ""}${this.removerAcentos(add.name)}`).align("left")
                 })
                 encoder.emptyLine();
             } else {
                 encoder.emptyLine();
             }
             encoder.text(`Obs: ${this.removerAcentos(prod.observations)}`);
+            encoder.emptyLine();
+            encoder.emptyLine();
+        })
+    }
+
+    parseProductsAccount = (encoder: ReceiptEnconder, products: IReceiptOrdersProducts[]) => {
+        products.forEach((prod) => {
+            encoder.text(`${prod.quantity}x ${(prod.subTotal).toFixed(2)} ${this.removerAcentos(prod.productName)}`).align("left");
+            if (prod.addOnes?.length) {
+                encoder.emptyLine();
+                encoder.text('Complementos').align("center")
+                prod.addOnes.forEach((add) => {
+                    add.price ??= 0.0;
+                    let hasPrice = add.price > 0;
+                    encoder.emptyLine();
+                    encoder.text(`${add.name} - ${hasPrice ? `${add.quantity}x ${add.price.toFixed(2)} ` : ""}${this.removerAcentos(add.name)}`).align("left")
+                })
+                encoder.emptyLine();
+            } else {
+                encoder.emptyLine();
+            }
             encoder.emptyLine();
             encoder.emptyLine();
         })
