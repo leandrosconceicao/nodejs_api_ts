@@ -66,7 +66,7 @@ export default class MongoCategoryRepository implements ICategoryRepository {
             },
         ]);
         data.forEach((category) => {
-            category.products.forEach((products: any) => {
+            category.products?.forEach((products: any) => {
                 products.category = {
                     nome: category.nome,
                     storeCode: category.storeCode,
