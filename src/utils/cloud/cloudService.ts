@@ -6,7 +6,7 @@ import { messaging } from "firebase-admin";
 import ErrorAlerts from "../errorAlerts";
 import ISpoolHandler from "../../domain/interfaces/ISpoolHandler";
 import { IPrinterSpool } from "../../domain/types/IPrinterSpool";
-import { Message } from "firebase-admin/lib/messaging/messaging-api";
+import { Message } from "firebase-admin/messaging";
 import { IFirebaseOrder, IOrder, IOrderProduct, OrderType } from "../../models/Orders";
 import IPrinterRepository from "../../domain/interfaces/IPrinterRepository";
 import NotFoundError from "../../models/errors/NotFound";
@@ -285,24 +285,11 @@ export default class CloudService implements ICloudService {
 
         const ref = (isDevelopment ? db.ref(enviroment).child(storeCode) : db.ref(storeCode)).child(DELIVERY_PATH);
 
-        ref.child(order._id.toString()).set({
-            _id: order._id.toString(),
+        ref.child(order._id!.toString()).set({
+            _id: order._id!.toString(),
             storeCode: order.storeCode.toString(),
-            createdAt: order.createdAt.toISOString(),
+            createdAt: order.createdAt?.toISOString(),
             status: order.status,
-            client: {
-                cgc: order?.client?.cgc || "",
-                name: order?.client?.name || "",
-                email: order?.client?.email || "",
-                phoneNumber: order?.client?.phoneNumber || "",
-                address: order?.client?.address || "",
-                city: order?.client?.city || "",
-                complement: order?.client?.complement || "",
-                district: order?.client?.district || "",
-                number: order?.client?.number || "",
-                state: order?.client?.state || "",
-                zipCode: order?.client?.zipCode || "",
-            }
         }, (error) => {
             if (error) throw error;
         })
