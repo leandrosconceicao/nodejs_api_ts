@@ -1,5 +1,5 @@
 import {Request, Response, NextFunction} from "express";
-import { IOrder, OrderStatus, OrderType} from "../models/Orders";
+import { IAddOne, IOrder, IOrderProduct, OrderStatus, OrderType} from "../models/Orders";
 import ErrorAlerts from "../utils/errorAlerts";
 import { autoInjectable, inject } from "tsyringe";
 import ICloudService, { INotification } from "../domain/interfaces/ICloudService";
@@ -9,6 +9,7 @@ import IOrderRepository from "../domain/interfaces/IOrderRepository";
 import IUserRepository from "../domain/interfaces/IUserRepository";
 import mongoose from "mongoose";
 import { Payments } from "../models/Payments";
+import { IProductRepository } from "../domain/interfaces/IProductRepository";
 
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -18,7 +19,8 @@ export class OrdersMiddleware {
     constructor(
         @inject("ICloudService") private readonly cloudService : ICloudService,
         @inject("IOrderRepository") private readonly orderRepository: IOrderRepository,
-        @inject("IUserRepository") private readonly userRepository: IUserRepository
+        @inject("IUserRepository") private readonly userRepository: IUserRepository,
+        @inject("IProductRepository") private readonly productRepository: IProductRepository
     ) {}
     
     updateWithDrawMonitorBatch = (req: Request, _: Response, next: NextFunction) => {
@@ -116,6 +118,10 @@ export class OrdersMiddleware {
         try {
             
             let deliveryOrder : IDeliveryOrder = req.result;
+
+            if (deliveryOrder.status === OrderStatus.accepted && deliveryOrder.orderId) {
+                return ApiResponse.badRequest("Pedido já aceito").send(res);
+            }
 
             if (deliveryOrder.status === OrderStatus.accepted) {
                 
@@ -241,8 +247,20 @@ export class OrdersMiddleware {
             
         } catch (e) {
             ErrorAlerts.sendAlert(e, req);
+        } finally {
+            next();
         }
 
-        return ApiResponse.success().send(res);
+    }
+
+    sendDataToFirebase = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const order = req.result as IDeliveryOrder;
+            await this.cloudService.addDeliveryOrder(order.storeCode.toString(), order);
+        } catch (e) {
+            ErrorAlerts.sendDefaultAlert(e as any)
+        } finally {
+            return ApiResponse.success().send(res);
+        }
     }
 }
