@@ -130,7 +130,7 @@ export class OrdersMiddleware {
 
                 order = await this.orderRepository.createOrder(order as IOrder)
 
-                deliveryOrder = await this.orderRepository.updateDeliveryOrder(deliveryOrder.storeCode.toString(), deliveryOrder._id.toString(), {
+                deliveryOrder = await this.orderRepository.updateDeliveryOrder(deliveryOrder.storeCode.toString(), deliveryOrder._id?.toString() ?? "", {
                     orderId: order._id,
                 });
 
@@ -159,9 +159,9 @@ export class OrdersMiddleware {
         try {
             const order : IOrder = req.result;
             if (order.orderType === OrderType.delivery) {
-                const deliveryOrder = await this.orderRepository.getDeliveryOrderByOrderId(order._id.toString());
+                const deliveryOrder = await this.orderRepository.getDeliveryOrderByOrderId(order._id?.toString() ?? "");
                 if (deliveryOrder && deliveryOrder.status !== OrderStatus.cancelled) {
-                    await this.orderRepository.updateDeliveryOrder(deliveryOrder.storeCode.toString(), deliveryOrder._id.toString(), {
+                    await this.orderRepository.updateDeliveryOrder(deliveryOrder.storeCode.toString(), deliveryOrder._id?.toString() ?? "", {
                         status: OrderStatus.cancelled
                     })
                 }
@@ -230,7 +230,7 @@ export class OrdersMiddleware {
             if (users.length) {
                 const messages = users.map((e) => {
                     const msg : INotification = {
-                        token: e.token,
+                        token: e.token ?? "",
                         title: "Delivery",
                         body: "Novo pedido de delivery",
                     };

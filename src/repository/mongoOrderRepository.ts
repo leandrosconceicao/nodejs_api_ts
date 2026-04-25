@@ -101,14 +101,14 @@ export default class MongoOrderRepository implements IOrderRepository {
         if (!method)
             throw new NotFoundError("Metodo de pagamento não foi localizadao")
 
-        const deliveryDiscrict = store.deliveryDistricts.find((e) => e._id.toString() === order.deliveryDistrictId);
+        const deliveryDiscrict = store.deliveryDistricts?.find((e) => e._id?.toString() === order.deliveryDistrictId);
 
         if (!deliveryDiscrict)
             throw new NotFoundError("Bairro selecionado não foi localizado");
 
         order.deliveryTax = deliveryDiscrict.value;
 
-        await this.productRepository.validateProducts(store._id, order.products);
+        await this.productRepository.validateProducts(store._id ?? "", order.products);
         
         return DeliveryOrders.create(order);
     }
@@ -190,7 +190,7 @@ export default class MongoOrderRepository implements IOrderRepository {
         return updatedOrders.map((order) => {
             return {
                 order: order,
-                isReady: orders.find((e) => e.id === order._id.toString()).isReady
+                isReady: orders.find((e) => e.id === order?._id.toString())?.isReady ?? false
             }
         });
     }
