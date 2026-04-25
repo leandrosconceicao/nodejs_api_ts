@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import { z } from "zod";
 import { idValidation } from "../../utils/defaultValidations";
 import TokenGenerator from "../../utils/tokenGenerator";
+import MongoId from "../../models/custom_types/mongoose_types";
 
 export enum AddOneType {
     checkbox = "checkbox",
@@ -107,7 +108,8 @@ export interface IProductAddOne {
     maxQtdAllowed: number,
     items: Array<{
         name: string,
-        price: number
+        price: number,
+        _id?: string | MongoId
     }>
 }
 
