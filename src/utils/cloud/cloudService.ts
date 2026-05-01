@@ -12,10 +12,12 @@ import IPrinterRepository from "../../domain/interfaces/IPrinterRepository";
 import NotFoundError from "../../models/errors/NotFound";
 import { ISender } from "../../domain/interfaces/ISender";
 import { IDeliveryOrder } from "../../domain/types/IDeliveryOrder";
+import { IEstablishments } from "../../models/Establishments";
 
 const PREPARATION_PATH = "preparation";
 const WITHDRAW_PATH = "withdraw";
 const DELIVERY_PATH = "delivery";
+const ESTABLISHMENT_PARAMETERS_PATH = "parameters";
 const SPOOL_PATH = "spool";
 const enviroment = process.env.ENVIROMENT;
 const isDevelopment = enviroment === "development";
@@ -292,6 +294,23 @@ export default class CloudService implements ICloudService {
             status: order.status,
         }, (error) => {
             if (error) throw error;
+        })
+    }
+
+    setEstablishment = async (storeCode: string, data: Partial<IEstablishments>): Promise<void> => {
+
+        if (!data?.services) return;
+
+        const db = getDatabase();
+
+        const ref = isDevelopment ? db.ref(enviroment).child(storeCode) : db.ref(storeCode);
+
+        ref.child(ESTABLISHMENT_PARAMETERS_PATH).update({
+            services: {
+                customer_service: data.services.customer_service ?? false,
+                delivery: data.services.delivery ?? false,
+                withdraw: data.services.withdraw ?? false,
+            }
         })
     }
 }
