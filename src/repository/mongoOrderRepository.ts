@@ -271,6 +271,13 @@ export default class MongoOrderRepository implements IOrderRepository {
             throw new NotFoundError("Pedido não localizado");
         }
 
+        for (let product of order.products) {
+            if (!product.productId) 
+                continue;
+            
+            product.thumbnail = await this.productRepository.getProductImage(product.productId?.toString() ?? "")
+        }
+
         return order;
     }
 

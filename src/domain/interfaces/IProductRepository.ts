@@ -22,4 +22,6 @@ export interface IProductRepository {
     setProductThumbnail(storeCode: string, productId: string, file: IProductImages) : Promise<IProduct>;
 
     removeImage(storeCode: string, productId: string, file: IProductImages) : Promise<IProduct>;    
+
+    getProductImage(productId: string) : Promise<string>;
 }

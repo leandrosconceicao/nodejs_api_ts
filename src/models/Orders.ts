@@ -266,7 +266,8 @@ interface IOrderProduct {
   totalProduct?: number,
   totalAddOnes?: number,
   totalTip?: number,
-  addOnes?: Array<IAddOne>      
+  addOnes?: Array<IAddOne>,
+  thumbnail?: string
 }
 
 interface IAddOne {
