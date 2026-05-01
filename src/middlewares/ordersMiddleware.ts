@@ -254,13 +254,13 @@ export class OrdersMiddleware {
     }
 
     sendDataToFirebase = async (req: Request, res: Response, next: NextFunction) => {
+        const order = req.result as IDeliveryOrder;
         try {
-            const order = req.result as IDeliveryOrder;
             await this.cloudService.addDeliveryOrder(order.storeCode.toString(), order);
         } catch (e) {
             ErrorAlerts.sendDefaultAlert(e as any)
         } finally {
-            return ApiResponse.success().send(res);
+            return ApiResponse.success(order).send(res);
         }
     }
 }
