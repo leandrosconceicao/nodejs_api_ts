@@ -6,12 +6,14 @@ import { idValidation } from "../../utils/defaultValidations";
 import { autoInjectable, inject } from "tsyringe";
 import IEstablishmentRepository from "../../domain/interfaces/IEstablishmentRepository";
 import { cepValidation, deliveryDistrictValidation, IDeliveryDistrict } from "../../domain/types/IDeliveryDistrict";
+import ICloudService from "../../domain/interfaces/ICloudService";
 
 @autoInjectable()
 export default class EstablishmentsController {
 
     constructor(
         @inject("IEstablishmentRepository") private readonly repository : IEstablishmentRepository,
+        @inject("ICloudService") private readonly cloudService: ICloudService
     ) {
 
     }
@@ -77,7 +79,9 @@ export default class EstablishmentsController {
 
             const process = await this.repository.update(id, establishments as Partial<IEstablishments>)
             
-            return ApiResponse.success(process).send(res);
+            req.result = process;
+
+            next();
         } catch (e) {
             next(e);
         }
@@ -144,6 +148,16 @@ export default class EstablishmentsController {
 
         } catch (e) {
             next(e);
+        }
+    }
+
+    sendToFirebase = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            this.cloudService.setEstablishment(req.params.id, req.result);
+        } catch (e) {
+            next(e);
+        } finally  {
+            return ApiResponse.success(req.result).send(res);
         }
     }
 

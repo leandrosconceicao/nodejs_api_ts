@@ -1,3 +1,4 @@
+import { IEstablishments } from "../../models/Establishments";
 import { IOrder } from "../../models/Orders";
 import { IDeliveryOrder } from "../types/IDeliveryOrder";
 import { IPrinterSpool } from "../types/IPrinterSpool";
@@ -37,4 +38,6 @@ export default interface ICloudService {
     deleteBucketFile(path: string) : Promise<void>;
 
     addDeliveryOrder(storeCode: string, order: IDeliveryOrder) : Promise<void>;
+
+    setEstablishment(storeCode: string, data: Partial<IEstablishments>) : Promise<void>;
 }

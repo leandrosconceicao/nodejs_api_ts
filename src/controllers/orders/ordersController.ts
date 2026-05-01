@@ -15,6 +15,7 @@ import IOrderRepository from "../../domain/interfaces/IOrderRepository";
 import ICloudService from "../../domain/interfaces/ICloudService";
 import IUserRepository from "../../domain/interfaces/IUserRepository";
 import { deliveryOrdersSearchValidation, deliveryOrdersUpdateValidation, deliveryOrdersValidation, IDeliveryOrder, ISearchDeliveryOrder } from "../../domain/types/IDeliveryOrder";
+import ErrorAlerts from "../../utils/errorAlerts";
 
 export var ObjectId = mongoose.Types.ObjectId;
 
@@ -386,6 +387,17 @@ export default class OrdersController {
             return ApiResponse.success().send(res);
         } catch (e) {
             next(e);
+        }
+    }
+
+    sendDataToFirebaseMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+        const order = req.result as IDeliveryOrder;
+        try {
+            await this.cloudService.addDeliveryOrder(order.storeCode.toString(), order);
+        } catch (e) {
+            ErrorAlerts.sendDefaultAlert(e as any)
+        } finally {
+            next();
         }
     }
 }
