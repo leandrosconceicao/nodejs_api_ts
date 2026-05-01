@@ -28,6 +28,7 @@ const orders_products_schema = new mongoose.Schema<IOrderProduct>({
     ],
     default: undefined,
   },
+  thumbnail: {type: String, default: ""},
 })
 orders_products_schema.virtual("totalTip").get(
   function() {

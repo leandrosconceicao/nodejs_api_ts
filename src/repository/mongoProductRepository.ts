@@ -175,4 +175,12 @@ export class MongoProductRepository implements IProductRepository {
         return update;
         
     }
+
+    getProductImage = async (productId: string): Promise<string> => {
+        const product = await Products.findById(productId, {
+            images: 1
+        });
+
+        return product?.thumbnail ?? "";
+    }    
 }
