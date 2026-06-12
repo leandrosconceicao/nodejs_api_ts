@@ -47,7 +47,7 @@ orders_products_schema.virtual("subTotal")
   orders_products_schema.virtual("totalAddOnes")
     .get(function() {
       let sub = this.addOnes?.reduce((a, b) => a + ((b.price ?? 0.0) * (b.quantity ?? 0.0)), 0.0)
-      return sub ?? 0.0;
+      return this.quantity * (sub ?? 0.0);
     })
 
 orders_products_schema.virtual("totalProduct")
