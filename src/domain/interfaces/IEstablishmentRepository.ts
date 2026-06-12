@@ -22,7 +22,7 @@ export default interface IEstablishmentRepository {
 
     getDeliveryDistrict(storeCode: string, cep?: string) : Promise<IDeliveryDistrict[]>;
 
-    deleteDeliveryDistrict(id: string) : Promise<IDeliveryDistrict>;
+    deleteDeliveryDistrict(storeCode: string, id: string) : Promise<IDeliveryDistrict>;
 
-    updateDeliveryDistrict(id: string, data: Partial<IDeliveryDistrict>) : Promise<IDeliveryDistrict>;
+    updateDeliveryDistrict(storeCode: string, id: string, data: Partial<IDeliveryDistrict>) : Promise<IDeliveryDistrict>;
 }

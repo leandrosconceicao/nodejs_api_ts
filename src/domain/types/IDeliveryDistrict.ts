@@ -5,7 +5,6 @@ import mongoose from "mongoose";
 export const cepValidation = z.string().regex(/^\d{8}$/, "Formato inválido");
 
 export const deliveryDistrictValidation = z.object({
-    storeCode: idValidation,
     cep: cepValidation,
     description: z.string(),
     value: z.number()
