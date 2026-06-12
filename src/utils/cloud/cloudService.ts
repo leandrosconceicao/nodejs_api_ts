@@ -98,7 +98,7 @@ export default class CloudService implements ICloudService {
 
     async pushSpoolData(spool: IPrinterSpool): Promise<IPrinterSpool> {
         
-        const printers = await this.printerRepository.findAll(spool.storeCode?.toString(), spool.type);
+        const printers = await this.printerRepository.findAll(spool.storeCode?.toString() ?? "", spool.type);
 
         if (!printers?.length) {
             throw new NotFoundError("Fila de impressão não está habilitada");
@@ -106,7 +106,7 @@ export default class CloudService implements ICloudService {
 
         spool.printers = printers.map((print) => {
             return {
-                _id: print?._id.toString() ?? "",
+                _id: print?._id?.toString() ?? "",
                 address: print.address,
                 name: print.name,
                 storeCode: print.storeCode.toString(),
@@ -148,8 +148,8 @@ export default class CloudService implements ICloudService {
 
     async uploadFile(data: { path?: string; data?: string; }): Promise<string> {
         const bucket = getStorage().bucket();
-        const imageBuffer = Buffer.from(data.data, "base64");
-        const uploadFIle = bucket.file(isDevelopment ? `development/${data.path}` : data.path);
+        const imageBuffer = Buffer.from(data.data ?? "", "base64");
+        const uploadFIle = bucket.file(isDevelopment ? `development/${data.path}` : data.path ?? "");
         await uploadFIle.save(imageBuffer);
         return getDownloadURL(uploadFIle);
     }
@@ -301,16 +301,18 @@ export default class CloudService implements ICloudService {
 
         if (!data?.services) return;
 
+        this.establishmentEventNotify(storeCode, new Date());
+    }
+
+    
+    establishmentEventNotify = async (storeCode: string, date: Date): Promise<void> => {
         const db = getDatabase();
 
         const ref = isDevelopment ? db.ref(enviroment).child(storeCode) : db.ref(storeCode);
 
         ref.child(ESTABLISHMENT_PARAMETERS_PATH).update({
-            services: {
-                customer_service: data.services.customer_service ?? false,
-                delivery: data.services.delivery ?? false,
-                withdraw: data.services.withdraw ?? false,
-            }
+            deliveryIdEvent: date.toISOString()
         })
     }
+
 }
