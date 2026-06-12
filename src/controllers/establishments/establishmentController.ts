@@ -106,11 +106,18 @@ export default class EstablishmentsController {
 
     deleteDeliveryDistrict = async (req: Request, res: Response, next: NextFunction) => {
         try {
+            const storeCode = idValidation.parse(req.params.storeCode);
+
             const id = idValidation.parse(req.params.id);
 
-            await this.repository.deleteDeliveryDistrict(id);
+            await this.repository.deleteDeliveryDistrict(storeCode, id);
 
-            res.sendStatus(204);
+            req.result = {
+                storeCode,
+                _id: id
+            }
+
+            next();
 
         } catch (e) {
             next(e);
@@ -119,7 +126,8 @@ export default class EstablishmentsController {
 
     updateDeliveryDistrict = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            
+            const storeCode = idValidation.parse(req.params.storeCode);
+
             const id = idValidation.parse(req.params.id);
 
             const update = z.object({
@@ -128,9 +136,11 @@ export default class EstablishmentsController {
                 cep: cepValidation.optional(),
             }).parse(req.body);
 
-            const updatedData = await this.repository.updateDeliveryDistrict(id, update);
+            const updatedData = await this.repository.updateDeliveryDistrict(storeCode, id, update);
 
-            ApiResponse.success(updatedData).send(res);
+            req.result = updatedData;
+
+            next();
 
         } catch (e) {
             next(e);
@@ -139,12 +149,19 @@ export default class EstablishmentsController {
 
     addDeliveryDistrict = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            
+            const storeCode = idValidation.parse(req.params.storeCode);
+
             const data = deliveryDistrictValidation.parse(req.body);
+
+            var deliveryData = data as any;
+
+            deliveryData.storeCode = storeCode;
 
             const newData = await this.repository.addDeliveryDistrict(data as IDeliveryDistrict)
 
-            ApiResponse.success(newData).send(res);
+            req.result = newData;
+
+            next();
 
         } catch (e) {
             next(e);
@@ -160,5 +177,31 @@ export default class EstablishmentsController {
             return ApiResponse.success(req.result).send(res);
         }
     }
+
+    sendDeliveryDistrictEvent = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const {storeCode} = req.result;
+
+            this.cloudService.setDeliveryDistricts(storeCode.toString(), new Date());
+        } catch (e) {
+            next(e);
+        } finally {
+            return ApiResponse.success(req.result).send(res);
+        }
+    }
+
+    sendDeliveryDistrictDeleteEvent = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const {storeCode} = req.result;
+
+            this.cloudService.setDeliveryDistricts(storeCode.toString(), new Date());
+        } catch (e) {
+            next(e);
+        } finally {
+            res.sendStatus(204);
+        }
+    }
+
+
 
 }

@@ -52,8 +52,11 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
         return data;
     }
 
-    private findDeliveryDistrictById = async (id: string) : Promise<IDeliveryDistrict> => {
-        const data = await DeliveryDistrict.findById(id);
+    private findDeliveryDistrictById = async (storeCode: string, id: string) : Promise<IDeliveryDistrict> => {
+        const data = await DeliveryDistrict.findOne({
+            storeCode: new ObjectId(storeCode),
+            _id: new ObjectId(id)
+        });
 
         if (!data) 
             throw new NotFoundError("Registro não localizado");
@@ -61,9 +64,9 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
         return data;
     }
 
-    async deleteDeliveryDistrict(id: string): Promise<IDeliveryDistrict> {
+    async deleteDeliveryDistrict(storeCode: string, id: string): Promise<IDeliveryDistrict> {
         
-        const data = await this.findDeliveryDistrictById(id);
+        const data = await this.findDeliveryDistrictById(storeCode, id);
 
         return DeliveryDistrict.findByIdAndUpdate(data._id, {
             deleted: true
@@ -72,9 +75,9 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
         });
     }
 
-    updateDeliveryDistrict = async (id: string, data: Partial<IDeliveryDistrict>): Promise<IDeliveryDistrict> => {
+    updateDeliveryDistrict = async (storeCode: string, id: string, data: Partial<IDeliveryDistrict>): Promise<IDeliveryDistrict> => {
         
-        let deliveryDistrict = await this.findDeliveryDistrictById(id);
+        let deliveryDistrict = await this.findDeliveryDistrictById(storeCode, id);
 
         if (data.description) deliveryDistrict.description = data.description;
 
@@ -83,6 +86,7 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
         if (data.cep) deliveryDistrict.cep = data.cep;
 
         return DeliveryDistrict.findOneAndUpdate({
+            storeCode: new ObjectId(storeCode),
             _id: new ObjectId(id)
         }, {
             description: deliveryDistrict.description,
