@@ -40,4 +40,6 @@ export default interface ICloudService {
     addDeliveryOrder(storeCode: string, order: IDeliveryOrder) : Promise<void>;
 
     setEstablishment(storeCode: string, data: Partial<IEstablishments>) : Promise<void>;
+
+    establishmentEventNotify(storeCode: string, date: Date) : Promise<void>;
 }

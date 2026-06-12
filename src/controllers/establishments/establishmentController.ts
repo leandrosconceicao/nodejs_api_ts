@@ -182,7 +182,7 @@ export default class EstablishmentsController {
         try {
             const {storeCode} = req.result;
 
-            this.cloudService.setDeliveryDistricts(storeCode.toString(), new Date());
+            this.cloudService.establishmentEventNotify(storeCode.toString(), new Date());
         } catch (e) {
             next(e);
         } finally {
@@ -194,7 +194,7 @@ export default class EstablishmentsController {
         try {
             const {storeCode} = req.result;
 
-            this.cloudService.setDeliveryDistricts(storeCode.toString(), new Date());
+            this.cloudService.establishmentEventNotify(storeCode.toString(), new Date());
         } catch (e) {
             next(e);
         } finally {
