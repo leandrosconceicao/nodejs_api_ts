@@ -4,7 +4,7 @@ declare global {
     namespace Express {
         interface Request {
             result?: any;
-            authenticatedUser?: IUsers
+            autenticatedUser?: IUsers
         }
     }
 }

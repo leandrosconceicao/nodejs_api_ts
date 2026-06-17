@@ -12,7 +12,7 @@ export default async (req: express.Request, res: express.Response, next: NextFun
         const authUserData = z.object({
             id: idValidation,
             group_user: z.string().optional()
-        }).parse(TokenGenerator.verify(req.headers.authorization));
+        }).parse(TokenGenerator.verify(req.headers.authorization ?? ""));
     
         const updatedBy = await Users.findById(authUserData.id);
 
