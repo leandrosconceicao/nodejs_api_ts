@@ -67,6 +67,9 @@ export default class MongoOrderRepository implements IOrderRepository {
 
         if (deliveryOrder.status === OrderStatus.preparation && data.status === OrderStatus.preparation)
             throw new BadRequestError("Pedido já está em produção")
+
+        if (deliveryOrder.status === OrderStatus.pending && data.status == OrderStatus.preparation)
+            throw new BadRequestError("Pedido pendente não pode iniciar preparação, realize o aceite do pedido primeiro.")
         
         if (data.status === OrderStatus.finished && !deliveryOrder?.orderId)
             throw new BadRequestError("Pedido não pode ser finalizado, verifique se o pedido foi aceito.");
