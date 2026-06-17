@@ -11,9 +11,10 @@
         "sourceMap": true,
         "resolveJsonModule": true,
         "forceConsistentCasingInFileNames": true,
+        "skipLibCheck": true,
         "outDir": "./build",
         "lib": [
-          "ES2021.String",
+          "ES2021",
           "dom"
         ],
         "baseUrl": "./src",
