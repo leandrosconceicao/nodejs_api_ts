@@ -21,7 +21,7 @@ const deliveryOrdersSchema = new mongoose.Schema({
         type: String,
         default: 'pending',
         enum: {
-            values: ["pending", "accepted", "cancelled", "onTheWay"],
+            values: ["pending", "accepted", "cancelled", "onTheWay", "finished", "preparation", "denied"],
             message: "O status {VALUE} não é um valor permitido"
         }
     },
