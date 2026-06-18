@@ -124,7 +124,7 @@ export default class OrdersController {
         try {
             const id = idValidation.parse(req.params.id);
 
-            const process = await this.orderRepository.delete(id, req.autenticatedUser.id);
+            const process = await this.orderRepository.delete(id, req.autenticatedUser?.id);
             
             req.result = process;
             
@@ -142,7 +142,7 @@ export default class OrdersController {
                 userTo: idValidation
             }).parse(req.body);
 
-            const process = await this.orderRepository.changeSeller(id, body.userTo, req.autenticatedUser.id);
+            const process = await this.orderRepository.changeSeller(id, body.userTo, req.autenticatedUser?.id);
 
             return ApiResponse.success(process).send(res);
         } catch (e) {
@@ -235,7 +235,7 @@ export default class OrdersController {
                 })
             }).parse(req.body);
 
-            const updateOrder = await this.orderRepository.applyDiscount(orderId, body.discount, req.autenticatedUser.id);            
+            const updateOrder = await this.orderRepository.applyDiscount(orderId, body.discount, req.autenticatedUser?.id);            
 
             ApiResponse.success(updateOrder).send(res);
 
@@ -258,7 +258,7 @@ export default class OrdersController {
             })
             .parse(req.body)
 
-            const orders = await this.orderRepository.setPreparationBatch(req.autenticatedUser.id, body)
+            const orders = await this.orderRepository.setPreparationBatch(req.autenticatedUser?.id ?? "", body)
 
             await Promise.all(
                 orders.map((e) => this.notifyUsers(e.order, e.isReady))
@@ -352,7 +352,7 @@ export default class OrdersController {
 
             const deliveryOrder = await this.orderRepository.getDeliveryOrderById(storeCode, id);
 
-            const deletedDeliveryOrder = await this.orderRepository.updateDeliveryOrder(deliveryOrder.storeCode.toString(), deliveryOrder._id.toString(), {
+            const deletedDeliveryOrder = await this.orderRepository.updateDeliveryOrder(deliveryOrder.storeCode.toString(), deliveryOrder._id?.toString() ?? "", {
                 status: OrderStatus.cancelled,
             })
 
@@ -364,7 +364,7 @@ export default class OrdersController {
     }
 
     private async notifyUsers(process: IOrder, isReady: boolean) : Promise<void> {
-        const user = await this.userRepository.findOne(process.createdBy.toString());
+        const user = await this.userRepository.findOne(process.createdBy?.toString() ?? "");
         if (user?.token) {
             let info;
             if (process.orderType == OrderType.account) {
@@ -382,7 +382,7 @@ export default class OrdersController {
 
             const companies = await this.establishmentRepository.findAll();
 
-            await Promise.all(companies.map((e) => this.cloudService.checkPreparationOrders(e._id.toString(), e.diffDaysToCleanPreparation)));
+            await Promise.all(companies.map((e) => this.cloudService.checkPreparationOrders(e._id?.toString() ?? "", e.diffDaysToCleanPreparation)));
             
             return ApiResponse.success().send(res);
         } catch (e) {
