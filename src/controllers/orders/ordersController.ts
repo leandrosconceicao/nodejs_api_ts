@@ -400,4 +400,20 @@ export default class OrdersController {
             next();
         }
     }
+
+    getClientOrders = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+
+            const storeCode = req.params.storeCode;
+            const clientPhoneNumber = req.params.phoneNumber;
+            
+            idValidation.parse(storeCode);
+
+            const query = await this.establishmentRepository.getClientorders(storeCode, clientPhoneNumber);
+            
+            return ApiResponse.success(query).send(res);
+        } catch (e) {
+            next(e);
+        }
+    }
 }
