@@ -10,6 +10,7 @@ import { IEstablishments } from "./Establishments";
 import { IPayment } from "./Payments";
 import { DateQuery } from "../utils/PeriodQuery";
 import Counters from "./Counters";
+import { IDeliveryOrder } from "../domain/types/IDeliveryOrder";
 var ObjectId = mongoose.Types.ObjectId;
 
 enum OrderType {
@@ -97,10 +98,10 @@ orderSchema.post("save", async function (doc, next) {
       count += 1;
   } else {
       const now = new Date();
-      if (counter.createDate.toLocaleDateString() !== now.toLocaleDateString()) {
+      if (counter?.createDate?.toLocaleDateString() !== now.toLocaleDateString()) {
           count += 1;
       } else {
-          count = counter.seq_value + 1;
+          count = (counter?.seq_value ?? 0) + 1;
       }
   }
   await Promise.all([
@@ -157,7 +158,7 @@ orderSchema.virtual("paymentDetail", {
 })
 
 orderSchema.virtual("totalTip").get(function() {
-  const tot = this.products.reduce((a, b) => a + (b.tipValue * b.totalProduct), 0.0);
+  const tot = this.products.reduce((a, b) => a + ((b.tipValue ?? 0) * (b.totalProduct ?? 0)), 0.0);
   return parseFloat(tot.toFixed(2));
 });
 
@@ -331,5 +332,10 @@ interface IFirebaseOrder {
 }
 
 const Orders = mongoose.model<IOrder>("orders", orderSchema);
+
+export interface IClientOrders {
+  orders: IOrder[],
+  delivery: IDeliveryOrder[]
+}
 
 export {Orders, orderSchema, orderValidation, orderProductValidation, IOrder, IFirebaseOrder, OrderType, OrderStatus, IOrderProduct, IAddOne, IOrderSearchQuery};
