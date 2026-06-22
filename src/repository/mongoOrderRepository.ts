@@ -13,7 +13,7 @@ import IOrderHandler from "../domain/interfaces/IOrderHandler";
 import Counters from "../models/Counters";
 import BadRequestError from "../models/errors/BadRequest";
 import IAccountRepository from "../domain/interfaces/IAccountRepository";
-import { IDeliveryOrder, ISearchDeliveryOrder } from "../domain/types/IDeliveryOrder";
+import { IDeliveryOrder, IDeliveryOrderAggregated, ISearchDeliveryOrder } from "../domain/types/IDeliveryOrder";
 import { DeliveryOrders } from "../models/orders/delivery_orders";
 import { PaymentMethods } from "../models/PaymentMethods";
 import { IProductRepository } from "../domain/interfaces/IProductRepository";
@@ -129,7 +129,7 @@ export default class MongoOrderRepository implements IOrderRepository {
         return data;
     }
 
-    getDeliveryOrders(storeCode: string, query: Partial<ISearchDeliveryOrder>): Promise<IDeliveryOrder[]> {
+    getDeliveryOrders(storeCode: string, query: Partial<ISearchDeliveryOrder>): Promise<IDeliveryOrderAggregated[]> {
         const search = <{
             storeCode?: object,
             createdAt?: object,
@@ -172,8 +172,52 @@ export default class MongoOrderRepository implements IOrderRepository {
         if (query.clientPhoneNumber) {
             search["client.phoneNumber"] = query.clientPhoneNumber;
         }
+        
+        const aggregation : any[] = [
+            {
+                $match: search
+            },
+            {
+                $group: {
+                    '_id': '$status',
+                    'quantity': { '$sum': 1 },
+                    'totalDeliveryTax': { '$sum': '$deliveryTax' },
+                    'orders': {
+                        '$push': {
+                            '_id': '$_id',
+                            'client': '$client',
+                            'deliveryTax': '$deliveryTax',
+                            'paymentMethod': '$paymentMethod',
+                            'createdAt': '$createdAt',
+                            'updatedAt': '$updatedAt',
+                            'products': '$products',
+                            'deliveryDistrictId': "$deliveryDistrictId",
+                            'subTotal': "$subTotal",
+                            'orderId': "$orderId",
+                            'storeCode': "$storeCode",
+                            'observation': "$observation",
+                        }
+                    }
+                }
+            },
+            {
+                $sort: { '_id': 1 }
+            },
+            {
+                $addFields:
+                {
+                    status: "$_id"
+                }
+            },
+            {
+                $project:
+                {
+                    _id: 0
+                }
+            }
+        ];
 
-        return DeliveryOrders.find(search)
+        return DeliveryOrders.aggregate<IDeliveryOrderAggregated>(aggregation);
     }
 
     async setPreparationBatch(updateById: string, orders: { id: string; isReady: boolean; }[]): Promise<{order: IOrder, isReady: boolean}[]> {
@@ -370,10 +414,10 @@ export default class MongoOrderRepository implements IOrderRepository {
         } else {
             const value = counter;
             const now = new Date();
-            if (value.createDate.toLocaleDateString() !== now.toLocaleDateString()) {
+            if (value.createDate?.toLocaleDateString() !== now.toLocaleDateString()) {
                 count += 1;
             } else {
-                count = value.seq_value + 1;
+                count = (value?.seq_value ?? 0.0) + 1;
             }
         }
         await Promise.all([
