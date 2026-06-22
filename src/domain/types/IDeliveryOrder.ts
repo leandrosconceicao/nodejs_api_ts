@@ -66,3 +66,10 @@ export interface IDeliveryOrder {
     totalProduct?: number,
     observation?: string,
 }
+export interface IDeliveryOrderAggregated {
+    status: OrderStatus
+    quantity: number,
+    totalDeliveryTax: number,
+    totalValue: number,
+    orders: IDeliveryOrder[],
+}

@@ -1,5 +1,5 @@
 import { IOrder, IOrderSearchQuery } from "../../models/Orders";
-import { IDeliveryOrder, ISearchDeliveryOrder } from "../types/IDeliveryOrder";
+import { IDeliveryOrder, IDeliveryOrderAggregated, ISearchDeliveryOrder } from "../types/IDeliveryOrder";
 
 export default interface IOrderRepository {
 
@@ -31,7 +31,7 @@ export default interface IOrderRepository {
 
     getDeliveryOrderById(storeCode: string, id: string) : Promise<IDeliveryOrder>;
 
-    getDeliveryOrders(storeCode: string, query: Partial<ISearchDeliveryOrder>) : Promise<IDeliveryOrder[]>;
+    getDeliveryOrders(storeCode: string, query: Partial<ISearchDeliveryOrder>) : Promise<IDeliveryOrderAggregated[]>;
 
     getDeliveryOrderByOrderId(orderId: string) : Promise<IDeliveryOrder>;
 
