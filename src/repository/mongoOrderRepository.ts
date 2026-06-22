@@ -129,7 +129,7 @@ export default class MongoOrderRepository implements IOrderRepository {
         return data;
     }
 
-    getDeliveryOrders(storeCode: string, query: Partial<ISearchDeliveryOrder>): Promise<IDeliveryOrderAggregated[]> {
+    getDeliveryOrders = async (storeCode: string, query: Partial<ISearchDeliveryOrder>): Promise<IDeliveryOrderAggregated[]> => {
         const search = <{
             storeCode?: object,
             createdAt?: object,
@@ -217,7 +217,18 @@ export default class MongoOrderRepository implements IOrderRepository {
             }
         ];
 
-        return DeliveryOrders.aggregate<IDeliveryOrderAggregated>(aggregation);
+        const deliveryOrders = await DeliveryOrders.aggregate<IDeliveryOrderAggregated>(aggregation);
+
+        const data = deliveryOrders.map(group => ({
+            ...group,
+            orders: group.orders.map((order) => new DeliveryOrders(order))
+        }));
+
+        data.forEach((e) => {
+            e.totalValue = e.orders.reduce((prev, next) => prev + (next?.subTotal ?? 0.0), 0)
+        })
+        
+        return data;
     }
 
     async setPreparationBatch(updateById: string, orders: { id: string; isReady: boolean; }[]): Promise<{order: IOrder, isReady: boolean}[]> {
