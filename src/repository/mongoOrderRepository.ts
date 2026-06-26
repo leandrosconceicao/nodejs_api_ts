@@ -217,6 +217,14 @@ export default class MongoOrderRepository implements IOrderRepository {
             }
         ];
 
+        const aggregated = Object.values(OrderStatus).map((status) => <IDeliveryOrderAggregated> {
+            status: status,
+            quantity: 0,
+            totalDeliveryTax: 0,
+            totalValue: 0,
+            orders: []
+        });
+
         const deliveryOrders = await DeliveryOrders.aggregate<IDeliveryOrderAggregated>(aggregation);
 
         const data = deliveryOrders.map(group => ({
@@ -226,9 +234,24 @@ export default class MongoOrderRepository implements IOrderRepository {
 
         data.forEach((e) => {
             e.totalValue = e.orders.reduce((prev, next) => prev + (next?.subTotal ?? 0.0), 0)
+            
+            e.totalValue = parseFloat(e.totalValue.toFixed(2));
+
+            const statusFilter = aggregated.find((filter) => filter.status == e.status);
+    
+            if (statusFilter) {
+                statusFilter.quantity = e.quantity;
+                statusFilter.totalDeliveryTax = e.totalDeliveryTax;
+                statusFilter.totalValue = e.totalValue;
+                statusFilter.orders = e.orders;
+            }
         })
+
+        aggregated
+            .sort((a, b) => a.orders.length - b.orders.length)
+            .reverse();
         
-        return data;
+        return aggregated;
     }
 
     async setPreparationBatch(updateById: string, orders: { id: string; isReady: boolean; }[]): Promise<{order: IOrder, isReady: boolean}[]> {
