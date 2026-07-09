@@ -235,11 +235,17 @@ export class OrdersMiddleware {
 
             if (users.length) {
                 const messages = users.map((e) => {
+                    const id = deliveryOrder?._id;
                     const msg : INotification = {
                         token: e.token ?? "",
                         title: "Delivery",
                         body: "Novo pedido de delivery",
                     };
+                    if (id) {
+                        msg.data = {
+                            "id": id.toString()
+                        }
+                    }
                     return msg;
                 })
                 this.cloudService.notifyMultipleUsers(messages);
