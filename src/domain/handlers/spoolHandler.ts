@@ -1,5 +1,5 @@
 import { IPrinterSpool, SpoolType } from "../types/IPrinterSpool";
-import { IOrder, IOrderProduct, Orders } from "../../models/Orders";
+import { IOrder, Orders, OrderStatus } from "../../models/Orders";
 import EscPosEncoder from "esc-pos-encoder";
 import ISpoolHandler from "../interfaces/ISpoolHandler";
 import { CashRegister, ICashRegister } from "../../models/CashRegister";
@@ -8,6 +8,10 @@ import PaymentController from "../../controllers/payments/paymentController";
 import { delay, inject, injectable, registry } from "tsyringe";
 import IAccountRepository from "../interfaces/IAccountRepository";
 import { IReceiptOrdersProducts } from "../../models/Accounts";
+import { DeliveryOrders } from "../../models/orders/delivery_orders";
+import mongoose from "mongoose";
+
+var ObjectId = mongoose.Types.ObjectId;
 
 const popuAccId = "accountDetail";
 const popuPayment = "-payments";
@@ -34,6 +38,133 @@ export default class SpoolHandler implements ISpoolHandler {
     constructor(
         @inject('IAccountRepository') private readonly accountRepository : IAccountRepository,
     ) {}
+
+    prepareDeliveryData = async (data: IPrinterSpool): Promise<IPrinterSpool> => {
+
+        const encoder = new EscPosEncoder();
+
+        const order = await DeliveryOrders.findOne({
+            _id: new ObjectId(data.deliveryId?.toString()),
+            storeCode: new ObjectId(data.storeCode?.toString())
+        });
+
+        if (!order) 
+            throw new NotFoundError("Pedido não localizado");
+
+        encoder.initialize();
+        
+         encoder
+            .newline()
+            .newline()
+            .text('ENTREGA')
+            .newline()
+            .text('Comprovante de Saida')
+            .newline();
+        
+            // Status
+            const statusText =
+            order.status === OrderStatus.pending
+                ? 'PENDENTE'
+                : order.status === OrderStatus.finished
+                ? 'ENTREGUE'
+                : 'EM ENTREGA';
+        
+            encoder.text(statusText).newline();
+            encoder.line("----------------------------");
+        
+            // ═══════════════════════════════════════════════════════════
+            // DADOS DO CLIENTE
+            // ═══════════════════════════════════════════════════════════
+            encoder.align('left').newline().text('CLIENTE').newline();
+        
+            encoder.text(this.removerAcentos(order.client.name ?? ""));
+            
+            // Telefone formatado
+            const phone = order.client.phoneNumber;
+            encoder.newline().text(`${phone}`).newline();
+        
+            encoder.line("----------------------------");
+        
+            // ═══════════════════════════════════════════════════════════
+            // ENDEREÇO DE ENTREGA
+            // ═══════════════════════════════════════════════════════════
+            encoder.newline().text('ENDERECO ENTREGA').newline();
+        
+            // Caixa de destaque (linha dupla para simular)
+            encoder.line("----------------------------");
+            encoder
+            .text(
+                `${this.removerAcentos(order.client.address ?? "")}, ${order.client.number}`
+            )
+            .newline()
+            .text(`${order.client.district}`)
+            .newline()
+            .text(`${order.client.city} - ${order.client.state}`)
+            .newline()
+            .text(`CEP: ${order.client.zipCode}`);
+            encoder.newline().line("----------------------------");
+        
+            // ═══════════════════════════════════════════════════════════
+            // PRODUTOS
+            // ═══════════════════════════════════════════════════════════
+            encoder.newline().text('ITENS DO PEDIDO').newline();
+        
+            for (const product of order.products) {
+                this.prepareProducts(encoder, product.category ?? "", product.quantity, product.unitPrice, product.orderDescription);
+                product.addOnes?.forEach((add) => {
+                    this.prepareAddOnes(encoder, add);
+                })
+            }
+        
+            encoder.line("----------------------------");
+        
+            // ═══════════════════════════════════════════════════════════
+            // VALORES
+            // ═══════════════════════════════════════════════════════════
+            encoder.text(`Produtos: ${this.formatNumber(order.totalProduct ?? 0)}`);
+        
+            encoder.newline();
+            // Taxa de entrega em destaque
+            encoder.text(`Entrega: ${this.formatNumber(order.deliveryTax ?? 0)}`);
+            
+            encoder.newline().line("----------------------------");
+        
+            // Total
+            encoder.text(`TOTAL: ${this.formatNumber(order.subTotal ?? 0)}`);
+            
+            encoder.newline().line("----------------------------");
+        
+            // ═══════════════════════════════════════════════════════════
+            // INSTRUÇÕES DO ENTREGADOR
+            // ═══════════════════════════════════════════════════════════
+            encoder.align('left');
+            encoder.newline().text('INSTRUCOES:').newline();
+            encoder.text('Conferir quantidade de itens').newline();
+            encoder.text('Verificar temperatura/estado').newline();
+            encoder.text('Obter comprovante assinado').newline();
+            encoder.text('Fotografar entrega (obr.)').newline();
+        
+            encoder.newline().line("----------------------------");
+        
+            // ═══════════════════════════════════════════════════════════
+            // RODAPÉ
+            // ═══════════════════════════════════════════════════════════
+            encoder.align('center');
+            encoder.newline();
+            encoder.text('Entrega Rapida & Segura').newline();
+            encoder.text(
+            `Data: ${this.formatDate(order.createdAt ?? new Date())}`
+            );
+        
+            encoder.newline().newline();
+        
+            // Corte de papel (ESC m)
+            encoder.raw([0x1b, 0x6d]);
+
+        data.buffer = Buffer.from(encoder.encode()).toString("base64");
+
+        return data;
+    }
 
     prepareCashRegisterData = async (data: IPrinterSpool) => {
         const encoder = new EscPosEncoder();
@@ -151,6 +282,8 @@ export default class SpoolHandler implements ISpoolHandler {
                 return this.prepareOrderData(data)
             case SpoolType.cashRegister:
                 return this.prepareCashRegisterData(data)
+            case SpoolType.delivery:
+                return this.prepareDeliveryData(data);
             default:
                 return Promise.resolve(data);
         }
@@ -431,5 +564,16 @@ export default class SpoolHandler implements ISpoolHandler {
         const result = encoder.encode();
 
         return Buffer.from(result).toString("base64");
+    }
+
+    private title(encoder: EscPosEncoder, info: string) {
+        encoder.bold(true).table(
+            [
+                { width: 32, align: "center" },
+            ],
+            [
+                [info]
+            ]
+        ).bold(false);
     }
 }
