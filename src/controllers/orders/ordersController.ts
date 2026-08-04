@@ -364,6 +364,9 @@ export default class OrdersController {
     }
 
     private async notifyUsers(process: IOrder, isReady: boolean) : Promise<void> {
+        if (!process.createdBy) {
+            return;
+        }
         const user = await this.userRepository.findOne(process.createdBy?.toString() ?? "");
         if (user?.token) {
             let info;
