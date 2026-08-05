@@ -19,7 +19,7 @@ export class TokenController {
     userValidation = async (req: express.Request, _: express.Response, next: NextFunction) => {
         try {
             
-            req.autenticatedUser = await this.validateUser(req.headers.authorization);
+            req.autenticatedUser = await this.validateUser(req.headers.authorization ?? "");
                 
             next();
         } catch (e) {
@@ -30,7 +30,7 @@ export class TokenController {
     superUserValidation = async (req: express.Request, res: express.Response, next: NextFunction) => {
         try {
 
-            const authUserData = await this.validateUser(req.headers.authorization);
+            const authUserData = await this.validateUser(req.headers.authorization ?? "");
     
             if (authUserData.group_user !== "99")
                 throw new UnauthorizedError();
@@ -43,7 +43,7 @@ export class TokenController {
 
     adminValidation = async (req: express.Request, res: express.Response, next: NextFunction) => {
         try {
-            const authUserData = await this.validateUser(req.headers.authorization);
+            const authUserData = await this.validateUser(req.headers.authorization ?? "");
     
             if (authUserData.group_user !== "99" && authUserData.group_user !== "1")
                 throw new UnauthorizedError();
@@ -75,7 +75,7 @@ export class TokenController {
 }
 export default (req: express.Request, res: express.Response, next: NextFunction) => {
     try {
-        TokenGenerator.verify(req.headers.authorization);
+        TokenGenerator.verify(req.headers.authorization ?? "");
         next();
     } catch (e) {
         next(e);

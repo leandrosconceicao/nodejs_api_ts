@@ -1,17 +1,19 @@
 import { Request, Response, NextFunction } from "express";
 import {IEstablishments, establishmentAttributes, establishmentUpdateValidation } from "../../models/Establishments";
-import {z, ZodMap} from "zod";
+import {z} from "zod";
 import ApiResponse from "../../models/base/ApiResponse";
 import { idValidation } from "../../utils/defaultValidations";
 import { autoInjectable, inject } from "tsyringe";
 import IEstablishmentRepository from "../../domain/interfaces/IEstablishmentRepository";
-import { deliveryDistrictValidation, IDeliveryDistrict } from "../../domain/types/IDeliveryDistrict";
+import { cepValidation, deliveryDistrictValidation, IDeliveryDistrict } from "../../domain/types/IDeliveryDistrict";
+import ICloudService from "../../domain/interfaces/ICloudService";
 
 @autoInjectable()
 export default class EstablishmentsController {
 
     constructor(
         @inject("IEstablishmentRepository") private readonly repository : IEstablishmentRepository,
+        @inject("ICloudService") private readonly cloudService: ICloudService
     ) {
 
     }
@@ -77,7 +79,9 @@ export default class EstablishmentsController {
 
             const process = await this.repository.update(id, establishments as Partial<IEstablishments>)
             
-            return ApiResponse.success(process).send(res);
+            req.result = process;
+
+            next();
         } catch (e) {
             next(e);
         }
@@ -87,7 +91,11 @@ export default class EstablishmentsController {
         try {
             const storeCode = idValidation.parse(req.params.storeCode);
 
-            const data = await this.repository.getDeliveryDistrict(storeCode);
+            const query = z.object({
+                cep: cepValidation.optional()
+            }).parse(req.query);
+
+            const data = await this.repository.getDeliveryDistrict(storeCode, query.cep);
 
             ApiResponse.success(data).send(res);
 
@@ -98,11 +106,18 @@ export default class EstablishmentsController {
 
     deleteDeliveryDistrict = async (req: Request, res: Response, next: NextFunction) => {
         try {
+            const storeCode = idValidation.parse(req.params.storeCode);
+
             const id = idValidation.parse(req.params.id);
 
-            await this.repository.deleteDeliveryDistrict(id);
+            await this.repository.deleteDeliveryDistrict(storeCode, id);
 
-            res.sendStatus(204);
+            req.result = {
+                storeCode,
+                _id: id
+            }
+
+            next();
 
         } catch (e) {
             next(e);
@@ -111,17 +126,21 @@ export default class EstablishmentsController {
 
     updateDeliveryDistrict = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            
+            const storeCode = idValidation.parse(req.params.storeCode);
+
             const id = idValidation.parse(req.params.id);
 
             const update = z.object({
                 description: z.string().min(1).optional(),
-                value: z.number().min(0.01).optional()
+                value: z.number().min(0.01).optional(),
+                cep: cepValidation.optional(),
             }).parse(req.body);
 
-            const updatedData = await this.repository.updateDeliveryDistrict(id, update);
+            const updatedData = await this.repository.updateDeliveryDistrict(storeCode, id, update);
 
-            ApiResponse.success(updatedData).send(res);
+            req.result = updatedData;
+
+            next();
 
         } catch (e) {
             next(e);
@@ -130,16 +149,59 @@ export default class EstablishmentsController {
 
     addDeliveryDistrict = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            
+            const storeCode = idValidation.parse(req.params.storeCode);
+
             const data = deliveryDistrictValidation.parse(req.body);
+
+            var deliveryData = data as any;
+
+            deliveryData.storeCode = storeCode;
 
             const newData = await this.repository.addDeliveryDistrict(data as IDeliveryDistrict)
 
-            ApiResponse.success(newData).send(res);
+            req.result = newData;
+
+            next();
 
         } catch (e) {
             next(e);
         }
     }
+
+    sendToFirebase = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            this.cloudService.setEstablishment(req.params.id, req.result);
+        } catch (e) {
+            next(e);
+        } finally  {
+            return ApiResponse.success(req.result).send(res);
+        }
+    }
+
+    sendDeliveryDistrictEvent = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const {storeCode} = req.result;
+
+            this.cloudService.establishmentEventNotify(storeCode.toString(), new Date());
+        } catch (e) {
+            next(e);
+        } finally {
+            return ApiResponse.success(req.result).send(res);
+        }
+    }
+
+    sendDeliveryDistrictDeleteEvent = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const {storeCode} = req.result;
+
+            this.cloudService.establishmentEventNotify(storeCode.toString(), new Date());
+        } catch (e) {
+            next(e);
+        } finally {
+            res.sendStatus(204);
+        }
+    }
+
+
 
 }

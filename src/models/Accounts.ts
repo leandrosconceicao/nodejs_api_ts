@@ -1,39 +1,38 @@
 import mongoose from "mongoose";
-import { clientsSchema, clientsSchemaValidation, IClient } from "./Clients";
+import { clientBasicInfoSchema, clientsBasicInfoValidation, IClientBasicInfo } from "./Clients";
 import {z} from "zod";
 import { idValidation } from "../utils/defaultValidations";
 import MongoId from "./custom_types/mongoose_types";
-import { IOrder } from "./Orders";
 
 var ObjectId = mongoose.Types.ObjectId;
 
 class Receipt implements IReceipt {
-    _id: mongoose.Types.ObjectId | string;
-    description: string;
-    payments: Array<IReceiptPayments>;
-    orders: Array<IOrder>
+    _id!: mongoose.Types.ObjectId | string;
+    description!: string;
+    payments!: Array<IReceiptPayments>;
+    orders!: Array<IReceiptOrders>
     totalOrder?: number;
     totalProducts?: number;
-    storeCode: mongoose.Types.ObjectId;
+    storeCode!: mongoose.Types.ObjectId | string;
     totalPayment?: number;
     totalTip?: number;
     allProductsHasTipValue?: boolean;
-    client?: IClient;
-    subTotal: number;
+    client?: IClientBasicInfo;
+    subTotal?: number;
 }
 
 interface IReceipt {
     _id: mongoose.Types.ObjectId | string;
-    storeCode: mongoose.Types.ObjectId,
+    storeCode: mongoose.Types.ObjectId | string,
     description: string,
     payments: Array<IReceiptPayments>,
-    orders: Array<IOrder>
+    orders: Array<IReceiptOrders>
     totalOrder?: number,
     totalProducts?: number,
     totalPayment?: number,
     totalTip?: number,
-    client?: IClient,
-    subTotal: number;
+    client?: IClientBasicInfo,
+    subTotal?: number;
 }
 interface IReceiptOrders {
     _id: string | mongoose.Types.ObjectId,
@@ -74,7 +73,7 @@ const accountValidation = z.object({
     storeCode: idValidation.optional(),
     updateAt: z.date().optional(),
     status: z.enum(["open", "closed", "checkSolicitation"]).optional(),
-    client: clientsSchemaValidation.optional(),
+    client: clientsBasicInfoValidation.optional(),
     created_by: idValidation.optional()
 });
 
@@ -92,7 +91,7 @@ interface IAccount {
     createdAt?: Date,
     updatedAt?: Date,
     status: AccountStatus | string,
-    client?: IClient,
+    client?: IClientBasicInfo,
     created_by: string | MongoId,
 }
 
@@ -124,7 +123,7 @@ const accountSchema = new mongoose.Schema({
         }
     },
     client: {
-        type: clientsSchema
+        type: clientBasicInfoSchema
     },
     created_by: {
         type: ObjectId, ref: 'users', required: [true, "Parametro (created_by) é obrigatório"]
@@ -139,4 +138,4 @@ accountSchema.virtual('payments');
 const Accounts = mongoose.model<IAccount>("accounts", accountSchema)
 
 
-export {accountStatus, Accounts, accountValidation, Receipt, IAccount, IReceiptOrders, IReceiptPayments, AccountStatus, IAccountSearch};
+export {accountStatus, Accounts, accountValidation, Receipt, IAccount, IReceiptOrders, IReceiptPayments, AccountStatus, IAccountSearch, IReceiptOrdersProducts};

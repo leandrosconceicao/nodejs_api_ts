@@ -1,5 +1,4 @@
 import { IPrinterSpool } from "../types/IPrinterSpool";
-import ReceiptEnconder from "@mexicocss/esc-pos-encoder-ts";
 
 
 export default interface ISpoolHandler {
@@ -7,7 +6,7 @@ export default interface ISpoolHandler {
     prepareReceiptData(spool: IPrinterSpool) : Promise<IPrinterSpool>;
     prepareOrderData(data: IPrinterSpool) : Promise<IPrinterSpool>;
     prepareCashRegisterData(data: IPrinterSpool) : Promise<IPrinterSpool>;
-    genText(encoder: ReceiptEnconder, text: string) : void;
+    prepareDeliveryData(data: IPrinterSpool) : Promise<IPrinterSpool>;
     removerAcentos(texto: string) : string
     formatNumber(value: number) : string
 }

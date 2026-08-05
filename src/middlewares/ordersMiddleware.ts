@@ -1,11 +1,17 @@
 import {Request, Response, NextFunction} from "express";
-import { IOrder, OrderStatus, OrderType} from "../models/Orders";
+import { IAddOne, IOrder, IOrderProduct, OrderStatus, OrderType} from "../models/Orders";
 import ErrorAlerts from "../utils/errorAlerts";
 import { autoInjectable, inject } from "tsyringe";
-import ICloudService from "../domain/interfaces/ICloudService";
+import ICloudService, { INotification } from "../domain/interfaces/ICloudService";
 import ApiResponse from "../models/base/ApiResponse";
 import { IDeliveryOrder } from "../domain/types/IDeliveryOrder";
 import IOrderRepository from "../domain/interfaces/IOrderRepository";
+import IUserRepository from "../domain/interfaces/IUserRepository";
+import mongoose from "mongoose";
+import { Payments } from "../models/Payments";
+import { IProductRepository } from "../domain/interfaces/IProductRepository";
+
+var ObjectId = mongoose.Types.ObjectId;
 
 @autoInjectable()
 export class OrdersMiddleware {
@@ -13,6 +19,8 @@ export class OrdersMiddleware {
     constructor(
         @inject("ICloudService") private readonly cloudService : ICloudService,
         @inject("IOrderRepository") private readonly orderRepository: IOrderRepository,
+        @inject("IUserRepository") private readonly userRepository: IUserRepository,
+        @inject("IProductRepository") private readonly productRepository: IProductRepository
     ) {}
     
     updateWithDrawMonitorBatch = (req: Request, _: Response, next: NextFunction) => {
@@ -111,7 +119,11 @@ export class OrdersMiddleware {
             
             let deliveryOrder : IDeliveryOrder = req.result;
 
-            if (deliveryOrder.status === OrderStatus.preparation) {
+            if (deliveryOrder.status === OrderStatus.accepted && deliveryOrder.orderId) {
+                return ApiResponse.badRequest("Pedido já aceito").send(res);
+            }
+
+            if (deliveryOrder.status === OrderStatus.accepted) {
                 
                 let order: Partial<IOrder> = {
                     client: deliveryOrder.client,
@@ -124,12 +136,26 @@ export class OrdersMiddleware {
 
                 order = await this.orderRepository.createOrder(order as IOrder)
 
-                deliveryOrder = await this.orderRepository.updateDeliveryOrder(deliveryOrder._id.toString(), {
+                deliveryOrder = await this.orderRepository.updateDeliveryOrder(deliveryOrder.storeCode.toString(), deliveryOrder._id?.toString() ?? "", {
                     orderId: order._id,
-                })
-            }
+                });
 
-            ApiResponse.success(deliveryOrder).send(res);
+                req.result = order;
+
+                next();
+                return;
+            }
+            if (deliveryOrder.status === OrderStatus.finished) {
+                const payment = new Payments({
+                    storeCode: deliveryOrder.storeCode,
+                    orderId: deliveryOrder.orderId,
+                    method: deliveryOrder.paymentMethod,
+                    total: deliveryOrder.subTotal
+                });
+
+                await payment.save();
+            }
+            return ApiResponse.success().send(res);
         } catch (e) {
             next(e);
         }
@@ -139,9 +165,9 @@ export class OrdersMiddleware {
         try {
             const order : IOrder = req.result;
             if (order.orderType === OrderType.delivery) {
-                const deliveryOrder = await this.orderRepository.getDeliveryOrderByOrderId(order._id.toString());
+                const deliveryOrder = await this.orderRepository.getDeliveryOrderByOrderId(order._id?.toString() ?? "");
                 if (deliveryOrder && deliveryOrder.status !== OrderStatus.cancelled) {
-                    await this.orderRepository.updateDeliveryOrder(deliveryOrder._id.toString(), {
+                    await this.orderRepository.updateDeliveryOrder(deliveryOrder.storeCode.toString(), deliveryOrder._id?.toString() ?? "", {
                         status: OrderStatus.cancelled
                     })
                 }
@@ -190,5 +216,57 @@ export class OrdersMiddleware {
             ErrorAlerts.sendAlert(e, req);
         }
         ApiResponse.success().send(res);
+    }
+
+    sendDeliveryOrderNotification = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const deliveryOrder = req.result as IDeliveryOrder;
+
+            const users = await this.userRepository.findAll({
+                storeCode: new ObjectId(deliveryOrder.storeCode.toString()),
+                isActive: true,
+                deleted: {
+                    $in: [null, false]
+                },
+                token: {
+                    $ne: ""
+                }
+            });
+
+            if (users.length) {
+                const messages = users.map((e) => {
+                    const id = deliveryOrder?._id;
+                    const msg : INotification = {
+                        token: e.token ?? "",
+                        title: "Delivery",
+                        body: "Novo pedido de delivery",
+                    };
+                    if (id) {
+                        msg.data = {
+                            "id": id.toString()
+                        }
+                    }
+                    return msg;
+                })
+                this.cloudService.notifyMultipleUsers(messages);
+            }
+            
+        } catch (e) {
+            ErrorAlerts.sendAlert(e, req);
+        } finally {
+            next();
+        }
+
+    }
+
+    sendDataToFirebase = async (req: Request, res: Response, next: NextFunction) => {
+        const order = req.result as IDeliveryOrder;
+        try {
+            await this.cloudService.addDeliveryOrder(order.storeCode.toString(), order);
+        } catch (e) {
+            ErrorAlerts.sendDefaultAlert(e as any)
+        } finally {
+            return ApiResponse.success(order).send(res);
+        }
     }
 }

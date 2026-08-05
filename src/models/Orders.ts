@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import {z} from "zod";
 import orders_products_schema from "./orders/orders_products";
-import { clientBasicInfoSchema, clientsBasicInfoValidation, IClient, IClientBasicInfo } from "./Clients";
+import { clientBasicInfoSchema, IClientBasicInfo } from "./Clients";
 import { idValidation } from "../utils/defaultValidations";
 import MongoId from "./custom_types/mongoose_types";
 import { IUsers } from "./Users";
@@ -9,6 +9,8 @@ import { IAccount } from "./Accounts";
 import { IEstablishments } from "./Establishments";
 import { IPayment } from "./Payments";
 import { DateQuery } from "../utils/PeriodQuery";
+import Counters from "./Counters";
+import { IDeliveryOrder } from "../domain/types/IDeliveryOrder";
 var ObjectId = mongoose.Types.ObjectId;
 
 enum OrderType {
@@ -87,6 +89,39 @@ orderSchema.pre("save", function(next) {
   next();
 })
 
+orderSchema.post("save", async function (doc, next) {
+  let count = 0;
+  let counter = await Counters.findOne({
+      storeCode: doc.storeCode
+  });
+  if (!counter) {
+      count += 1;
+  } else {
+      const now = new Date();
+      if (counter?.createDate?.toLocaleDateString() !== now.toLocaleDateString()) {
+          count += 1;
+      } else {
+          count = (counter?.seq_value ?? 0) + 1;
+      }
+  }
+  await Promise.all([
+      Orders.findByIdAndUpdate(doc._id.toString(), {
+          pedidosId: count
+      }, {
+        new: true
+      }),
+      Counters.updateMany({
+          storeCode: doc.storeCode
+      }, {
+          seq_value: count, 
+          createDate: new Date()
+      }, {
+          upsert: true
+      })
+  ]);
+  next();
+})
+
 orderSchema.virtual("userCreate", {
   ref: 'users',
   localField: 'createdBy',
@@ -123,7 +158,7 @@ orderSchema.virtual("paymentDetail", {
 })
 
 orderSchema.virtual("totalTip").get(function() {
-  const tot = this.products.reduce((a, b) => a + (b.tipValue * b.totalProduct), 0.0);
+  const tot = this.products.reduce((a, b) => a + ((b.tipValue ?? 0) * (b.totalProduct ?? 0)), 0.0);
   return parseFloat(tot.toFixed(2));
 });
 
@@ -132,7 +167,7 @@ orderSchema.virtual("subTotal")
     const total = this.products.reduce((a, b) => a + (b.subTotal ?? 0.0), 0.0)
     const totalProd = this.products.reduce((a, b) => a + (b.totalProduct ?? 0.0), 0.0)
     const totMinusDiscount = total - (totalProd * this.discount);
-    return parseFloat((totMinusDiscount - (this.deliveryTax ?? 0.0)).toFixed(2));
+    return parseFloat((totMinusDiscount + (this.deliveryTax ?? 0.0)).toFixed(2));
   })
 
 orderSchema.virtual("totalProduct")
@@ -199,7 +234,8 @@ enum OrderStatus {
   cancelled = 'cancelled', 
   finished = 'finished', 
   onTheWay = 'onTheWay',
-  preparation = "preparation"
+  preparation = "preparation",
+  denied = "denied"
 }
 
 interface IOrderSearchQuery {
@@ -231,7 +267,8 @@ interface IOrderProduct {
   totalProduct?: number,
   totalAddOnes?: number,
   totalTip?: number,
-  addOnes?: Array<IAddOne>      
+  addOnes?: Array<IAddOne>,
+  thumbnail?: string
 }
 
 interface IAddOne {
@@ -279,7 +316,7 @@ interface IFirebaseOrder {
   discount?: number,
   status?: OrderStatus,
   products: Array<Partial<IOrderProduct>>,
-  client?: IClient,
+  client?: IClientBasicInfo,
   createdBy?: string,
   updatedBy?: string,
   storeCode: string,
@@ -295,5 +332,10 @@ interface IFirebaseOrder {
 }
 
 const Orders = mongoose.model<IOrder>("orders", orderSchema);
+
+export interface IClientOrders {
+  orders: IOrder[],
+  delivery: IDeliveryOrder[]
+}
 
 export {Orders, orderSchema, orderValidation, orderProductValidation, IOrder, IFirebaseOrder, OrderType, OrderStatus, IOrderProduct, IAddOne, IOrderSearchQuery};

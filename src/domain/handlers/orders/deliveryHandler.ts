@@ -7,7 +7,10 @@ export class DeliveryHandler implements IOrderHandler {
     ) {}
 
     create = async (): Promise<IOrder> => {
-        return Orders.create(this.order);
+        let order = await Orders.create(this.order);
+        order = await Orders.findById(order._id);
+
+        return order;
     }
 
 

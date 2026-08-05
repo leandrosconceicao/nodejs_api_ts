@@ -15,6 +15,7 @@ import IOrderRepository from "../../domain/interfaces/IOrderRepository";
 import ICloudService from "../../domain/interfaces/ICloudService";
 import IUserRepository from "../../domain/interfaces/IUserRepository";
 import { deliveryOrdersSearchValidation, deliveryOrdersUpdateValidation, deliveryOrdersValidation, IDeliveryOrder, ISearchDeliveryOrder } from "../../domain/types/IDeliveryOrder";
+import ErrorAlerts from "../../utils/errorAlerts";
 
 export var ObjectId = mongoose.Types.ObjectId;
 
@@ -123,7 +124,7 @@ export default class OrdersController {
         try {
             const id = idValidation.parse(req.params.id);
 
-            const process = await this.orderRepository.delete(id, req.autenticatedUser.id);
+            const process = await this.orderRepository.delete(id, req.autenticatedUser?.id);
             
             req.result = process;
             
@@ -141,7 +142,7 @@ export default class OrdersController {
                 userTo: idValidation
             }).parse(req.body);
 
-            const process = await this.orderRepository.changeSeller(id, body.userTo, req.autenticatedUser.id);
+            const process = await this.orderRepository.changeSeller(id, body.userTo, req.autenticatedUser?.id);
 
             return ApiResponse.success(process).send(res);
         } catch (e) {
@@ -177,13 +178,7 @@ export default class OrdersController {
         try {
             const rawData = orderValidation.parse(req.body);
 
-            await this.establishmentRepository.checkOpening(rawData.storeCode, rawData.orderType)        
-
-            await this.establishmentRepository.validateDiscount(rawData.storeCode.toString(), rawData.discount);            
-
             const order = await this.orderRepository.createOrder(rawData as IOrder);
-
-            await this.orderRepository.updateId(order._id.toString(),  order.storeCode.toString());
 
             const updatedOrder = await this.orderRepository.findOne(`${order._id}`)
 
@@ -240,7 +235,7 @@ export default class OrdersController {
                 })
             }).parse(req.body);
 
-            const updateOrder = await this.orderRepository.applyDiscount(orderId, body.discount, req.autenticatedUser.id);            
+            const updateOrder = await this.orderRepository.applyDiscount(orderId, body.discount, req.autenticatedUser?.id);            
 
             ApiResponse.success(updateOrder).send(res);
 
@@ -263,7 +258,7 @@ export default class OrdersController {
             })
             .parse(req.body)
 
-            const orders = await this.orderRepository.setPreparationBatch(req.autenticatedUser.id, body)
+            const orders = await this.orderRepository.setPreparationBatch(req.autenticatedUser?.id ?? "", body)
 
             await Promise.all(
                 orders.map((e) => this.notifyUsers(e.order, e.isReady))
@@ -288,7 +283,9 @@ export default class OrdersController {
 
             const orderRequest = await this.orderRepository.requestDeliveryOrder(data as IDeliveryOrder);
 
-            ApiResponse.success(orderRequest, 201).send(res);
+            req.result = orderRequest;
+
+            next();
 
         } catch (e) {
             next(e);
@@ -298,9 +295,11 @@ export default class OrdersController {
     findAllDeliveryOrders = async (req: Request, res: Response, next: NextFunction) => {
         try {
 
+            const storeCode = idValidation.parse(req.params.storeCode);
+
             const data = deliveryOrdersSearchValidation.parse(req.query);
     
-            const orderRequest = await this.orderRepository.getDeliveryOrders(data);
+            const orderRequest = await this.orderRepository.getDeliveryOrders(storeCode, data);
     
             ApiResponse.success(orderRequest).send(res);
     
@@ -312,9 +311,11 @@ export default class OrdersController {
     findDeliveryOrderById = async (req: Request, res: Response, next: NextFunction) => {
         try {
 
+            const storeCode = idValidation.parse(req.params.storeCode);
+
             const id = idValidation.parse(req.params.id);
     
-            const orderRequest = await this.orderRepository.getDeliveryOrderById(id)
+            const orderRequest = await this.orderRepository.getDeliveryOrderById(storeCode, id);
     
             ApiResponse.success(orderRequest).send(res);
     
@@ -326,12 +327,14 @@ export default class OrdersController {
 
     updateDeliveryOrder = async (req: Request, res: Response, next: NextFunction) => {
         try {
+    
+            const storeCode = idValidation.parse(req.params.storeCode);
             
             const id = idValidation.parse(req.params.id);
 
             const body = deliveryOrdersUpdateValidation.parse(req.body);
 
-            const updatedOrder = await this.orderRepository.updateDeliveryOrder(id, body);
+            const updatedOrder = await this.orderRepository.updateDeliveryOrder(storeCode, id, body);
 
             req.result = updatedOrder;
 
@@ -344,8 +347,16 @@ export default class OrdersController {
 
     cancelDeliveryOrder = async (req: Request, res: Response, next: NextFunction) => {
         try {
+            const storeCode = req.params.storeCode;
             const id = req.params.id;
-            
+
+            const deliveryOrder = await this.orderRepository.getDeliveryOrderById(storeCode, id);
+
+            const deletedDeliveryOrder = await this.orderRepository.updateDeliveryOrder(deliveryOrder.storeCode.toString(), deliveryOrder._id?.toString() ?? "", {
+                status: OrderStatus.cancelled,
+            })
+
+            return ApiResponse.success(deletedDeliveryOrder).send(res);            
 
         } catch (e) {
             next(e);
@@ -353,7 +364,10 @@ export default class OrdersController {
     }
 
     private async notifyUsers(process: IOrder, isReady: boolean) : Promise<void> {
-        const user = await this.userRepository.findOne(process.createdBy.toString());
+        if (!process.createdBy) {
+            return;
+        }
+        const user = await this.userRepository.findOne(process.createdBy?.toString() ?? "");
         if (user?.token) {
             let info;
             if (process.orderType == OrderType.account) {
@@ -371,9 +385,36 @@ export default class OrdersController {
 
             const companies = await this.establishmentRepository.findAll();
 
-            await Promise.all(companies.map((e) => this.cloudService.checkPreparationOrders(e._id.toString(), e.diffDaysToCleanPreparation)));
+            await Promise.all(companies.map((e) => this.cloudService.checkPreparationOrders(e._id?.toString() ?? "", e.diffDaysToCleanPreparation)));
             
             return ApiResponse.success().send(res);
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    sendDataToFirebaseMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+        const order = req.result as IDeliveryOrder;
+        try {
+            await this.cloudService.addDeliveryOrder(order.storeCode.toString(), order);
+        } catch (e) {
+            ErrorAlerts.sendDefaultAlert(e as any)
+        } finally {
+            next();
+        }
+    }
+
+    getClientOrders = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+
+            const storeCode = req.params.storeCode;
+            const clientPhoneNumber = req.params.phoneNumber;
+            
+            idValidation.parse(storeCode);
+
+            const query = await this.establishmentRepository.getClientorders(storeCode, clientPhoneNumber);
+            
+            return ApiResponse.success(query).send(res);
         } catch (e) {
             next(e);
         }

@@ -1,4 +1,6 @@
+import { IEstablishments } from "../../models/Establishments";
 import { IOrder } from "../../models/Orders";
+import { IDeliveryOrder } from "../types/IDeliveryOrder";
 import { IPrinterSpool } from "../types/IPrinterSpool";
 
 export interface INotification {
@@ -34,4 +36,10 @@ export default interface ICloudService {
 
     checkPreparationOrders(companyId: string, days: number) : Promise<void>;
     deleteBucketFile(path: string) : Promise<void>;
+
+    addDeliveryOrder(storeCode: string, order: IDeliveryOrder) : Promise<void>;
+
+    setEstablishment(storeCode: string, data: Partial<IEstablishments>) : Promise<void>;
+
+    establishmentEventNotify(storeCode: string, date: Date) : Promise<void>;
 }

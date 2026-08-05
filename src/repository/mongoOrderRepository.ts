@@ -13,7 +13,7 @@ import IOrderHandler from "../domain/interfaces/IOrderHandler";
 import Counters from "../models/Counters";
 import BadRequestError from "../models/errors/BadRequest";
 import IAccountRepository from "../domain/interfaces/IAccountRepository";
-import { IDeliveryOrder, ISearchDeliveryOrder } from "../domain/types/IDeliveryOrder";
+import { IDeliveryOrder, IDeliveryOrderAggregated, ISearchDeliveryOrder } from "../domain/types/IDeliveryOrder";
 import { DeliveryOrders } from "../models/orders/delivery_orders";
 import { PaymentMethods } from "../models/PaymentMethods";
 import { IProductRepository } from "../domain/interfaces/IProductRepository";
@@ -52,15 +52,27 @@ export default class MongoOrderRepository implements IOrderRepository {
         })
     }
 
-    async updateDeliveryOrder(id: string, data: Partial<IDeliveryOrder>): Promise<IDeliveryOrder> {
+    async updateDeliveryOrder(storeCode: string, id: string, data: Partial<IDeliveryOrder>): Promise<IDeliveryOrder> {
         
-        const deliveryOrder = await this.getDeliveryOrderById(id);
+        const deliveryOrder = await DeliveryOrders.findOne({
+            _id: new ObjectId(id),
+            storeCode: new ObjectId(storeCode)
+        });
+
+        if (!deliveryOrder)
+            throw new NotFoundError("Pedido não localizado")
 
         if (deliveryOrder.status === OrderStatus.cancelled || deliveryOrder.status === OrderStatus.finished)
             throw new BadRequestError(`Status do pedido não permite alterações`)
 
         if (deliveryOrder.status === OrderStatus.preparation && data.status === OrderStatus.preparation)
             throw new BadRequestError("Pedido já está em produção")
+
+        if (deliveryOrder.status === OrderStatus.pending && data.status == OrderStatus.preparation)
+            throw new BadRequestError("Pedido pendente não pode iniciar preparação, realize o aceite do pedido primeiro.")
+        
+        if (data.status === OrderStatus.finished && !deliveryOrder?.orderId)
+            throw new BadRequestError("Pedido não pode ser finalizado, verifique se o pedido foi aceito.");
 
         const update = <Partial<{
             orderId: object,
@@ -84,19 +96,32 @@ export default class MongoOrderRepository implements IOrderRepository {
         
         const store = await this.establishmentRepository.findOne(order.storeCode.toString());
 
+        if (!store.services.delivery)
+            throw new BadRequestError("Serviço de delivery não está disponível no momento.");
+        
+
         const method = await PaymentMethods.findById(order.paymentMethod);
         if (!method)
             throw new NotFoundError("Metodo de pagamento não foi localizadao")
 
-        await this.productRepository.validateProducts(store._id, order.products);
+        const deliveryDiscrict = store.deliveryDistricts?.find((e) => e._id?.toString() === order.deliveryDistrictId);
+
+        if (!deliveryDiscrict)
+            throw new NotFoundError("Bairro selecionado não foi localizado");
+
+        order.deliveryTax = deliveryDiscrict.value;
+
+        await this.productRepository.validateProducts(store._id ?? "", order.products);
         
         return DeliveryOrders.create(order);
     }
 
-    async getDeliveryOrderById(id: string): Promise<IDeliveryOrder> {
-        const data = await DeliveryOrders.findById(id)
-            .populate('establishmentDetail')
-            .populate('paymentMethodDetail')
+    async getDeliveryOrderById(storeCode: string, id: string): Promise<IDeliveryOrder> {
+        const data = await DeliveryOrders.findOne({
+            _id: new ObjectId(id),
+            storeCode: new ObjectId(storeCode),
+        })
+        .populate('paymentMethodDetail')
 
         if (!data)
             throw new NotFoundError("Pedido não localizado")
@@ -104,21 +129,26 @@ export default class MongoOrderRepository implements IOrderRepository {
         return data;
     }
 
-    getDeliveryOrders(query: Partial<ISearchDeliveryOrder>): Promise<IDeliveryOrder[]> {
+    getDeliveryOrders = async (storeCode: string, query: Partial<ISearchDeliveryOrder>): Promise<IDeliveryOrderAggregated[]> => {
         const search = <{
             storeCode?: object,
             createdAt?: object,
             orderId?: object,
-            status?: string,
-            paymentMethod?: object
+            status?: string | object,
+            paymentMethod?: string | object,
+            "client.phoneNumber"?: string
         }>{};
-        if (query.storeCode) {
 
-            search.storeCode = new ObjectId(query.storeCode);
+        search.storeCode = new ObjectId(storeCode);
+
+        if (query.status && typeof(query.status) === "string") {
+            search.status = query.status;
         }
 
-        if (query.status) {
-            search.status = query.status;
+        if (query.status && typeof(query.status) === "object") {
+            search.status = {
+                $in: query.status
+            }
         }
         
         if (query.from && query.to) {
@@ -129,11 +159,99 @@ export default class MongoOrderRepository implements IOrderRepository {
             search.orderId = new ObjectId(query.orderId);
         }
 
-        if (query.paymentMethod) {
+        if (query.paymentMethod && typeof(query.paymentMethod) === "string") {
             search.paymentMethod = new ObjectId(query.paymentMethod)
         }
 
-        return DeliveryOrders.find(search)
+        if (query.paymentMethod && typeof(query.paymentMethod) === "object") {
+            search.paymentMethod = {
+                $in: query.paymentMethod.map((e) => new ObjectId(e))
+            }
+        }
+
+        if (query.clientPhoneNumber) {
+            search["client.phoneNumber"] = query.clientPhoneNumber;
+        }
+        
+        const aggregation : any[] = [
+            {
+                $match: search
+            },
+            {
+                $group: {
+                    '_id': '$status',
+                    'quantity': { '$sum': 1 },
+                    'totalDeliveryTax': { '$sum': '$deliveryTax' },
+                    'orders': {
+                        '$push': {
+                            '_id': '$_id',
+                            'client': '$client',
+                            'deliveryTax': '$deliveryTax',
+                            'paymentMethod': '$paymentMethod',
+                            'createdAt': '$createdAt',
+                            'updatedAt': '$updatedAt',
+                            'products': '$products',
+                            'deliveryDistrictId': "$deliveryDistrictId",
+                            'subTotal': "$subTotal",
+                            'orderId': "$orderId",
+                            'storeCode': "$storeCode",
+                            'observation': "$observation",
+                        }
+                    }
+                }
+            },
+            {
+                $sort: { '_id': 1 }
+            },
+            {
+                $addFields:
+                {
+                    status: "$_id"
+                }
+            },
+            {
+                $project:
+                {
+                    _id: 0
+                }
+            }
+        ];
+
+        const aggregated = Object.values(OrderStatus).map((status) => <IDeliveryOrderAggregated> {
+            status: status,
+            quantity: 0,
+            totalDeliveryTax: 0,
+            totalValue: 0,
+            orders: []
+        });
+
+        const deliveryOrders = await DeliveryOrders.aggregate<IDeliveryOrderAggregated>(aggregation);
+
+        const data = deliveryOrders.map(group => ({
+            ...group,
+            orders: group.orders.map((order) => new DeliveryOrders(order))
+        }));
+
+        data.forEach((e) => {
+            e.totalValue = e.orders.reduce((prev, next) => prev + (next?.subTotal ?? 0.0), 0)
+            
+            e.totalValue = parseFloat(e.totalValue.toFixed(2));
+
+            const statusFilter = aggregated.find((filter) => filter.status == e.status);
+    
+            if (statusFilter) {
+                statusFilter.quantity = e.quantity;
+                statusFilter.totalDeliveryTax = e.totalDeliveryTax;
+                statusFilter.totalValue = e.totalValue;
+                statusFilter.orders = e.orders;
+            }
+        })
+
+        aggregated
+            .sort((a, b) => a.orders.length - b.orders.length)
+            .reverse();
+        
+        return aggregated;
     }
 
     async setPreparationBatch(updateById: string, orders: { id: string; isReady: boolean; }[]): Promise<{order: IOrder, isReady: boolean}[]> {
@@ -153,7 +271,7 @@ export default class MongoOrderRepository implements IOrderRepository {
         return updatedOrders.map((order) => {
             return {
                 order: order,
-                isReady: orders.find((e) => e.id === order._id.toString()).isReady
+                isReady: orders.find((e) => e.id === order?._id.toString())?.isReady ?? false
             }
         });
     }
@@ -180,6 +298,10 @@ export default class MongoOrderRepository implements IOrderRepository {
     }
 
     createOrder = async (data: IOrder): Promise<IOrder> => {
+
+        await this.establishmentRepository.checkOpening(data.storeCode.toString(), data.orderType)        
+        
+        await this.establishmentRepository.validateDiscount(data.storeCode.toString(), data.discount);            
 
         await this.productRepository.validateProducts(data.storeCode.toString(), data.products);
 
@@ -228,6 +350,13 @@ export default class MongoOrderRepository implements IOrderRepository {
 
         if (!order) {
             throw new NotFoundError("Pedido não localizado");
+        }
+
+        for (let product of order.products) {
+            if (!product.productId) 
+                continue;
+            
+            product.thumbnail = await this.productRepository.getProductImage(product.productId?.toString() ?? "")
         }
 
         return order;
@@ -319,10 +448,10 @@ export default class MongoOrderRepository implements IOrderRepository {
         } else {
             const value = counter;
             const now = new Date();
-            if (value.createDate.toLocaleDateString() !== now.toLocaleDateString()) {
+            if (value.createDate?.toLocaleDateString() !== now.toLocaleDateString()) {
                 count += 1;
             } else {
-                count = value.seq_value + 1;
+                count = (value?.seq_value ?? 0.0) + 1;
             }
         }
         await Promise.all([

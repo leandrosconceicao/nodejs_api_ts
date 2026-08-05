@@ -1,12 +1,17 @@
 import { IPrinterSpool, SpoolType } from "../types/IPrinterSpool";
-import { IOrder, IOrderProduct, Orders } from "../../models/Orders";
-import ReceiptEnconder, { PrinterWidthEnum } from "@mexicocss/esc-pos-encoder-ts";
+import { IOrder, Orders, OrderStatus } from "../../models/Orders";
+import EscPosEncoder from "esc-pos-encoder";
 import ISpoolHandler from "../interfaces/ISpoolHandler";
 import { CashRegister, ICashRegister } from "../../models/CashRegister";
 import NotFoundError from "../../models/errors/NotFound";
 import PaymentController from "../../controllers/payments/paymentController";
 import { delay, inject, injectable, registry } from "tsyringe";
 import IAccountRepository from "../interfaces/IAccountRepository";
+import { IReceiptOrdersProducts } from "../../models/Accounts";
+import { DeliveryOrders } from "../../models/orders/delivery_orders";
+import mongoose from "mongoose";
+
+var ObjectId = mongoose.Types.ObjectId;
 
 const popuAccId = "accountDetail";
 const popuPayment = "-payments";
@@ -14,6 +19,12 @@ const popuOrders = "-orders";
 const popuUser = "userCreate";
 const popuEstablish = "-establishments";
 const popuPass = "-pass";
+interface ISpoolAddone {
+    quantity: number, 
+    name: string, 
+    price?: number, 
+    addOneName?: string
+}
 
 @injectable()
 @registry([
@@ -25,10 +36,138 @@ const popuPass = "-pass";
 export default class SpoolHandler implements ISpoolHandler {
 
     constructor(
-        @inject('IAccountRepository') private readonly accountRepository : IAccountRepository
+        @inject('IAccountRepository') private readonly accountRepository : IAccountRepository,
     ) {}
 
+    prepareDeliveryData = async (data: IPrinterSpool): Promise<IPrinterSpool> => {
+
+        const encoder = new EscPosEncoder();
+
+        const order = await DeliveryOrders.findOne({
+            _id: new ObjectId(data.deliveryId?.toString()),
+            storeCode: new ObjectId(data.storeCode?.toString())
+        });
+
+        if (!order) 
+            throw new NotFoundError("Pedido não localizado");
+
+        encoder.initialize();
+        
+         encoder
+            .newline()
+            .newline()
+            .text('ENTREGA')
+            .newline()
+            .text('Comprovante de Saida')
+            .newline();
+        
+            // Status
+            const statusText =
+            order.status === OrderStatus.pending
+                ? 'PENDENTE'
+                : order.status === OrderStatus.finished
+                ? 'ENTREGUE'
+                : 'EM ENTREGA';
+        
+            encoder.text(statusText).newline();
+            encoder.line("----------------------------");
+        
+            // ═══════════════════════════════════════════════════════════
+            // DADOS DO CLIENTE
+            // ═══════════════════════════════════════════════════════════
+            encoder.align('left').newline().text('CLIENTE').newline();
+        
+            encoder.text(this.removerAcentos(order.client.name ?? ""));
+            
+            // Telefone formatado
+            const phone = order.client.phoneNumber;
+            encoder.newline().text(`${phone}`).newline();
+        
+            encoder.line("----------------------------");
+        
+            // ═══════════════════════════════════════════════════════════
+            // ENDEREÇO DE ENTREGA
+            // ═══════════════════════════════════════════════════════════
+            encoder.newline().text('ENDERECO ENTREGA').newline();
+        
+            // Caixa de destaque (linha dupla para simular)
+            encoder.line("----------------------------");
+            encoder
+            .text(
+                `${this.removerAcentos(order.client.address ?? "")}, ${order.client.number}`
+            )
+            .newline()
+            .text(`${order.client.district}`)
+            .newline()
+            .text(`${order.client.city} - ${order.client.state}`)
+            .newline()
+            .text(`CEP: ${order.client.zipCode}`);
+            encoder.newline().line("----------------------------");
+        
+            // ═══════════════════════════════════════════════════════════
+            // PRODUTOS
+            // ═══════════════════════════════════════════════════════════
+            encoder.newline().text('ITENS DO PEDIDO').newline();
+        
+            for (const product of order.products) {
+                this.prepareProducts(encoder, product.category ?? "", product.quantity, product.unitPrice, product.orderDescription);
+                product.addOnes?.forEach((add) => {
+                    this.prepareAddOnes(encoder, add);
+                })
+            }
+        
+            encoder.line("----------------------------");
+        
+            // ═══════════════════════════════════════════════════════════
+            // VALORES
+            // ═══════════════════════════════════════════════════════════
+            encoder.text(`Produtos: ${this.formatNumber(order.totalProduct ?? 0)}`);
+        
+            encoder.newline();
+            // Taxa de entrega em destaque
+            encoder.text(`Entrega: ${this.formatNumber(order.deliveryTax ?? 0)}`);
+            
+            encoder.newline().line("----------------------------");
+        
+            // Total
+            encoder.text(`TOTAL: ${this.formatNumber(order.subTotal ?? 0)}`);
+            
+            encoder.newline().line("----------------------------");
+        
+            // ═══════════════════════════════════════════════════════════
+            // INSTRUÇÕES DO ENTREGADOR
+            // ═══════════════════════════════════════════════════════════
+            encoder.align('left');
+            encoder.newline().text('INSTRUCOES:').newline();
+            encoder.text('Conferir quantidade de itens').newline();
+            encoder.text('Verificar temperatura/estado').newline();
+            encoder.text('Obter comprovante assinado').newline();
+            encoder.text('Fotografar entrega (obr.)').newline();
+        
+            encoder.newline().line("----------------------------");
+        
+            // ═══════════════════════════════════════════════════════════
+            // RODAPÉ
+            // ═══════════════════════════════════════════════════════════
+            encoder.align('center');
+            encoder.newline();
+            encoder.text('Entrega Rapida & Segura').newline();
+            encoder.text(
+            `Data: ${this.formatDate(order.createdAt ?? new Date())}`
+            );
+        
+            encoder.newline().newline();
+        
+            // Corte de papel (ESC m)
+            encoder.raw([0x1b, 0x6d]);
+
+        data.buffer = Buffer.from(encoder.encode()).toString("base64");
+
+        return data;
+    }
+
     prepareCashRegisterData = async (data: IPrinterSpool) => {
+        const encoder = new EscPosEncoder();
         const cash = await CashRegister.findById<ICashRegister>(data.cashRegisterId)
             .populate("userDetail", ["-establishments", "-pass"])
             .populate("suppliersAndWithdraws")
@@ -47,33 +186,23 @@ export default class SpoolHandler implements ISpoolHandler {
             cashRegisterId: cash._id
         });
 
-        const encoder = new ReceiptEnconder();
-        
-        encoder.setPinterType(PrinterWidthEnum._58);
+        encoder.newline();
 
-        encoder.size(.5);
+        encoder.line("Registo de caixa");
 
         encoder.newline();
 
-        this.genText(encoder, "Registo de caixa");
-
-        encoder.newline();
-        encoder.newline();
-
-        this.genText(encoder, `Aberto por: ${cash.userDetail?.username ?? ""}`);
-        
-        encoder.newline();
-
-        this.genText(encoder, `Abertura: ${this.formatDate(cash.openAt)}`);
+        encoder.line(`Aberto por: ${cash.userDetail?.username ?? ""}`);
+        encoder.line(`Abertura: ${this.formatDate(cash.openAt)}`);
 
         encoder.newline();
 
         if (cash.closedAt) 
-            this.genText(encoder, `Fechamento: ${this.formatDate(cash.closedAt)}`);
+            encoder.line(`Fechamento: ${this.formatDate(cash.closedAt)}`);
 
         encoder.newline();
 
-        this.genText(encoder, `Saldo inicial: ${cash.openValue.toFixed(2)}`);
+        encoder.line(`Saldo inicial: ${this.formatNumber(cash.openValue ?? 0)}`);
 
         const incomes = cash.suppliersAndWithdraws.filter((sw) => sw.type === "supply");
 
@@ -89,47 +218,47 @@ export default class SpoolHandler implements ISpoolHandler {
 
         const operationTotal = totalReceived - totalOutcomes;
 
-        this.genText(encoder, `Total Recebido: ${totalReceived.toFixed(2)}`);
+        encoder.line(`Total Recebido: ${this.formatNumber(totalReceived)}`);
 
-        this.genText(encoder, `Total Saidas: ${(totalOutcomes).toFixed(2)}`);
+        encoder.line(`Total Saidas: ${this.formatNumber(totalOutcomes)}`);
 
-        this.genText(encoder, `Saldo Final: ${operationTotal + cash.openValue}`);
+        encoder.line(`Saldo Final: ${this.formatNumber(operationTotal + (cash.openValue ?? 0))}`);
 
         encoder.newline();
         encoder.newline();
 
-        this.genText(encoder, "Rec. p/ forma de pagamento")
+        encoder.line("Rec. p/ forma de pagamento")
 
         cash.paymentsByMethod.forEach((payment) => {
-            this.genText(encoder, `${this.removerAcentos(payment.description)}: ${payment.total.toFixed(2)}`)
+            encoder.line(`${this.removerAcentos(payment.description)}: ${this.formatNumber(payment.total)}`)
         })
 
         encoder.newline();
 
-        this.genText(encoder, `Entradas`);
+        encoder.line(`Entradas`);
 
         incomes.forEach((income) => {
-            this.genText(encoder, `${this.removerAcentos(income.description)}: ${income.value.toFixed(2)}`)
+            encoder.line(`${this.removerAcentos(income.description)}: ${this.formatNumber(income.value)}`)
         })
 
         encoder.newline();
 
-        this.genText(encoder, `Saidas`);
+        encoder.line(`Saidas`);
 
         outcomes.forEach((outcome) => {
-            this.genText(encoder, `${this.removerAcentos(outcome.description)}: ${outcome.value.toFixed(2)}`)
+            encoder.line(`${this.removerAcentos(outcome.description)}: ${this.formatNumber(outcome.value)}`)
         })
 
         if (cash.status === "closed" && cash.cashRegisterCompare.length) {
             encoder.newline();
-            this.genText(encoder, "Confronto de caixa");
+            encoder.line("Confronto de caixa");
             encoder.newline();
 
             const compare = cash.cashRegisterCompare[0];
             
             compare.valuesByMethod.forEach((method) => {
                 const methodDetail = method.methodData;
-                this.genText(encoder, `${this.removerAcentos(methodDetail.description)}: ${method.total.toFixed(2)}`)
+                encoder.line(`${this.removerAcentos(methodDetail.description)}: ${this.formatNumber(method.total)}`)
             });
 
         }
@@ -153,6 +282,8 @@ export default class SpoolHandler implements ISpoolHandler {
                 return this.prepareOrderData(data)
             case SpoolType.cashRegister:
                 return this.prepareCashRegisterData(data)
+            case SpoolType.delivery:
+                return this.prepareDeliveryData(data);
             default:
                 return Promise.resolve(data);
         }
@@ -160,51 +291,42 @@ export default class SpoolHandler implements ISpoolHandler {
     
     prepareReceiptData = async (spool: IPrinterSpool) => {
         const data = await this.accountRepository.findOne(`${spool.accountId}`)
-        const encoder = new ReceiptEnconder();
-        
-        encoder.setPinterType(PrinterWidthEnum._58);
-        encoder.size(.5);
+        const encoder = new EscPosEncoder();
+
+        encoder.initialize();
         encoder.newline();
         
-        this.genText(encoder, "EXTRATO");
+        encoder.line("EXTRATO");    
+        encoder.line(`Conta: ${data.description}`)
     
-        this.genText(encoder, `Conta: ${data.description}`)
-    
-        encoder.newline();
-        encoder.newline();
-        
-        encoder.text("Produtos").align("center");
-    
-        encoder.newline();
+        encoder.newline().align("left");
         
         const subTotal = data.totalOrder;
     
         const totPay = data.totalPayment;
         
         data.orders.forEach((orders) => {
-            this.parseProducts(encoder, orders.products);
+            this.parseProductsAccount(encoder, orders.products);
         });
                 
         encoder.newline();
 
         data.payments.forEach((payments) => {
-            encoder.text(`${this.removerAcentos(payments.description)} - ${payments.total.toFixed(2)}`).align("center")
-            encoder.emptyLine()
+            encoder.line(`${this.removerAcentos(payments.description ?? "")} - ${payments.total.toFixed(2)}`).align("center")            
         })
     
         encoder.newline();
         encoder.newline().align("left");
     
-        this.genText(encoder, `Valor do pedido: ${subTotal.toFixed(2)}`)
-        this.genText(encoder, `Total pago: ${totPay.toFixed(2)}`)
-        this.genText(encoder, `Restando: ${(subTotal - totPay).toFixed(2)}`)
+        encoder.line(`Valor do pedido: ${this.formatNumber(subTotal ?? 0)}`)
+        encoder.line(`Tx. de servico: ${this.formatNumber(data.totalTip ?? 0.0)}`)
+        encoder.line(`Total pago: ${this.formatNumber(totPay ?? 0)}`)
+        encoder.line(`Restando: ${this.formatNumber((subTotal ?? 0) - (totPay ?? 0))}`)
     
         encoder.newline();
         encoder.newline();
     
-        encoder.text(`Nome do cliente: ${this.removerAcentos(data?.client?.name ?? "")}\n`);
-        encoder.text(`Telefone: ${data?.client?.phoneNumber ?? ""}\n`);
-    
+        encoder.line(`Nome do cliente: ${this.removerAcentos(data?.client?.name ?? "")}\n`);    
         
         encoder.newline();
         encoder.newline();
@@ -214,13 +336,8 @@ export default class SpoolHandler implements ISpoolHandler {
         return spool;
     }
     
-    prepareOrderData = async (data: IPrinterSpool) => {
-        const encoder = new ReceiptEnconder();
+    prepareOrderData = async (data: IPrinterSpool) => {        
     
-        encoder.setPinterType(PrinterWidthEnum._58);
-        encoder.newline();
-        encoder.size(.5);
-        
         const order = await Orders.findById(`${data.orderId}`)
             .populate("storeCodeDetail", ["-ownerId"])
             .populate("paymentMethodDetail")
@@ -229,62 +346,10 @@ export default class SpoolHandler implements ISpoolHandler {
             .populate(popuUser, [popuEstablish, popuPass]);
         
         const parsedOrder = order as IOrder;
-    
-        encoder.text(`Numero: ${parsedOrder.pedidosId}`)
-        
-        encoder.newline();
-        
-        if (data.reprint) {
-            encoder.text("REIMPRESSAO").align("center");
-            encoder.newline();
-        }
-        encoder.text(this.formatDate(parsedOrder.createdAt))
-    
-        encoder.newline();
-        encoder.newline();
-        encoder.align("left");
-        
-        encoder.text("Produtos").align("center");
-    
-        encoder.newline();
-    
-        const subTotal = parsedOrder.subTotal;
-    
-        const totPay = parsedOrder.paymentDetail?.total ?? 0.0;
-        
-        this.parseProducts(encoder, parsedOrder.products);
 
-        encoder.newline();
-        encoder.newline().align("left");
-    
-        this.genText(encoder, `Valor do pedido: ${parsedOrder.totalProduct.toFixed(2)}`)
-        this.genText(encoder, `Desconto aplicado: ${(parsedOrder.discount * 100).toFixed(1)}%`)
-        this.genText(encoder, `Total pago: ${totPay.toFixed(2)}`)
-        this.genText(encoder, `Restando: ${(subTotal - totPay).toFixed(2)}`)
-    
-        encoder.newline();
-        encoder.newline();
-    
-    
-        this.genText(encoder, `Vendedor: ${this.removerAcentos(parsedOrder.userCreate?.username ?? "Sistema")}`);
-        encoder.text(`Nome do cliente: ${this.removerAcentos(parsedOrder?.client?.name ?? "")}\n`);
-        encoder.text(`Telefone: ${parsedOrder?.client?.phoneNumber ?? ""}\n`);
-    
-        if (parsedOrder.accountDetail)
-            this.genText(encoder, `Conta: ${this.removerAcentos(parsedOrder.accountDetail.description ?? "")}`)
-    
-        encoder.newline();
-        encoder.newline();
-        encoder.newline();
-    
-    
-        data.buffer = Buffer.from(encoder.encode()).toString("base64");
+        data.buffer = this.genererateReceipt(parsedOrder);
+
         return data;
-    }
-    
-    genText = (encoder: ReceiptEnconder, text: string) => {
-        encoder.text(text);
-        encoder.newline();
     }
     
     removerAcentos = (texto: string) => {
@@ -326,25 +391,189 @@ export default class SpoolHandler implements ISpoolHandler {
             timeZone: 'America/Sao_Paulo'
         });
     }
-
-    parseProducts = (encoder: ReceiptEnconder, products: IOrderProduct[]) => {
+    parseProductsAccount = (encoder: EscPosEncoder, products: IReceiptOrdersProducts[]) => {
         products.forEach((prod) => {
-            encoder.text(`${prod.quantity}x ${(prod.subTotal).toFixed(2)} ${this.removerAcentos(prod.orderDescription)}`).align("left");
+            this.prepareProducts(encoder, prod.category, prod.quantity, prod.unitPrice, prod.productName);     
             if (prod.addOnes?.length) {
-                encoder.emptyLine();
-                encoder.text('Complementos').align("center")
-                prod.addOnes.forEach((add) => {
-                    let hasPrice = add.price > 0;
-                    encoder.emptyLine();
-                    encoder.text(`${add.addOneName} - ${hasPrice ? `${add.quantity}x ${add.price.toFixed(2)} ` : ""}${this.removerAcentos(add.name)}`).align("left")
-                })
-                encoder.emptyLine();
-            } else {
-                encoder.emptyLine();
+                encoder.line("----------------------------")
+                prod.addOnes?.forEach((add) => {
+                    this.prepareAddOnes(encoder, {
+                        name: add.name,
+                        quantity: add.quantity ?? 0.0,
+                        price: add.price
+                    });
+                });
             }
-            encoder.text(`Obs: ${this.removerAcentos(prod.observations)}`);
-            encoder.emptyLine();
-            encoder.emptyLine();
+            encoder
+                .line("----------------------------");
+            encoder
+                .bold(true)
+                .line(`Subtotal: ${this.formatNumber(prod.totalProduct ?? 0.0)}`)
+                .newline()
+                .bold(false)
         })
+    }
+
+    private prepareProducts(encoder: EscPosEncoder, category: string, quantity: number, unitPrice: number, description?: string) {
+        const subtotal = quantity * unitPrice;
+        
+        encoder.line(this.removerAcentos(category ?? "")).bold(true)
+        .line(this.removerAcentos(description ?? "")).bold(false)
+        .table(
+            [
+                { width: 24, align: "left" },
+                { width: 8, align: "right" }
+            ],
+            [
+                [`${quantity}x ${this.formatNumber(unitPrice)}`, this.formatNumber(subtotal)]
+            ]
+        );
+    }
+
+    private prepareAddOnes(encoder: EscPosEncoder, add: ISpoolAddone) {
+        add.price ??= 0.0;
+        const showValue = add.price > 0
+        if (showValue) {
+            encoder.line(` + ${this.removerAcentos(add.name)} (${add.quantity}x)        ${this.formatNumber(add.price)}`);
+        } else {
+            encoder.line(` + ${this.removerAcentos(add.name)}`);
+        }
+    }
+
+    private receiptDetail(encoder: EscPosEncoder, subtotal: number, txService: number, discount: number, total: number) {
+        encoder.table(
+            [
+                { width: 24, align: "left" },
+                { width: 8, align: "right" }
+            ],
+            [
+                ["Subtotal", this.formatNumber(subtotal)]
+            ]
+        )
+
+        .table(
+            [
+                { width: 24, align: "left" },
+                { width: 8, align: "right" }
+            ],
+            [
+                ["Tx. servico", this.formatNumber(txService)]
+            ]
+        )
+        .table(
+            [
+                { width: 24, align: "left" },
+                { width: 8, align: "right" }
+            ],
+            [
+                ["Desc. aplicado", `- ${this.formatNumber(discount)}`]
+            ]
+        ).bold(true)
+
+        .table(
+            [
+                { width: 24, align: "left" },
+                { width: 8, align: "right" }
+            ],
+            [
+                ["TOTAl", this.formatNumber(total)]
+            ]
+        ).bold(false)
+    }
+
+    genererateReceipt = (order: IOrder) : string => {
+        const encoder = new EscPosEncoder();
+        encoder
+            .initialize()            
+
+            // Cabeçalho
+            .bold(true)
+
+            .table(
+                [
+                    { width: 32, align: "center" },
+                ],
+                [
+                    [`PEDIDO ${order.pedidosId}`]
+                ]
+            )
+            
+            .bold(false)
+            .table(
+                [
+                    { width: 32, align: "center" },
+                ],
+                [
+                    ["Recibo venda"]
+                ]
+            )
+            
+            .newline()
+            
+            .line("----------------------------")
+            
+            // Pedido
+            .align("left")
+            .line(`Cliente: ${order.client?.name}`);
+            if (order.accountDetail) {
+                encoder.line(`Conta: ${this.removerAcentos(order.accountDetail?.description ?? "")}`)
+            }
+
+            encoder.line(`Data: ${this.formatDate(order.createdAt ?? new Date())}`)
+            .line(`Operador: ${order.userCreate?.username}`)
+
+            .line("----------------------------")
+            
+            // Produto
+            .bold(false)
+            
+            order.products.forEach((product) => {
+                this.prepareProducts(encoder, product.category ?? "", product.quantity, product.unitPrice, product.orderDescription);
+                encoder.line("----------------------------")
+                product.addOnes?.forEach((add) => {
+                    this.prepareAddOnes(encoder, add);
+                })
+                encoder.line("----------------------------")
+                
+                if (product.observations) encoder.line(`Obs.: ${product.observations}`)
+                    
+                encoder
+                    .bold(true)
+                    .line(`Subtotal: ${this.formatNumber(product.totalProduct ?? 0.0)}`)
+                    .newline()
+                    .bold(false)
+            });
+
+            encoder.align("left")
+            .line("----------------------------")
+
+
+            this.receiptDetail(encoder, order.totalProduct ?? 0.0, order.totalTip ?? 0.0, order.discount ?? 0.0, order.subTotal ?? 0.0)
+
+            encoder.line("----------------------------")
+
+            .newline()
+
+            .line("Obrigado!")
+            .line("Volte sempre")
+            .newline()
+            .qrcode(order._id?.toString() ?? "", 1)
+            .newline()
+            .cut();
+
+        const result = encoder.encode();
+
+        return Buffer.from(result).toString("base64");
+    }
+
+    private title(encoder: EscPosEncoder, info: string) {
+        encoder.bold(true).table(
+            [
+                { width: 32, align: "center" },
+            ],
+            [
+                [info]
+            ]
+        ).bold(false);
     }
 }

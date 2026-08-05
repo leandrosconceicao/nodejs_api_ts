@@ -10,7 +10,7 @@ const CHAT_ID = process.env.TELEGRAM_CHAT_ID;
 
 export default class ErrorAlerts {
 
-    static async sendAlert(error: Error, req: Request) {
+    static async sendAlert(error: unknown, req: Request) {
         
         try {
             await axios.post(`${TELEGRAM_API_URL}/bot${BOT_TOKEN}/sendMessage`, {
@@ -22,7 +22,7 @@ export default class ErrorAlerts {
         }
     }
 
-    static async sendDefaultAlert(error: Error, info: any = undefined) {
+    static async sendDefaultAlert(error: unknown, info: any = undefined) {
         
         try {
             await axios.post(`${TELEGRAM_API_URL}/bot${BOT_TOKEN}/sendMessage`, {

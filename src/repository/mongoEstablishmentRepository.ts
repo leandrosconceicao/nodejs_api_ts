@@ -4,7 +4,7 @@ import { Establishments, IEstablishments } from "../models/Establishments";
 import NotFoundError from "../models/errors/NotFound";
 import mongoose from "mongoose";
 import ICloudService from "../domain/interfaces/ICloudService";
-import { OrderType } from "../models/Orders";
+import { IClientOrders, OrderType } from "../models/Orders";
 import BadRequestError from "../models/errors/BadRequest";
 import { IDeliveryDistrict } from "../domain/types/IDeliveryDistrict";
 import { DeliveryDistrict } from "../models/DeliveryDistricts";
@@ -37,17 +37,26 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
         return DeliveryDistrict.create(data);
     }
 
-    async getDeliveryDistrict(storeCode: string): Promise<IDeliveryDistrict[]> {
-        const data = await DeliveryDistrict.find({
+    async getDeliveryDistrict(storeCode: string, cep?: string): Promise<IDeliveryDistrict[]> {
+        const query : Partial<IDeliveryDistrict> = {
             storeCode: new ObjectId(storeCode),
-            deleted: undefined
-        })
+            deleted: undefined,
+        };
+
+        if (cep) {
+            query.cep = cep;
+        }
+
+        const data = await DeliveryDistrict.find(query);
 
         return data;
     }
 
-    private findDeliveryDistrictById = async (id: string) : Promise<IDeliveryDistrict> => {
-        const data = await DeliveryDistrict.findById(id);
+    private findDeliveryDistrictById = async (storeCode: string, id: string) : Promise<IDeliveryDistrict> => {
+        const data = await DeliveryDistrict.findOne({
+            storeCode: new ObjectId(storeCode),
+            _id: new ObjectId(id)
+        });
 
         if (!data) 
             throw new NotFoundError("Registro não localizado");
@@ -55,9 +64,9 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
         return data;
     }
 
-    async deleteDeliveryDistrict(id: string): Promise<IDeliveryDistrict> {
+    async deleteDeliveryDistrict(storeCode: string, id: string): Promise<IDeliveryDistrict> {
         
-        const data = await this.findDeliveryDistrictById(id);
+        const data = await this.findDeliveryDistrictById(storeCode, id);
 
         return DeliveryDistrict.findByIdAndUpdate(data._id, {
             deleted: true
@@ -66,13 +75,24 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
         });
     }
 
-    updateDeliveryDistrict = async (id: string, data: Partial<IDeliveryDistrict>): Promise<IDeliveryDistrict> => {
+    updateDeliveryDistrict = async (storeCode: string, id: string, data: Partial<IDeliveryDistrict>): Promise<IDeliveryDistrict> => {
         
-        await this.findDeliveryDistrictById(id);        
+        let deliveryDistrict = await this.findDeliveryDistrictById(storeCode, id);
+
+        if (data.description) deliveryDistrict.description = data.description;
+
+        if (data.value) deliveryDistrict.value = data.value;
+
+        if (data.cep) deliveryDistrict.cep = data.cep;
 
         return DeliveryDistrict.findOneAndUpdate({
+            storeCode: new ObjectId(storeCode),
             _id: new ObjectId(id)
-        }, data, {
+        }, {
+            description: deliveryDistrict.description,
+            value: deliveryDistrict.value,
+            cep: deliveryDistrict.cep,
+        }, {
             new: true
         });
     }
@@ -171,5 +191,71 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
 
         return establishment;
     }
+    
+    getClientorders = async (storeCode: string, clientPhoneNumber: string): Promise<IClientOrders | undefined> => {
+        const values = await Establishments.aggregate<IClientOrders>([
+        {
+            $match: {
+                _id: new ObjectId(storeCode)
+            }
+        },
+        {
+            $lookup: {
+            from: "orders",
+            localField: "_id",
+            foreignField: "storeCode",
+            as: "orders",
+            pipeline: [{
+                    $match: {
+                        "orderType": "withdraw",
+                        status: {
+                            $in: ["pending", "finished"]
+                        },
+                        "client.phoneNumber": clientPhoneNumber
+                    }
+                }]
+            }
+        },
+        {
+            $lookup: {
+                from: "deliveryorders",
+                localField: "_id",
+                foreignField: "storeCode",
+                as: "deliveryorders",
+                pipeline: [{
+                    $match: {
+                        "client.phoneNumber": clientPhoneNumber
+                    }
+                }]
+            }
+        },
+        {
+            $project: {
+                "_id": 0,
+                "orders._id": 1,
+                "orders.orderType": 1,
+                "orders.accepted": 1,
+                "orders.status": 1,
+                "orders.observations": 1,
+                "orders.storeCode": 1,
+                "orders.payment": 1,
+                "orders.pedidosId": 1,
+                "orders.createdBy": 1,
+                "orders.createdAt": 1,
+                "orders.discount": 1,
+                "deliveryorders._id": 1,
+                "deliveryorders.storeCode": 1,
+                "deliveryorders.deliveryTax": 1,
+                "deliveryorders.status": 1,
+                "deliveryorders.paymentMethod": 1,
+                "deliveryorders.createdAt": 1,
+                "deliveryorders.updatedAt": 1,
+            }
+        }
+        ])
 
+        if ((values?.length ?? 0) === 0) return undefined;
+
+        return values[0];
+    }
 }

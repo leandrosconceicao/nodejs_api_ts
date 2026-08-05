@@ -1,5 +1,5 @@
 import { IEstablishments } from "../../models/Establishments";
-import { OrderType } from "../../models/Orders";
+import { IClientOrders, OrderType } from "../../models/Orders";
 import { IDeliveryDistrict } from "../types/IDeliveryDistrict";
 
 export default interface IEstablishmentRepository {
@@ -20,9 +20,11 @@ export default interface IEstablishmentRepository {
 
     addDeliveryDistrict(data: IDeliveryDistrict) : Promise<IDeliveryDistrict>;
 
-    getDeliveryDistrict(storeCode: string) : Promise<IDeliveryDistrict[]>;
+    getDeliveryDistrict(storeCode: string, cep?: string) : Promise<IDeliveryDistrict[]>;
 
-    deleteDeliveryDistrict(id: string) : Promise<IDeliveryDistrict>;
+    deleteDeliveryDistrict(storeCode: string, id: string) : Promise<IDeliveryDistrict>;
 
-    updateDeliveryDistrict(id: string, data: Partial<IDeliveryDistrict>) : Promise<IDeliveryDistrict>;
+    updateDeliveryDistrict(storeCode: string, id: string, data: Partial<IDeliveryDistrict>) : Promise<IDeliveryDistrict>;
+
+    getClientorders(storeCode: string, clientPhoneNumber: string) : Promise<IClientOrders | undefined>;
 }

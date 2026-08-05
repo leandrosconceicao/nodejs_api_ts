@@ -46,9 +46,10 @@ interface IUserSearchQuery {
     pass?: string,
     group_user?: string,
     username?: any,
-    deleted?: any,
+    deleted?: boolean | object,
     email?: string,
-    isActive?: boolean
+    isActive?: boolean,
+    token?: string | object
 }
 
 interface IUsers {

@@ -7,6 +7,7 @@ enum SpoolType {
     order = "order",
     account_receipt = "account_receipt",
     cashRegister = "cashRegister",
+    delivery = "delivery",
     other = "other",
 }
 
@@ -25,7 +26,10 @@ const PRINTER_SPOOL_VALIDATION = z.object({
         }),
         z.object({
             cashRegisterId: idValidation
-        })
+        }),
+        z.object({
+            deliveryId: idValidation
+        }),
     ])
 )
 
@@ -36,6 +40,7 @@ interface IPrinterSpool {
     orderId?: MongoId | string,
     accountId?: MongoId | string,
     cashRegisterId?: MongoId | string,
+    deliveryId?: MongoId | string,
     type: SpoolType,
     buffer?: string,
     createdAt?: Date | string,

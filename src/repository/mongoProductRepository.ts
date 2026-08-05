@@ -38,7 +38,7 @@ export class MongoProductRepository implements IProductRepository {
         
         const company = await this.findByCompanyFilter(storeCode, productId);
 
-        if (!company.images.some((e) => e.thumbnail)) {
+        if (!(company.images?.some((e) => e.thumbnail) ?? false)) {
             file.thumbnail = true;
         }
 
@@ -148,7 +148,7 @@ export class MongoProductRepository implements IProductRepository {
         
         const product = await this.findByCompanyFilter(storeCode, productId);
 
-        const imageIndex = product.images.findIndex(img => img.filename === file.filename && img.link === file.link);
+        const imageIndex = product.images?.findIndex(img => img.filename === file.filename && img.link === file.link);
 
         if (imageIndex === -1) {
             throw new NotFoundError('Image not found');
@@ -175,4 +175,12 @@ export class MongoProductRepository implements IProductRepository {
         return update;
         
     }
+
+    getProductImage = async (productId: string): Promise<string> => {
+        const product = await Products.findById(productId, {
+            images: 1
+        });
+
+        return product?.thumbnail ?? "";
+    }    
 }
