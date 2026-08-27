@@ -175,4 +175,4 @@ interface IEstablishments {
 
 const Establishments = mongoose.model<IEstablishments>('establishments', schema);
 
-export {schema, Establishments, establishmentAttributes, IEstablishments, establishmentUpdateValidation }
+export {schema, Establishments, establishmentAttributes, IEstablishments, establishmentUpdateValidation, GeolocationType }
