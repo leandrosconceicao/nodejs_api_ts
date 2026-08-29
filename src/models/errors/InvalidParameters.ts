@@ -6,8 +6,6 @@ export default class InvalidParameter extends ApiResponse {
         super({
             statusProcess: false,
             message: `Parametro obrigatório (${validation.parameter}) é inválido ou não foi informado.${validation.info ?? ""}`,
-            dados: null,
-            tecnical: null,
             status: 406,
         });
     }

@@ -5,7 +5,6 @@ type ApiInfo<T> = {
     statusProcess: boolean;
     message: string;
     status: number;
-    tecnical?: string;
     dados?: T;
 }
 
@@ -21,7 +20,7 @@ export default class ApiResponse<T={}> extends Error {
             statusProcess: true,
             message: "Success",
             status: statusCode ?? 200,
-            dados: data ?? null
+            dados: data ?? undefined
         });
     }
 
@@ -29,7 +28,6 @@ export default class ApiResponse<T={}> extends Error {
         return new ApiResponse({
             statusProcess: false,
             message: "O servidor não conseguiu processar a requisição, estaremos analisando o caso",
-            tecnical: tecnical,
             status: 500
         });
     }
@@ -43,7 +41,7 @@ export default class ApiResponse<T={}> extends Error {
     }
 
     static invalidParameter(parameter?: z.ZodIssue[]) : ApiResponse {
-        const message = parameter.map((err) => `Parametro (${err.path.length ? err.path : 'ID'}) é inválido, ${err.message}`).join(", ");
+        const message = parameter?.map((err) => `Parametro (${err.path.length ? err.path : 'ID'}) é inválido, ${err.message}`)?.join(", ") ?? "";
         return new ApiResponse({
             statusProcess: false,
             message: message,
