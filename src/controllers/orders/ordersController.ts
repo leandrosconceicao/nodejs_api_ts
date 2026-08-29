@@ -14,6 +14,7 @@ import IUserRepository from "../../domain/interfaces/IUserRepository";
 import { deliveryOrdersSearchValidation, deliveryOrdersUpdateValidation, deliveryOrdersValidation, IDeliveryOrder } from "../../domain/types/IDeliveryOrder";
 import ErrorAlerts from "../../utils/errorAlerts";
 import { OrderDto } from "../../domain/dtos/orders/orders_dto";
+import { DeliveryOrderDto } from "../../domain/dtos/orders/delivery_orders_dto";
 
 export var ObjectId = mongoose.Types.ObjectId;
 
@@ -325,7 +326,7 @@ export default class OrdersController {
     
             const orderRequest = await this.orderRepository.getDeliveryOrderById(storeCode, id);
 
-            ApiResponse.success(orderRequest).send(res);
+            ApiResponse.success(new DeliveryOrderDto(orderRequest)).send(res);
 
         } catch (e) {
             next(e);
@@ -409,22 +410,6 @@ export default class OrdersController {
             ErrorAlerts.sendDefaultAlert(e as any)
         } finally {
             next();
-        }
-    }
-
-    getClientOrders = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-
-            const storeCode = req.params.storeCode;
-            const clientPhoneNumber = req.params.phoneNumber;
-
-            idValidation.parse(storeCode);
-
-            const query = await this.establishmentRepository.getClientorders(storeCode, clientPhoneNumber);
-
-            return ApiResponse.success(query).send(res);
-        } catch (e) {
-            next(e);
         }
     }
 }
