@@ -3,7 +3,6 @@ import { Request, Response, NextFunction } from "express";
 import ApiResponse from "../../models/base/ApiResponse";
 import { IPaymentByMethod, PAYMENT_SEARCH_VALIDATION, Payments, paymentValidation } from "../../models/Payments";
 import NotFoundError from "../../models/errors/NotFound";
-import PixChargesController from "./pixChargesController";
 import { getOpenCashRegister } from "./cashRegisterController";
 import { idValidation } from "../../utils/defaultValidations";
 import z from "zod";
@@ -201,12 +200,4 @@ export default class PaymentController {
             }
           ]);
     }
-}
-
-async function cancelCharge(payments: Array<any>) {
-    const data = payments.filter((e) => e.value.txId !== undefined);
-    if (!data.length) {
-        return;
-    }
-    await PixChargesController.onCancelPix(data);
 }
