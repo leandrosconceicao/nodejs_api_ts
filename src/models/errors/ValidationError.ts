@@ -7,8 +7,6 @@ export default class ValidationError extends ApiResponse {
         super({
             statusProcess: false,
             message: `Os seguintes erros foram encontrados: ${msg}`,
-            dados: null,
-            tecnical: null,
             status: 400,
         });
     }

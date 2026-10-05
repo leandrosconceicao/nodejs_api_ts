@@ -1,18 +1,19 @@
 import { Request, Response, NextFunction } from "express";
-import {IEstablishments, establishmentAttributes, establishmentUpdateValidation } from "../../models/Establishments";
-import {z} from "zod";
+import { IEstablishments, establishmentAttributes, establishmentUpdateValidation } from "../../models/Establishments";
+import { z } from "zod";
 import ApiResponse from "../../models/base/ApiResponse";
 import { idValidation } from "../../utils/defaultValidations";
 import { autoInjectable, inject } from "tsyringe";
 import IEstablishmentRepository from "../../domain/interfaces/IEstablishmentRepository";
 import { cepValidation, deliveryDistrictValidation, IDeliveryDistrict } from "../../domain/types/IDeliveryDistrict";
 import ICloudService from "../../domain/interfaces/ICloudService";
+import { EstablishmentResponseDto } from "../../domain/dtos/establishment/establishment_dto";
 
 @autoInjectable()
 export default class EstablishmentsController {
 
     constructor(
-        @inject("IEstablishmentRepository") private readonly repository : IEstablishmentRepository,
+        @inject("IEstablishmentRepository") private readonly repository: IEstablishmentRepository,
         @inject("ICloudService") private readonly cloudService: ICloudService
     ) {
 
@@ -39,10 +40,10 @@ export default class EstablishmentsController {
                 }),
                 idValidation
             ]).parse(req.params.id);
-            
+
             const establishment = await this.repository.findOne(id);
-            
-            return ApiResponse.success(establishment).send(res);
+
+            return ApiResponse.success(new EstablishmentResponseDto(establishment)).send(res);
         } catch (e) {
             next(e);
         }
@@ -61,10 +62,10 @@ export default class EstablishmentsController {
 
     delete = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const id = idValidation.parse(req.params.id);            
+            const id = idValidation.parse(req.params.id);
 
             const process = await this.repository.delete(id);
-            
+
             return ApiResponse.success(process).send(res);
         } catch (e) {
             next(e);
@@ -78,7 +79,7 @@ export default class EstablishmentsController {
             const establishments = establishmentUpdateValidation.parse(req.body);
 
             const process = await this.repository.update(id, establishments as Partial<IEstablishments>)
-            
+
             req.result = process;
 
             next();
@@ -173,14 +174,14 @@ export default class EstablishmentsController {
             this.cloudService.setEstablishment(req.params.id, req.result);
         } catch (e) {
             next(e);
-        } finally  {
+        } finally {
             return ApiResponse.success(req.result).send(res);
         }
     }
 
     sendDeliveryDistrictEvent = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const {storeCode} = req.result;
+            const { storeCode } = req.result;
 
             this.cloudService.establishmentEventNotify(storeCode.toString(), new Date());
         } catch (e) {
@@ -192,7 +193,7 @@ export default class EstablishmentsController {
 
     sendDeliveryDistrictDeleteEvent = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const {storeCode} = req.result;
+            const { storeCode } = req.result;
 
             this.cloudService.establishmentEventNotify(storeCode.toString(), new Date());
         } catch (e) {

@@ -20,6 +20,7 @@ import { IProductRepository } from "../domain/interfaces/IProductRepository";
 import { IClientBasicInfo } from "../models/Clients";
 import { DeliveryHandler } from "../domain/handlers/orders/deliveryHandler";
 import { PeriodQuery } from "../utils/PeriodQuery";
+import { DeliveryOrderDto } from "../domain/dtos/orders/delivery_orders_dto";
 
 var ObjectId = mongoose.Types.ObjectId;
 
@@ -243,7 +244,7 @@ export default class MongoOrderRepository implements IOrderRepository {
                 statusFilter.quantity = e.quantity;
                 statusFilter.totalDeliveryTax = e.totalDeliveryTax;
                 statusFilter.totalValue = e.totalValue;
-                statusFilter.orders = e.orders;
+                statusFilter.orders = DeliveryOrderDto.toList(e.orders);
             }
         })
 

@@ -3,19 +3,18 @@ import {z} from "zod";
 import { booleanStringValidation, idValidation } from "../../utils/defaultValidations";
 import { PeriodQuery } from "../../utils/PeriodQuery";
 import { Request, Response, NextFunction } from "express";
-import { Validators } from "../../utils/validators";
 import { IOrder, IOrderSearchQuery, Orders, OrderStatus, OrderType, orderValidation } from "../../models/Orders";
 import ApiResponse from "../../models/base/ApiResponse";
-import {Accounts} from "../../models/Accounts";
-import InvalidParameter from "../../models/errors/InvalidParameters";
 import LogsController from "../logs/logsController";
 import { autoInjectable, inject } from "tsyringe";
 import IEstablishmentRepository from "../../domain/interfaces/IEstablishmentRepository";
 import IOrderRepository from "../../domain/interfaces/IOrderRepository";
 import ICloudService from "../../domain/interfaces/ICloudService";
 import IUserRepository from "../../domain/interfaces/IUserRepository";
-import { deliveryOrdersSearchValidation, deliveryOrdersUpdateValidation, deliveryOrdersValidation, IDeliveryOrder, ISearchDeliveryOrder } from "../../domain/types/IDeliveryOrder";
+import { deliveryOrdersSearchValidation, deliveryOrdersUpdateValidation, deliveryOrdersValidation, IDeliveryOrder } from "../../domain/types/IDeliveryOrder";
 import ErrorAlerts from "../../utils/errorAlerts";
+import { OrderDto } from "../../domain/dtos/orders/orders_dto";
+import { DeliveryOrderDto } from "../../domain/dtos/orders/delivery_orders_dto";
 
 export var ObjectId = mongoose.Types.ObjectId;
 
@@ -46,13 +45,13 @@ export default class OrdersController {
 
             const order = await this.orderRepository.findOne(id);
 
-            return ApiResponse.success(order).send(res);
+            return ApiResponse.success(new OrderDto(order)).send(res);
         } catch (e) {
             next(e);
         }
     }
 
-    findAll = async (req: Request, res: Response, next: NextFunction) => {
+    findAll = async (req: Request, _: Response, next: NextFunction) => {
         try {
             const today = new Date();
             const optionalTo = `${new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59, 999).toISOString()}`;
@@ -115,6 +114,16 @@ export default class OrdersController {
             
             req.result = this.orderRepository.findAll(query);
             next();
+        } catch (e) {
+            next(e);
+        }
+    }
+
+    parsedFindAll = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const orders = OrderDto.toList(req.result);
+
+            return ApiResponse.success(orders).send(res);
         } catch (e) {
             next(e);
         }
@@ -316,20 +325,20 @@ export default class OrdersController {
             const id = idValidation.parse(req.params.id);
     
             const orderRequest = await this.orderRepository.getDeliveryOrderById(storeCode, id);
-    
-            ApiResponse.success(orderRequest).send(res);
-    
+
+            ApiResponse.success(new DeliveryOrderDto(orderRequest)).send(res);
+
         } catch (e) {
             next(e);
         }
-        
+
     }
 
     updateDeliveryOrder = async (req: Request, res: Response, next: NextFunction) => {
         try {
-    
+
             const storeCode = idValidation.parse(req.params.storeCode);
-            
+
             const id = idValidation.parse(req.params.id);
 
             const body = deliveryOrdersUpdateValidation.parse(req.body);
@@ -356,14 +365,14 @@ export default class OrdersController {
                 status: OrderStatus.cancelled,
             })
 
-            return ApiResponse.success(deletedDeliveryOrder).send(res);            
+            return ApiResponse.success(deletedDeliveryOrder).send(res);
 
         } catch (e) {
             next(e);
         }
     }
 
-    private async notifyUsers(process: IOrder, isReady: boolean) : Promise<void> {
+    private async notifyUsers(process: IOrder, isReady: boolean): Promise<void> {
         if (!process.createdBy) {
             return;
         }
@@ -381,12 +390,12 @@ export default class OrdersController {
     }
 
     checkPreparationOrders = async (req: Request, res: Response, next: NextFunction) => {
-        try {                      
+        try {
 
             const companies = await this.establishmentRepository.findAll();
 
             await Promise.all(companies.map((e) => this.cloudService.checkPreparationOrders(e._id?.toString() ?? "", e.diffDaysToCleanPreparation)));
-            
+
             return ApiResponse.success().send(res);
         } catch (e) {
             next(e);
@@ -401,22 +410,6 @@ export default class OrdersController {
             ErrorAlerts.sendDefaultAlert(e as any)
         } finally {
             next();
-        }
-    }
-
-    getClientOrders = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-
-            const storeCode = req.params.storeCode;
-            const clientPhoneNumber = req.params.phoneNumber;
-            
-            idValidation.parse(storeCode);
-
-            const query = await this.establishmentRepository.getClientorders(storeCode, clientPhoneNumber);
-            
-            return ApiResponse.success(query).send(res);
-        } catch (e) {
-            next(e);
         }
     }
 }
