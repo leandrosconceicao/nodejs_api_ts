@@ -5,8 +5,8 @@ type ApiInfo<T> = {
     statusProcess: boolean;
     message: string;
     status: number;
-    tecnical?: string;
-    dados?: T;
+    tecnical?: string | null;
+    dados?: T | null;
 }
 
 export default class ApiResponse<T={}> extends Error {
@@ -43,7 +43,7 @@ export default class ApiResponse<T={}> extends Error {
     }
 
     static invalidParameter(parameter?: z.ZodIssue[]) : ApiResponse {
-        const message = parameter.map((err) => `Parametro (${err.path.length ? err.path : 'ID'}) é inválido, ${err.message}`).join(", ");
+        const message = parameter?.map((err) => `Parametro (${err.path.length ? err.path : 'ID'}) é inválido, ${err.message}`)?.join(", ") ?? "";
         return new ApiResponse({
             statusProcess: false,
             message: message,

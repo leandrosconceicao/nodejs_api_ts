@@ -26,9 +26,9 @@ export default class ProductHandler implements IProductHandler {
         
         const product = await this.findByCompanyFilter(storeCode, id);
         
-        this.deleteImages(storeCode, id, product.images);
+        this.deleteImages(storeCode, id, product.images ?? []);
         
-        await this.repository.delete(product._id.toString());
+        await this.repository.delete(product._id?.toString() ?? "");
     }
     
     private validateIdQuery(storeCode: string, id: string) {
@@ -49,7 +49,7 @@ export default class ProductHandler implements IProductHandler {
         
         const newProduct = await this.repository.add(data);
         
-        await this.uploadImages(newProduct.storeCode.toString(), newProduct._id.toString(), images as IProductImages[]);
+        await this.uploadImages(newProduct.storeCode.toString(), newProduct._id?.toString() ?? "", images as IProductImages[]);
         
         return newProduct;
     }
@@ -83,7 +83,7 @@ export default class ProductHandler implements IProductHandler {
 
         z.string().base64(base64String).nonempty();
         
-        const link = await this.uploadFile(product.storeCode.toString(), product._id.toString(), file.originalname, base64String);
+        const link = await this.uploadFile(product.storeCode.toString(), product._id?.toString() ?? "", file.originalname, base64String);
 
         await this.repository.addImage(storeCode, productId, {
             filename: file.originalname,
@@ -118,7 +118,7 @@ export default class ProductHandler implements IProductHandler {
                 let element = images[image];
                 try {
                 
-                    const link = await this.uploadFile(storeCode, productId, element.filename, element.base64)
+                    const link = await this.uploadFile(storeCode, productId, element.filename, element.base64 ?? "")
                     
                     element.link = link;    
 
@@ -178,7 +178,7 @@ export default class ProductHandler implements IProductHandler {
                 }
             }
 
-            await this.repository.update(product._id.toString(), {
+            await this.repository.update(product._id?.toString() ?? "", {
                 isActive: prod.isActive,
                 preco: prod.preco,
                 category: prod.category,

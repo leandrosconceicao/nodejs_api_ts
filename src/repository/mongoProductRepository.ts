@@ -20,7 +20,7 @@ var ObjectId = mongoose.Types.ObjectId;
 ])
 export class MongoProductRepository implements IProductRepository {    
 
-    removeImage = async (storeCode: string, productId: string, file: { filename: string; link: string; }): Promise<IProduct> => {
+    removeImage = async (storeCode: string, productId: string, file: { filename: string; link: string; }): Promise<IProduct | null> => {
         await this.findByCompanyFilter(storeCode, productId);
 
         const update = await Products.findByIdAndUpdate(new ObjectId(productId), {
@@ -34,7 +34,7 @@ export class MongoProductRepository implements IProductRepository {
         return update;
     }
 
-    async addImage(storeCode: string, productId: string, file: IProductImages): Promise<IProduct> {
+    async addImage(storeCode: string, productId: string, file: IProductImages): Promise<IProduct | null> {
         
         const company = await this.findByCompanyFilter(storeCode, productId);
 
@@ -66,7 +66,7 @@ export class MongoProductRepository implements IProductRepository {
         return product;
     }
 
-    update = async (id: string, data: Partial<IProduct>): Promise<IProduct> => {
+    update = async (id: string, data: Partial<IProduct>): Promise<IProduct | null> => {
 
         const product = await this.findOne(id);
 
@@ -126,7 +126,7 @@ export class MongoProductRepository implements IProductRepository {
         return product;
     }
 
-    getById(id: string) : Promise<IProduct> {
+    getById(id: string) : Promise<IProduct | null> {
         return Products.findById(id).populate('category');
     }
     
@@ -144,7 +144,7 @@ export class MongoProductRepository implements IProductRepository {
         }
     }
 
-    setProductThumbnail = async (storeCode: string, productId: string, file: IProductImages): Promise<IProduct> => {
+    setProductThumbnail = async (storeCode: string, productId: string, file: IProductImages): Promise<IProduct | null> => {
         
         const product = await this.findByCompanyFilter(storeCode, productId);
 

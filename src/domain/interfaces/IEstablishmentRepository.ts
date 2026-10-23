@@ -10,9 +10,9 @@ export default interface IEstablishmentRepository {
 
     add(newEstablishment: IEstablishments) : Promise<IEstablishments>;
 
-    delete(id: string) : Promise<IEstablishments>
+    delete(id: string) : Promise<IEstablishments | null>
 
-    update(id: string, data: Partial<IEstablishments>): Promise<IEstablishments>
+    update(id: string, data: Partial<IEstablishments>): Promise<IEstablishments | null>
 
     checkOpening(id: string, orderType: OrderType) : Promise<void>
 
@@ -22,9 +22,9 @@ export default interface IEstablishmentRepository {
 
     getDeliveryDistrict(storeCode: string, cep?: string) : Promise<IDeliveryDistrict[]>;
 
-    deleteDeliveryDistrict(storeCode: string, id: string) : Promise<IDeliveryDistrict>;
+    deleteDeliveryDistrict(storeCode: string, id: string) : Promise<IDeliveryDistrict | null>;
 
-    updateDeliveryDistrict(storeCode: string, id: string, data: Partial<IDeliveryDistrict>) : Promise<IDeliveryDistrict>;
+    updateDeliveryDistrict(storeCode: string, id: string, data: Partial<IDeliveryDistrict>) : Promise<IDeliveryDistrict | null>;
 
     getClientorders(storeCode: string, clientPhoneNumber: string) : Promise<IClientOrders | undefined>;
 }

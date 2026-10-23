@@ -7,7 +7,6 @@ import BadRequestError from "../models/errors/BadRequest";
 import NotFoundError from "../models/errors/NotFound";
 import ICloudService from "../domain/interfaces/ICloudService";
 import { delay, inject, injectable, registry } from "tsyringe";
-import { query } from "express";
 import MenuItems from "../models/MenuItems";
 
 
@@ -94,7 +93,7 @@ export default class MongoCategoryRepository implements ICategoryRepository {
         );
     }
 
-    async update(id: string, data: Partial<{ nome: string; image: string; }>): Promise<ICategory> {
+    async update(id: string, data: Partial<{ nome: string; image: string; }>): Promise<ICategory | null> {
         
         await this.getCategoryData(id);
 
@@ -102,7 +101,7 @@ export default class MongoCategoryRepository implements ICategoryRepository {
     }
 
     
-    async deleteOne(id: string): Promise<ICategory> {
+    async deleteOne(id: string): Promise<ICategory | null> {
         
         await this.getCategoryData(id);
 
@@ -117,7 +116,7 @@ export default class MongoCategoryRepository implements ICategoryRepository {
         return new Category(category).save();
     }
 
-    findOne(id: string): Promise<ICategory> {
+    findOne(id: string): Promise<ICategory | null> {
         return Category.findById(id);
     }
 

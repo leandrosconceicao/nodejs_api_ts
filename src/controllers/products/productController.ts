@@ -110,7 +110,7 @@ export default class ProductController {
 
     deleteProduct = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            await this.handler.deleteProduct(req.params.storeCode, req.params.id);
+            await this.handler.deleteProduct(req.params.storeCode.toString(), req.params.id.toString());
 
             return ApiResponse.success().send(res);
         } catch (e) {

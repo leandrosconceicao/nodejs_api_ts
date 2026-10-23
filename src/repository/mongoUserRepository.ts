@@ -50,7 +50,7 @@ export default class MongoUserRepository implements IUserRepository {
         return user;
     }
 
-    updateUser(id: string, data: Partial<IUsers>): Promise<IUsers> {
+    updateUser(id: string, data: Partial<IUsers>): Promise<IUsers | null> {
         return Users.findByIdAndUpdate(id, data, { new: true });
     }
 
@@ -80,7 +80,7 @@ export default class MongoUserRepository implements IUserRepository {
         return Users.create(data);
     }
 
-    delete(id: string, updatedById: string): Promise<IUsers> {
+    delete(id: string, updatedById: string): Promise<IUsers | null> {
         return Users.findOneAndUpdate({
             _id: new ObjectId(id)
         }, {

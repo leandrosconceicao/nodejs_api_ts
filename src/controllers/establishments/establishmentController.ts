@@ -170,7 +170,7 @@ export default class EstablishmentsController {
 
     sendToFirebase = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            this.cloudService.setEstablishment(req.params.id, req.result);
+            this.cloudService.setEstablishment(req.params.id.toString(), req.result);
         } catch (e) {
             next(e);
         } finally  {
