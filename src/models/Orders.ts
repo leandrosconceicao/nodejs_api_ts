@@ -82,11 +82,10 @@ const orderSchema = new mongoose.Schema({
   timestamps: true
 });
 
-orderSchema.pre("save", function(next) {
+orderSchema.pre("save", function() {
   if (this.discount) {
     this.discount = this.discount / 100;
   }
-  next();
 })
 
 orderSchema.post("save", async function (doc, next) {

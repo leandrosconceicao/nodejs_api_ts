@@ -32,7 +32,7 @@ export default class MongoAccountRepository implements IAccountRepository {
         return (await Accounts.findById(id, {status: -1}))?.status === "open"
     }
 
-    update(id: string, data: object): Promise<IAccount> {
+    update(id: string, data: object): Promise<IAccount | null> {
         return Accounts.findByIdAndUpdate(id, data, {new: true});
     }
 
@@ -56,9 +56,11 @@ export default class MongoAccountRepository implements IAccountRepository {
         if (checkData.orders.length) {
             throw new BadRequestError("Conta não pode ser excluida, conta possui pedidos realizados");
         }
-        return Accounts.findByIdAndUpdate(id, {
+        const account = await Accounts.findByIdAndUpdate(id, {
             deleted_id: id
         })
+
+        return account!;
     }
 
     async findOne(accountId: string): Promise<Receipt> {

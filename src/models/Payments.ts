@@ -17,6 +17,7 @@ const valueSchema = new mongoose.Schema({
 });
 
 interface IPayment {
+    _id: any,
     accountId?: mongoose.Types.ObjectId,
     cashRegisterId: mongoose.Types.ObjectId,
     userCreate: mongoose.Types.ObjectId,

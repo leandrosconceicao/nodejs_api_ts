@@ -3,18 +3,15 @@ import {z} from "zod";
 import { booleanStringValidation, idValidation } from "../../utils/defaultValidations";
 import { PeriodQuery } from "../../utils/PeriodQuery";
 import { Request, Response, NextFunction } from "express";
-import { Validators } from "../../utils/validators";
 import { IOrder, IOrderSearchQuery, Orders, OrderStatus, OrderType, orderValidation } from "../../models/Orders";
 import ApiResponse from "../../models/base/ApiResponse";
-import {Accounts} from "../../models/Accounts";
-import InvalidParameter from "../../models/errors/InvalidParameters";
 import LogsController from "../logs/logsController";
 import { autoInjectable, inject } from "tsyringe";
 import IEstablishmentRepository from "../../domain/interfaces/IEstablishmentRepository";
 import IOrderRepository from "../../domain/interfaces/IOrderRepository";
 import ICloudService from "../../domain/interfaces/ICloudService";
 import IUserRepository from "../../domain/interfaces/IUserRepository";
-import { deliveryOrdersSearchValidation, deliveryOrdersUpdateValidation, deliveryOrdersValidation, IDeliveryOrder, ISearchDeliveryOrder } from "../../domain/types/IDeliveryOrder";
+import { deliveryOrdersSearchValidation, deliveryOrdersUpdateValidation, deliveryOrdersValidation, IDeliveryOrder } from "../../domain/types/IDeliveryOrder";
 import ErrorAlerts from "../../utils/errorAlerts";
 
 export var ObjectId = mongoose.Types.ObjectId;
@@ -350,7 +347,7 @@ export default class OrdersController {
             const storeCode = req.params.storeCode;
             const id = req.params.id;
 
-            const deliveryOrder = await this.orderRepository.getDeliveryOrderById(storeCode, id);
+            const deliveryOrder = await this.orderRepository.getDeliveryOrderById(storeCode.toString(), id.toString());
 
             const deletedDeliveryOrder = await this.orderRepository.updateDeliveryOrder(deliveryOrder.storeCode.toString(), deliveryOrder._id?.toString() ?? "", {
                 status: OrderStatus.cancelled,
@@ -363,10 +360,11 @@ export default class OrdersController {
         }
     }
 
-    private async notifyUsers(process: IOrder, isReady: boolean) : Promise<void> {
-        if (!process.createdBy) {
-            return;
-        }
+    private async notifyUsers(process: IOrder | null, isReady: boolean) : Promise<void> {
+        if (!process) return;
+
+        if (!process.createdBy) return;
+        
         const user = await this.userRepository.findOne(process.createdBy?.toString() ?? "");
         if (user?.token) {
             let info;
@@ -412,7 +410,7 @@ export default class OrdersController {
             
             idValidation.parse(storeCode);
 
-            const query = await this.establishmentRepository.getClientorders(storeCode, clientPhoneNumber);
+            const query = await this.establishmentRepository.getClientorders(storeCode.toString(), clientPhoneNumber.toString());
             
             return ApiResponse.success(query).send(res);
         } catch (e) {

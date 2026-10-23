@@ -4,6 +4,7 @@ import { IApp, QuerySearch } from "../domain/types/IApp";
 import Apps from "../models/Apps";
 import BadRequestError from "../models/errors/BadRequest";
 import NotFoundError from "../models/errors/NotFound";
+import { deleteApp } from "firebase-admin";
 
 @injectable()
 @registry([
@@ -22,7 +23,9 @@ export class MongoAppRepository implements IAppRepository {
         
         await this.findOne(id);
 
-        return Apps.findByIdAndUpdate(id, newData, {new: true});
+        const app = await Apps.findByIdAndUpdate(id, newData, {new: true});
+
+        return app!;
 
     }
 
@@ -45,11 +48,13 @@ export class MongoAppRepository implements IAppRepository {
     async delete(id: string) : Promise<IApp> {
         const app = await this.findOne(id);
 
-        return Apps.findOneAndDelete({
+        const deletedApp = await Apps.findOneAndDelete({
             _id: app.id
         }, {
             new: true
-        })
+        });
+
+        return deletedApp!;
     }
 
 

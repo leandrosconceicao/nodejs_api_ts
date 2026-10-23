@@ -3,19 +3,19 @@ import { IDeliveryOrder, IDeliveryOrderAggregated, ISearchDeliveryOrder } from "
 
 export default interface IOrderRepository {
 
-    findOne(id: string) : Promise<IOrder>;
+    findOne(id: string) : Promise<IOrder | null>;
 
     findAll(query: Partial<IOrderSearchQuery>) : Promise<Array<IOrder>>;
 
-    delete(id: string, updatedById: string) : Promise<IOrder>;
+    delete(id: string, updatedById: string) : Promise<IOrder | null>;
 
     setPreparation(id: string, updateById: string, isReady: boolean) : Promise<IOrder>;
 
-    setPreparationBatch(updateById: string, orders: {id: string, isReady: boolean}[]) : Promise<{order: IOrder, isReady: boolean}[]>
+    setPreparationBatch(updateById: string, orders: {id: string, isReady: boolean}[]) : Promise<{order: IOrder | null, isReady: boolean}[]>
 
-    changeSeller(orderId: string, userIdTo: string, updatedById: string) : Promise<IOrder>;
+    changeSeller(orderId: string, userIdTo: string, updatedById: string) : Promise<IOrder | null>;
 
-    applyDiscount(orderId: string, discount: number, updatedById: string) : Promise<IOrder>;
+    applyDiscount(orderId: string, discount: number, updatedById: string) : Promise<IOrder | null>;
 
     getOrdersFromAccount(accountId: string) : Promise<Array<IOrder>>;
 
@@ -33,7 +33,7 @@ export default interface IOrderRepository {
 
     getDeliveryOrders(storeCode: string, query: Partial<ISearchDeliveryOrder>) : Promise<IDeliveryOrderAggregated[]>;
 
-    getDeliveryOrderByOrderId(orderId: string) : Promise<IDeliveryOrder>;
+    getDeliveryOrderByOrderId(orderId: string) : Promise<IDeliveryOrder | null>;
 
     updateDeliveryOrder(storeCode: string, id: string, data: Partial<IDeliveryOrder>) : Promise<IDeliveryOrder>;
 }

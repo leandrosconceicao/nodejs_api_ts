@@ -20,7 +20,7 @@ export default class ReportHandler {
             createDate: DateQuery
         } = {
             storeCode: new ObjectId(query.storeCode),
-            createDate: new PeriodQuery(query.from, query.to).build()
+            createDate: new PeriodQuery(query.from ?? "", query.to ?? "").build()
         }
 
         return PaymentMethods.aggregate<IPaymentsByMethods>([
@@ -119,7 +119,7 @@ export default class ReportHandler {
         orders: orders,
         payments: payments,
         totalPayments: payments.reduce((a, b) => a + (b.total), 0.0),
-        totalOrders: orders.reduce((a, b) => a + (b.subTotal), 0.0)
+        totalOrders: orders.reduce((a, b) => a + (b.subTotal ?? 0), 0.0)
       }
     }
 }

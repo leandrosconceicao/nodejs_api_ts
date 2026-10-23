@@ -3,7 +3,7 @@ import { IUsers, IUserSearchQuery } from "../../models/Users";
 export default interface IUserRepository {
     addUser(data: IUsers) : Promise<IUsers>;
 
-    delete(id: string, updatedById: string) : Promise<IUsers>;
+    delete(id: string, updatedById: string) : Promise<IUsers | null>;
 
     findOne(id: string) : Promise<IUsers>;
 
@@ -11,7 +11,7 @@ export default interface IUserRepository {
 
     updateUserToken(id: string, token: string) : Promise<void>;
 
-    updateUser(id: string, data: Partial<IUsers>) : Promise<IUsers>;
+    updateUser(id: string, data: Partial<IUsers>) : Promise<IUsers | null>;
 
     autenticateUser(email: string, password: string) : Promise<IUsers>;
 

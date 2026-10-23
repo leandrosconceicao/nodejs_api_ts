@@ -21,7 +21,7 @@ class CashRegisterController implements BaseController {
         try {
             const authUserData = z.object({
                 id: idValidation
-            }).parse(TokenGenerator.verify(req.headers.authorization));
+            }).parse(TokenGenerator.verify(req.headers.authorization ?? ""));
             const rawData = cashRegisterCreationValidation.parse(req.body);
             rawData.created_by = authUserData.id;
             await checkIfUserExists(rawData.created_by);
@@ -126,7 +126,7 @@ class CashRegisterController implements BaseController {
             const id = idValidation.parse(req.params.id);
             const authUserData = z.object({
                 id: idValidation,
-            }).parse(TokenGenerator.verify(req.headers.authorization));
+            }).parse(TokenGenerator.verify(req.headers.authorization ?? ""));
             const cashIsOpen = await getOpenCashRegister(authUserData.id);
             if (!cashIsOpen) {
                 throw new CashRegisterError("Não é possível inserir movimentação, caixa não está aberto.");

@@ -13,15 +13,15 @@ export interface IProductRepository {
 
     delete(id: string) : Promise<void>;
 
-    update(id: string, data: Partial<IProduct>) : Promise<IProduct>;
+    update(id: string, data: Partial<IProduct>) : Promise<IProduct | null>;
 
     validateProducts(storeCode: string, products: IOrderProduct[]) : Promise<void>;
 
-    addImage(storeCode: string, productId: string, file: IProductImages) : Promise<IProduct>;
+    addImage(storeCode: string, productId: string, file: IProductImages) : Promise<IProduct | null>;
 
-    setProductThumbnail(storeCode: string, productId: string, file: IProductImages) : Promise<IProduct>;
+    setProductThumbnail(storeCode: string, productId: string, file: IProductImages) : Promise<IProduct | null>;
 
-    removeImage(storeCode: string, productId: string, file: IProductImages) : Promise<IProduct>;    
+    removeImage(storeCode: string, productId: string, file: IProductImages) : Promise<IProduct | null>;    
 
     getProductImage(productId: string) : Promise<string>;
 }

@@ -41,7 +41,7 @@ orders_products_schema.virtual("totalTip").get(
 orders_products_schema.virtual("subTotal")
   .get(function() {
     let subTotal = this.totalProduct ?? 0.0;
-    return subTotal + this.totalTip
+    return subTotal + (this.totalTip ?? 0)
   })
 
   orders_products_schema.virtual("totalAddOnes")
@@ -52,7 +52,7 @@ orders_products_schema.virtual("subTotal")
 
 orders_products_schema.virtual("totalProduct")
   .get(function() {
-    let subTotal = (this.quantity * this.unitPrice) + this.totalAddOnes;
+    let subTotal = (this.quantity * this.unitPrice) + (this.totalAddOnes ?? 0);
     return subTotal
   })
 
