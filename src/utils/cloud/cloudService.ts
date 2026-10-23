@@ -2,7 +2,7 @@ import { delay, inject, injectable, registry } from "tsyringe";
 import ICloudService, { INotification } from "../../domain/interfaces/ICloudService";
 import {getStorage, getDownloadURL} from "firebase-admin/storage";
 import { getDatabase, Reference } from "firebase-admin/database";
-import { messaging } from "firebase-admin";
+import {getMessaging} from "firebase-admin/messaging";
 import ErrorAlerts from "../errorAlerts";
 import ISpoolHandler from "../../domain/interfaces/ISpoolHandler";
 import { IPrinterSpool } from "../../domain/types/IPrinterSpool";
@@ -65,7 +65,7 @@ export default class CloudService implements ICloudService {
 
     async notifyMultipleUsers(messages: INotification[]): Promise<void> {
         try {
-            const instance = messaging();
+            const instance = getMessaging();
             await instance.sendEach(
                 messages.map((e) => this.setNotification(e.token, e.title, e.body, e.data))
             )
@@ -138,7 +138,7 @@ export default class CloudService implements ICloudService {
 
     async notifyUsers(token: string, title?: string, body?: string, data?: {[key: string]: string}): Promise<void> {
         try {
-            const instance = messaging();
+            const instance = getMessaging();
             await instance.send(this.setNotification(token, title, body, data))
         } catch (e) {
             ErrorAlerts.sendDefaultAlert(e);

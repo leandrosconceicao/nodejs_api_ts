@@ -4,17 +4,17 @@ export default interface ICategoryRepository {
 
     findAll(storeCode: string, id?: string, nome?: string) : Promise<Array<ICategory>>
 
-    findOne(id: string) : Promise<ICategory>
+    findOne(id: string) : Promise<ICategory | null>
 
     add(category: ICategory) : Promise<ICategory>
 
-    deleteOne(id: string) : Promise<ICategory>
+    deleteOne(id: string) : Promise<ICategory | null>
 
     update(id: string, data: Partial<{
         nome: string,
         image: string
       }>
-    ) : Promise<ICategory>
+    ) : Promise<ICategory | null>
 
     updateOrdenation(storeCode: string, data: Array<{
         id?: string,

@@ -41,7 +41,7 @@ class UserController {
   delete = async (req: Request, res: Response, next: Function) => {
     try {
       const id = idValidation.parse(req.params.id);
-
+      
       const process = await this.userRepository.delete(id, req.autenticatedUser?.id)
 
       return ApiResponse.success(new UserDto(process)).send(res);

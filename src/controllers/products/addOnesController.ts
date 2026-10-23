@@ -69,7 +69,7 @@ export default class AddOneController {
 
                 if (values.type) addOne.type = values.type;
 
-                addOne.maxQtdAllowed = values.maxQtdAllowed ?? null;
+                addOne.maxQtdAllowed = values.maxQtdAllowed ?? undefined;
 
                 if (values.items) addOne.items = values.items;
 
@@ -91,8 +91,7 @@ export default class AddOneController {
 
             const obj = z.object({
                 movement: z.enum(["push", "pull"], {
-                    description: "Opção inválida",
-                    required_error: "Movimentação de entrada ou saída é obrigatória"
+                    error: "Opção inválida"
                 }),
                 item: z.object({
                     name: z.string().min(1),

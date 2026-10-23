@@ -5,7 +5,8 @@ type ApiInfo<T> = {
     statusProcess: boolean;
     message: string;
     status: number;
-    dados?: T;
+    tecnical?: string | null;
+    dados?: T | null;
 }
 
 export default class ApiResponse<T={}> extends Error {
