@@ -47,7 +47,7 @@ export default class MongoOrderRepository implements IOrderRepository {
         @inject("IProductRepository") private readonly productRepository : IProductRepository,
     ) {}
 
-    getDeliveryOrderByOrderId(orderId: string): Promise<IDeliveryOrder> {
+    getDeliveryOrderByOrderId(orderId: string): Promise<IDeliveryOrder | null> {
         return DeliveryOrders.findOne({
             orderId: new ObjectId(orderId)
         })
@@ -62,32 +62,36 @@ export default class MongoOrderRepository implements IOrderRepository {
 
         if (!deliveryOrder)
             throw new NotFoundError("Pedido não localizado")
-
+        
         if (deliveryOrder.status === OrderStatus.cancelled || deliveryOrder.status === OrderStatus.finished)
             throw new BadRequestError(`Status do pedido não permite alterações`)
-
+        
         if (deliveryOrder.status === OrderStatus.preparation && data.status === OrderStatus.preparation)
             throw new BadRequestError("Pedido já está em produção")
-
+        
         if (deliveryOrder.status === OrderStatus.pending && data.status == OrderStatus.preparation)
             throw new BadRequestError("Pedido pendente não pode iniciar preparação, realize o aceite do pedido primeiro.")
         
         if (data.status === OrderStatus.finished && !deliveryOrder?.orderId)
             throw new BadRequestError("Pedido não pode ser finalizado, verifique se o pedido foi aceito.");
-
+        
         const update = <Partial<{
             orderId: object,
             status: OrderStatus,
             client: IClientBasicInfo
         }>>{};
-
+        
         if (data.client) update.client = data.client;
-
+        
         if (data.orderId) update.orderId = new ObjectId(data.orderId.toString());
-
+        
         if (data.status) update.status = data.status;
-
+        
         const updatedOrder = await DeliveryOrders.findOneAndUpdate({_id: deliveryOrder._id,}, update, {new: true})
+        
+        if (!updatedOrder) {
+            throw new NotFoundError("Pedido não localizado");
+        }
 
         return updatedOrder;
 
@@ -255,7 +259,7 @@ export default class MongoOrderRepository implements IOrderRepository {
         return aggregated;
     }
 
-    async setPreparationBatch(updateById: string, orders: { id: string; isReady: boolean; }[]): Promise<{order: IOrder, isReady: boolean}[]> {
+    async setPreparationBatch(updateById: string, orders: { id: string; isReady: boolean; }[]): Promise<{order: IOrder | null, isReady: boolean}[]> {
         const updatedOrders = await Promise.all(
             orders.map((e) => Orders.findByIdAndUpdate(e.id, {
                 status: e.isReady ? "finished": "pending",
@@ -300,7 +304,7 @@ export default class MongoOrderRepository implements IOrderRepository {
 
     createOrder = async (data: IOrder): Promise<IOrder> => {
 
-        await this.establishmentRepository.checkOpening(data.storeCode.toString(), data.orderType)        
+        await this.establishmentRepository.checkOpening(data.storeCode.toString(), data.orderType || OrderType.frontdesk);
         
         await this.establishmentRepository.validateDiscount(data.storeCode.toString(), data.discount);            
 
@@ -326,7 +330,7 @@ export default class MongoOrderRepository implements IOrderRepository {
         return this.findOne(id)
     }
 
-    delete(id: string, updatedById: string): Promise<IOrder> {
+    delete(id: string, updatedById: string): Promise<IOrder | null> {
         return Orders.findByIdAndUpdate(id, {
             status: "cancelled",
             updated_by: new ObjectId(updatedById)
@@ -363,7 +367,7 @@ export default class MongoOrderRepository implements IOrderRepository {
         return order;
     }
 
-    async changeSeller(orderId : string, userIdTo: string, updatedById: string): Promise<IOrder> {
+    async changeSeller(orderId : string, userIdTo: string, updatedById: string): Promise<IOrder | null> {
         const userTo = await Users.findById(userIdTo);
         if (!userTo) {
             throw new NotFoundError("Vendedor de destino não existe ou não foi localizado");

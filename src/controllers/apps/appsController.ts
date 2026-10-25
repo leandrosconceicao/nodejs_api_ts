@@ -24,14 +24,14 @@ export default class AppsController {
                 version: z.string().optional(),
             }).optional().transform((value) => {
                 let query = <QuerySearch>{};
-                if (value.id) {
-                    query._id = value.id;
+                if (value?.id) {
+                    query._id = value?.id;
                 }
-                if (value.name) {
-                    query.appsName = RegexBuilder.searchByName(value.name);
+                if (value?.name) {
+                    query.appsName = RegexBuilder.searchByName(value?.name);
                 }
-                if (value.version) {
-                    query.version = value.version;
+                if (value?.version) {
+                    query.version = value?.version;
                 }
                 return query;
             }).parse(req.query);
@@ -44,7 +44,7 @@ export default class AppsController {
 
     findOne = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            let id = req.params.id;
+            const id = `${req.params.id}`;
             
             const data = await this.appRepository.findOne(id);
             

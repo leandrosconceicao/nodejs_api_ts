@@ -21,13 +21,12 @@ export default class PaymentMethodsController implements BaseController {
     async onFindAll(req: Request, res: Response, next: NextFunction) {
         try {
             const query = z.object({
-                storeCode: z.string().min(1),
-                deleted: z.object({}).optional()
+                storeCode: z.string().min(1)
             }).parse(req.query)
-            query.deleted = {
-                $eq: null
-            }
-            const data = await PaymentMethods.find(query)
+            const data = await PaymentMethods.find({
+                storeCode: query.storeCode,
+                deleted: { $eq: null }
+            })
             return ApiResponse.success(data).send(res);
         } catch (e) {
             next(e);

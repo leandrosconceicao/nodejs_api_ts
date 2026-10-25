@@ -1,7 +1,7 @@
 import {z} from "zod";
 import { idValidation } from "../../utils/defaultValidations";
 import ApiResponse from "../../models/base/ApiResponse";
-import {AccountStatus, accountValidation, IAccount} from "../../models/Accounts";
+import {AccountStatus, accountValidation, IAccount, IAccountSearch} from "../../models/Accounts";
 import mongoose from "mongoose";
 import { PeriodQuery } from "../../utils/PeriodQuery";
 import { Request, Response, NextFunction } from "express";
@@ -40,12 +40,13 @@ export default class AccountsController {
                         values.to
                     ).build();
                 }
-                delete values.from;
-                delete values.to;
 
-                return values;
+                return values as IAccountSearch;
             })
             .parse(req.query);
+
+            delete searchQuery.from;
+            delete searchQuery.to;
 
             req.result = this.accountRepository.findAll(searchQuery);
             next();
@@ -74,7 +75,7 @@ export default class AccountsController {
                 description: z.string().min(1),
                 storeCode: idValidation,
                 status: z.nativeEnum(AccountStatus).default(AccountStatus.open),
-                created_by: idValidation.default(req.autenticatedUser.id),
+                created_by: idValidation.default(req.autenticatedUser?.id),
                 client: clientsBasicInfoValidation.optional(),
             })
             .parse(req.body)
@@ -158,8 +159,8 @@ export default class AccountsController {
 
         const ACCOUNT = await this.accountRepository.findOne(accountId);
         
-        let totalPayed = ACCOUNT.totalPayment.toFixed(2);
-        let totalOrdered = ACCOUNT.totalOrder.toFixed(2);
+        let totalPayed = ACCOUNT.totalPayment?.toFixed(2) ?? "";
+        let totalOrdered = ACCOUNT.totalOrder?.toFixed(2) ?? "";
         return totalPayed === totalOrdered;
     }
 }

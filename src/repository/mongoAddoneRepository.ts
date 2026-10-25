@@ -56,7 +56,9 @@ export class MongoAddonesRepository implements IAddonesRepository {
     async update(id: string, data: object): Promise<IProductAddOne> {
         const add = await this.findOne(id);
 
-        return AddOnes.findByIdAndUpdate(add._id, data);
+        const newAddOne = await AddOnes.findByIdAndUpdate(add._id, data);
+
+        return newAddOne!;
     }
 
     async delete(id: string): Promise<void> {

@@ -64,7 +64,7 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
         return data;
     }
 
-    async deleteDeliveryDistrict(storeCode: string, id: string): Promise<IDeliveryDistrict> {
+    async deleteDeliveryDistrict(storeCode: string, id: string): Promise<IDeliveryDistrict | null> {
         
         const data = await this.findDeliveryDistrictById(storeCode, id);
 
@@ -75,7 +75,7 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
         });
     }
 
-    updateDeliveryDistrict = async (storeCode: string, id: string, data: Partial<IDeliveryDistrict>): Promise<IDeliveryDistrict> => {
+    updateDeliveryDistrict = async (storeCode: string, id: string, data: Partial<IDeliveryDistrict>): Promise<IDeliveryDistrict | null> => {
         
         let deliveryDistrict = await this.findDeliveryDistrictById(storeCode, id);
 
@@ -128,14 +128,14 @@ export default class MongoEstablishmentRespository implements IEstablishmentRepo
         }
     }
 
-    async update(id: string, data: Partial<IEstablishments>): Promise<IEstablishments> {
+    async update(id: string, data: Partial<IEstablishments>): Promise<IEstablishments | null> {
         
         return Establishments.findByIdAndUpdate(id, data, {
             new: true
         });
     }
 
-    async delete(id: string): Promise<IEstablishments> {
+    async delete(id: string): Promise<IEstablishments | null> {
         const process = await Establishments.findOneAndUpdate({
             _id: new mongoose.Types.ObjectId(id)
         }, {

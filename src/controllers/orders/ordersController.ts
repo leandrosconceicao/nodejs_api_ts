@@ -359,7 +359,7 @@ export default class OrdersController {
             const storeCode = req.params.storeCode;
             const id = req.params.id;
 
-            const deliveryOrder = await this.orderRepository.getDeliveryOrderById(storeCode, id);
+            const deliveryOrder = await this.orderRepository.getDeliveryOrderById(storeCode.toString(), id.toString());
 
             const deletedDeliveryOrder = await this.orderRepository.updateDeliveryOrder(deliveryOrder.storeCode.toString(), deliveryOrder._id?.toString() ?? "", {
                 status: OrderStatus.cancelled,
@@ -372,10 +372,11 @@ export default class OrdersController {
         }
     }
 
-    private async notifyUsers(process: IOrder, isReady: boolean): Promise<void> {
-        if (!process.createdBy) {
-            return;
-        }
+    private async notifyUsers(process: IOrder | null, isReady: boolean) : Promise<void> {
+        if (!process) return;
+
+        if (!process.createdBy) return;
+        
         const user = await this.userRepository.findOne(process.createdBy?.toString() ?? "");
         if (user?.token) {
             let info;
@@ -410,6 +411,22 @@ export default class OrdersController {
             ErrorAlerts.sendDefaultAlert(e as any)
         } finally {
             next();
+        }
+    }
+
+    getClientOrders = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+
+            const storeCode = req.params.storeCode;
+            const clientPhoneNumber = req.params.phoneNumber;
+            
+            idValidation.parse(storeCode);
+
+            const query = await this.establishmentRepository.getClientorders(storeCode.toString(), clientPhoneNumber.toString());
+            
+            return ApiResponse.success(query).send(res);
+        } catch (e) {
+            next(e);
         }
     }
 }

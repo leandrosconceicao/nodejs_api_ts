@@ -1,18 +1,19 @@
 import Jwt from 'jsonwebtoken';
 import crypto from 'crypto';
-import { v4 as uuidv4 } from 'uuid';
 import { IUsers } from '../models/Users';
+
+const jwtKey = process.env.CHAVE_JWT || "";
 
 export default class TokenGenerator {
     static generate(user: IUsers) {
         return Jwt.sign({
             id: user.id,
             group_user: user.group_user
-        }, process.env.CHAVE_JWT, {expiresIn: '12h'},);
+        }, jwtKey, {expiresIn: '12h'},);
     }
 
     static verify(token: string) {
-        return Jwt.verify(token, process.env.CHAVE_JWT);
+        return Jwt.verify(token, jwtKey);
     }
 
     static getToken() {
@@ -20,7 +21,7 @@ export default class TokenGenerator {
     }
 
     static generateId() {
-        return uuidv4();
+        return crypto.randomUUID();
     }
 
 

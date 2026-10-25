@@ -123,7 +123,7 @@ export default class ReportsController {
             }
             return ApiResponse.success({
                 totalValue: consult.reduce((a, b) => {
-                    return a + (b.subTotal)
+                    return a + (b.subTotal ?? 0.0)
                 }, 0),
                 orders: consult
             }).send(res);
@@ -192,7 +192,7 @@ export default class ReportsController {
 
                 const orders = await Orders.find(search);
 
-                const data = prepareData(orders, [prod._id.toString()]);
+                const data = prepareData(orders, [prod._id?.toString() ?? ""]);
 
                 value.total = getTotal(data);
 
@@ -237,7 +237,7 @@ function prepareData(orders: Array<IOrder>, products: Array<string>) : Array<IPr
     
     const dt = orders.map((el) => {
         return <IPreparation>{
-            order: el._id.toString(),
+            order: el._id?.toString() ?? "",
             discount: el.discount,
             products: el.products.filter((prod: any) => products.includes(prod.productId.toString()))
         };
@@ -248,8 +248,8 @@ function prepareData(orders: Array<IOrder>, products: Array<string>) : Array<IPr
 
 function getTotal(data: Array<IPreparation>): number {
     return data.reduce((total, value) => {
-        const sub = value.products.reduce((a, b) => a + (b.subTotal), 0.0)
-        const tot = sub - (sub * value.discount)
+        const sub = value.products?.reduce((a, b) => a + (b.subTotal ?? 0.0), 0.0) ?? 0.0;
+        const tot = sub - (sub * (value.discount ?? 0.0))
         return total + tot;
     },  
       0
@@ -260,7 +260,7 @@ function getQuantity(data: IPreparation[]) : number {
     return data.reduce(
         (total, value) =>
           total +
-          value.products.reduce((tot: any, vl: any) => tot + vl.quantity, 0),
+          value.products?.reduce((tot: any, vl: any) => tot + vl.quantity, 0),
         0
-      );
+      ) ?? 0.0;
 }

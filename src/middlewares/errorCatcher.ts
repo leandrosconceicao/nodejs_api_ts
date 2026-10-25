@@ -13,7 +13,7 @@ import ErrorAlerts from "../utils/errorAlerts";
 export default function(err: Error, req: express.Request, res: express.Response, next: NextFunction) {
     
     if (err instanceof z.ZodError) {
-        return ApiResponse.invalidParameter(err.errors).send(res);
+        return ApiResponse.invalidParameter(err.issues).send(res);
     }
     if ((err as any).code === 11000) {
         return new DuplicateError(err).send(res);

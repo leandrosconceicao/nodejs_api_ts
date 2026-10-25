@@ -29,7 +29,7 @@ export default class MongoPrinterRepository implements IPrinterRepository {
         }
 
         Object.values(SpoolType).forEach((e) => {
-            const values = data.spools.filter((s) => s.type == e);
+            const values = data.spools?.filter((s) => s.type == e) ?? [];
 
             if (values.length > 1)
                 throw new BadRequestError("")

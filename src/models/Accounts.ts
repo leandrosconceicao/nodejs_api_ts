@@ -102,7 +102,9 @@ interface IAccountSearch {
     storeCode?: string | mongoose.Types.ObjectId
     createdAt?: object,
     status?: string | string[] | object,
-    createdBy?: string | mongoose.Types.ObjectId
+    createdBy?: string | mongoose.Types.ObjectId,
+    from?: any,
+    to?: any
 }
 
 const accountSchema = new mongoose.Schema({
