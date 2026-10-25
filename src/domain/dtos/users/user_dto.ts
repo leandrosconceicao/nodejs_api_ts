@@ -3,7 +3,7 @@ import { GroupUser, IUsers } from "../../../models/Users";
 import { EstablishmentResponseDto } from "../establishment/establishment_dto";
 
 export class UserDto {
-    id?: any;
+    _id?: any;
     email: string;
     deleted?: boolean;
     group_user: GroupUser | "1" | "2" | "99";
@@ -16,7 +16,7 @@ export class UserDto {
     establishmentDetail?: EstablishmentResponseDto;
 
     constructor(user: IUsers) {
-        this.id = user._id;
+        this._id = user._id;
         this.email = user.email;
         this.deleted = user.deleted;
         this.group_user = user.group_user;

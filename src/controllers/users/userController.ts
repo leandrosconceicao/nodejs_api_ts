@@ -42,7 +42,11 @@ class UserController {
     try {
       const id = idValidation.parse(req.params.id);
       
-      const process = await this.userRepository.delete(id, req.autenticatedUser?.id)
+      const process = await this.userRepository.delete(id, req.autenticatedUser?.id);
+
+      if (!process) {
+        return ApiResponse.notFound().send(res);
+      }
 
       return ApiResponse.success(new UserDto(process)).send(res);
 
@@ -68,6 +72,10 @@ class UserController {
 
       const updatedUser = await this.userRepository.updateUser(id, user as IUsers);
 
+      if (!updatedUser) {
+        return ApiResponse.notFound().send(res);
+      }
+      
       return ApiResponse.success(new UserDto(updatedUser)).send(res);
     } catch (e) {
       next(e);
@@ -101,6 +109,10 @@ class UserController {
         throw new BadRequestError("Nenhum dado foi informado")
 
       const userUpdated = await this.userRepository.updateUser(id, userUpdate)
+
+      if (!userUpdated) {
+        return ApiResponse.notFound().send(res);
+      }
 
       ApiResponse.success(new UserDto(userUpdated)).send(res);
     } catch (e) {
