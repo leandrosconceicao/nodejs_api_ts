@@ -4,6 +4,7 @@ import MongoId from "../../models/custom_types/mongoose_types"
 import { IOrderProduct, orderProductValidation, OrderStatus } from "../../models/Orders"
 import { idValidation } from "../../utils/defaultValidations"
 import { IEstablishments } from "../../models/Establishments"
+import { DeliveryOrderDto } from "../../domain/dtos/orders/delivery_orders_dto"
 
 export const deliveryOrdersValidation = z.object({
     storeCode: idValidation,
@@ -71,5 +72,5 @@ export interface IDeliveryOrderAggregated {
     quantity: number,
     totalDeliveryTax: number,
     totalValue: number,
-    orders: IDeliveryOrder[],
+    orders: DeliveryOrderDto[],
 }

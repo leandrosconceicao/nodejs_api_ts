@@ -21,7 +21,7 @@ export default class ApiResponse<T={}> extends Error {
             statusProcess: true,
             message: "Success",
             status: statusCode ?? 200,
-            dados: data ?? null
+            dados: data ?? undefined
         });
     }
 
@@ -29,7 +29,6 @@ export default class ApiResponse<T={}> extends Error {
         return new ApiResponse({
             statusProcess: false,
             message: "O servidor não conseguiu processar a requisição, estaremos analisando o caso",
-            tecnical: tecnical,
             status: 500
         });
     }

@@ -3,7 +3,7 @@ import { IDeliveryOrder, IDeliveryOrderAggregated, ISearchDeliveryOrder } from "
 
 export default interface IOrderRepository {
 
-    findOne(id: string) : Promise<IOrder | null>;
+    findOne(id: string) : Promise<IOrder>;
 
     findAll(query: Partial<IOrderSearchQuery>) : Promise<Array<IOrder>>;
 

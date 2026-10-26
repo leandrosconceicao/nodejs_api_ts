@@ -3,7 +3,7 @@ import express from "express";
 import Endpoints from "../models/Endpoints";
 import validateToken from "../middlewares/tokenController";
 import {UserController} from "../controllers/users/userController";
-import paginationAndFilters from "../middlewares/paginationAndFilters";
+import {queryRequestMiddleware} from "../middlewares/paginationAndFilters";
 import { container } from "tsyringe";
 import adminTokenValidation from '../middlewares/adminTokenValidation';
 import tokenController from '../middlewares/tokenController';
@@ -11,7 +11,7 @@ import tokenController from '../middlewares/tokenController';
 const userController = container.resolve(UserController);
 
 export default express.Router()
-    .get(Endpoints.users, validateToken, userController.findAll, paginationAndFilters)
+    .get(Endpoints.users, validateToken, userController.findAll, queryRequestMiddleware, userController.parsedFindAll)
     .get(`${Endpoints.users}/:id`,  validateToken, userController.findOne)
     .post(Endpoints.users, adminTokenValidation, userController.add)
     .delete(`${Endpoints.users}/:id`, adminTokenValidation, userController.delete)

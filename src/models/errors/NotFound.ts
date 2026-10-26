@@ -5,8 +5,6 @@ export default class NotFoundError extends ApiResponse {
     super({
       statusProcess: false,
       message: message,
-      dados: null,
-      tecnical: null,
       status: 404,
     });
   }

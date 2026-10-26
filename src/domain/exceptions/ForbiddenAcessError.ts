@@ -6,8 +6,6 @@ export default class ForbiddenAcessError extends ApiResponse {
         super({
             statusProcess: false,
             message: message,
-            dados: null,
-            tecnical: null,
             status: 403,
         });
     }

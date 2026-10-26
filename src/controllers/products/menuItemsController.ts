@@ -6,6 +6,7 @@ import { idValidation } from "../../utils/defaultValidations";
 import IEstablishmentRepository from "../../domain/interfaces/IEstablishmentRepository";
 import { IEstablishmentMenuItems } from "../../domain/interfaces/IEstablishmentMenuItems";
 import { z } from "zod";
+import { EstablishmentResponseDto } from "../../domain/dtos/establishment/establishment_dto";
 @autoInjectable()
 export default class MenuItemsController {
 
@@ -39,7 +40,7 @@ export default class MenuItemsController {
             const categories = await this.categoryRepository.getMenuItems(id, query.category);
 
             const data: IEstablishmentMenuItems = {
-                company: store,
+                company: new EstablishmentResponseDto(store),
                 categories: categories
             };
 

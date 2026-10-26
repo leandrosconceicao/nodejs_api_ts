@@ -1,7 +1,7 @@
 import express from "express";
 import Endpoints from "../models/Endpoints";
 import validateToken, { TokenController } from "../middlewares/tokenController";
-import paginationAndFilters from "../middlewares/paginationAndFilters";
+import { queryRequestMiddleware } from "../middlewares/paginationAndFilters";
 import OrdersController from "../controllers/orders/ordersController";
 import { deletePaymment } from "../middlewares/paymentsMiddlewares";
 import { container } from "tsyringe";
@@ -16,7 +16,7 @@ const tokenController = container.resolve(TokenController);
 const orderMiddleware = container.resolve(OrdersMiddleware);
 
 export default express.Router()
-    .get(Endpoints.orders, orderController.findAll, paginationAndFilters)
+    .get(Endpoints.orders, validateToken, orderController.findAll, queryRequestMiddleware, orderController.parsedFindAll)
     .get(`${Endpoints.orders}/:id`, orderController.findOne)
     .post(Endpoints.orders, orderController.newOrder, orderMiddleware.addPreparationOrder, orderMiddleware.manageWithDrawMonitor, spoolMiddleware.printerSpoolMiddleware)
     .delete(`${Endpoints.orders}/:id`, adminTokenValidation, orderController.cancelOrder, deletePaymment, orderMiddleware.removePreparation, orderMiddleware.cancelDeliveryOrder, orderMiddleware.cancelWithdrawOrder, spoolMiddleware.removePrinterSpool)
@@ -30,4 +30,3 @@ export default express.Router()
     .patch(`${Endpoints.orders}/delivery_orders/:storeCode/:id`, tokenController.userValidation, orderController.updateDeliveryOrder, orderController.sendDataToFirebaseMiddleware, orderMiddleware.manageDeliveryOrder, orderMiddleware.addPreparationOrder, spoolMiddleware.printerSpoolMiddleware)
     .delete(`${Endpoints.orders}/delivery_orders/:storeCode/:id`, orderController.cancelDeliveryOrder)
     .delete("/clean_orders_preparation", orderController.checkPreparationOrders)
-    .get(`${Endpoints.orders}/clients/:storeCode/:phoneNumber`, orderController.getClientOrders)

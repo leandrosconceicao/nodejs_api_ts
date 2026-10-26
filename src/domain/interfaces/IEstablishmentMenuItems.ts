@@ -1,7 +1,7 @@
 import { ICategory } from "../../models/Categories";
-import { IEstablishments } from "../../models/Establishments";
+import { EstablishmentResponseDto } from "../../domain/dtos/establishment/establishment_dto";
 
 export interface IEstablishmentMenuItems {
-    company: IEstablishments,
+    company: EstablishmentResponseDto,
     categories: ICategory[]
 }

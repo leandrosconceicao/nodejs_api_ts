@@ -45,6 +45,9 @@ export default class AccountsController {
             })
             .parse(req.query);
 
+            delete searchQuery.from;
+            delete searchQuery.to;
+
             req.result = this.accountRepository.findAll(searchQuery);
             next();
         } catch (e) {

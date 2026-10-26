@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import { idValidation } from '../utils/defaultValidations';
 import PassGenerator from "../utils/passGenerator";
 import MongoId from './custom_types/mongoose_types';
+import { IEstablishments } from './Establishments';
 var ObjectId = mongoose.Schema.Types.ObjectId;
 
 const userValidaton = z.object({
@@ -34,7 +35,7 @@ const userPatchValidation = z.object({
   });
 
 
-enum GroupUser {
+export enum GroupUser {
     admin = "1",
     operator = "2",
     super = "99"
@@ -53,28 +54,19 @@ interface IUserSearchQuery {
 }
 
 interface IUsers {
+    _id?: string | MongoId,
     id?: any,
     email: string,
     pass: string,
     deleted?: boolean,
     group_user: GroupUser | "1" | "2" | "99",
-    // group_user: {
-    //     type: String, default: '1',
-    //     enum: {
-    //         values: ['1', '2', '99'],
-    //         message: "O tipo {VALUE} não é um valor permitido"
-    //     }
-    // },
     updatedBy: string | MongoId,
     updatedAt?: Date,
     changePassword: boolean,
     username: string,
     isActive: boolean,
-    storeCode: string | MongoId
-    // establishments: [{
-    //     type: ObjectId,
-    //     ref: "establishments"
-    // }],
+    storeCode: string | MongoId,
+    establishmentDetail?: IEstablishments,
     token?: string,
 }
 
