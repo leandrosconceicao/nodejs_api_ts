@@ -8,11 +8,11 @@ const OPENING_VALIDATION = z.object({
 });
 
 const MAX_DISCOUNT_VALUE = z.number()
-    .min(0.1, {
-        message: "Valor não pode ser menor do que 1"
+    .min(0, {
+        message: "Valor não pode ser menor do que 0"
     })
     .max(0.99, {
-        message: "Valor não pode ser maior do que 99.99"
+        message: "Valor não pode ser maior do que 0.9"
     });
 
 const SERVICES_VALIDATION = z.object({
