@@ -17,6 +17,10 @@ export class EstablishmentResponseDto implements Omit<IEstablishments, "ownerId"
     printEnabled: boolean;
     deliveryDistricts?: IDeliveryDistrict[];
     diffDaysToCleanPreparation: number;
+    opening_hours: {
+        start: string,
+        end: string
+    }
 
     constructor(entity: IEstablishments) {
         this._id = entity?._id;
@@ -32,6 +36,7 @@ export class EstablishmentResponseDto implements Omit<IEstablishments, "ownerId"
         this.printEnabled = entity.printEnabled;
         this.deliveryDistricts = entity.deliveryDistricts;
         this.diffDaysToCleanPreparation = entity.diffDaysToCleanPreparation;
+        this.opening_hours = entity.opening_hours;
     }
 
 }
