@@ -7,6 +7,14 @@ const OPENING_VALIDATION = z.object({
     end: z.string().regex(RegExp("^([0-1][0-9]|2[0-3]):[0-5][0-9]$")).optional(),
 });
 
+const MAX_DISCOUNT_VALUE = z.number()
+    .min(0.1, {
+        message: "Valor não pode ser menor do que 1"
+    })
+    .max(0.99, {
+        message: "Valor não pode ser maior do que 99.99"
+    });
+
 const SERVICES_VALIDATION = z.object({
     customer_service: z.boolean().optional(),
     delivery: z.boolean().optional(),
@@ -37,7 +45,7 @@ const establishmentAttributes = z.object({
         coordinates: z.array(z.number()),
     }).optional(),
     tipValue: z.number().default(0.0),
-    maxDiscountAllowed: z.number().optional()
+    maxDiscountAllowed: MAX_DISCOUNT_VALUE.optional()
 });
 
 const establishmentUpdateValidation = z.object({
@@ -56,14 +64,7 @@ const establishmentUpdateValidation = z.object({
         coordinates: z.array(z.number()),
     }).optional(),
     tipValue: z.number().default(0.0),
-    maxDiscountAllowed: z.number()
-        .min(1, {
-            message: "Valor não pode ser menor do que 1"
-        })
-        .max(99.99, {
-            message: "Valor não pode ser maior do que 99.99"
-        })
-        .optional(),
+    maxDiscountAllowed: MAX_DISCOUNT_VALUE.optional(),
     printEnabled: z.boolean().optional()
 });
 
@@ -170,7 +171,11 @@ interface IEstablishments {
     maxDiscountAllowed?: number,
     printEnabled: boolean,
     deliveryDistricts?: IDeliveryDistrict[],
-    diffDaysToCleanPreparation: number
+    diffDaysToCleanPreparation: number,
+    opening_hours: {
+        start: string,
+        end: string
+    }
 }
 
 const Establishments = mongoose.model<IEstablishments>('establishments', schema);
