@@ -38,6 +38,9 @@ export default class MongoAccountRepository implements IAccountRepository {
 
 
     findAll(query: IAccountSearch): Promise<IAccount[]> {
+        query.deleted_id = {
+            $eq: null
+        };
         if (typeof(query.status) === "object") {
             query.status = {
                 $in: query.status
